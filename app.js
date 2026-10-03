@@ -1,54 +1,29 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V270";
+const APP_BUILD="V271";
 const STORAGE="unser-zuhause-v269";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
 const LEGACY_STORAGE_OLD2="unser-zuhause-v139";
 const LEGACY_STORAGE_2="unser-zuhause-v109";
 const DAILY=[
- ["☀️ Morgenroutine",["Bett machen","Schlafzimmer kurz lüften","Kleidung wegräumen","Schmutzwäsche in den Wäschekorb","Vorhänge/Raffstores öffnen","Geschirrspüler ausräumen","Frühstücksgeschirr einräumen","Küchenarbeitsfläche abwischen","Esstisch abwischen","Hochstuhl/Essplatz sauber machen","Schuhe, Jacken & Taschen kurz ordnen"]],
- ["🍽️ Nach Mahlzeiten",["Geschirr in den Geschirrspüler","Tisch abwischen","Hochstuhl/Essplatz sauber machen","Heruntergefallenes Essen vom Boden entfernen","Arbeitsfläche bei Bedarf abwischen"]],
- ["🌙 Abend · max. 10 Minuten",["Geschirrspüler einräumen & einschalten","Küchenflächen kurz abwischen","Spüle kurz sauber machen","Herd kurz sauber machen","Esstisch abwischen","Hochstuhl/Essplatz sauber machen","Müll kontrollieren","Wohnzimmer grob zurücksetzen","Garderobe kurz ordnen","Kleidung wegräumen","Vorhänge/Raffstores schließen"]],
- ["🔎 Tagescheck",["Restmüll kontrollieren","Biomüll kontrollieren","Wäsche nur bei Bedarf starten","Kühlschrank nur bei Bedarf prüfen","Toiletten nur bei Bedarf prüfen","Küchenboden bei Essensresten reinigen","Sichtbare Bodenflecken beseitigen"]]
+ [" Morgenroutine",["Bett machen","Schlafzimmer kurz lüften","Kleidung wegräumen","Schmutzwäsche in den Wäschekorb","Vorhänge/Raffstores öffnen","Geschirrspüler ausräumen","Frühstücksgeschirr einräumen","Küchenarbeitsfläche abwischen","Esstisch abwischen","Hochstuhl/Essplatz sauber machen","Schuhe, Jacken & Taschen kurz ordnen"]],
+ [" Nach Mahlzeiten",["Geschirr in den Geschirrspüler","Tisch abwischen","Hochstuhl/Essplatz sauber machen","Heruntergefallenes Essen vom Boden entfernen","Arbeitsfläche bei Bedarf abwischen"]],
+ [" Abend · max. 10 Minuten",["Geschirrspüler einräumen & einschalten","Küchenflächen kurz abwischen","Spüle kurz sauber machen","Herd kurz sauber machen","Esstisch abwischen","Hochstuhl/Essplatz sauber machen","Müll kontrollieren","Wohnzimmer grob zurücksetzen","Garderobe kurz ordnen","Kleidung wegräumen","Vorhänge/Raffstores schließen"]],
+ [" Tagescheck",["Restmüll kontrollieren","Biomüll kontrollieren","Wäsche nur bei Bedarf starten","Kühlschrank nur bei Bedarf prüfen","Toiletten nur bei Bedarf prüfen","Küchenboden bei Essensresten reinigen","Sichtbare Bodenflecken beseitigen"]]
 ];
 
 /* V270 – einheitliche Raumgruppen + aufgabenbezogene Symbole */
 const ROOM_ICONS={
-  "Küche":"🍽️","Essbereich":"🍽️","Wohnzimmer":"🛋️","Garderobe":"🧥","Eingangsbereich":"🚪",
-  "Flur":"🚶","Flur OG":"🚶","Flur KG":"🚶","Büro":"💻","Abstellraum":"🧹","Speis":"🥫",
-  "Gäste-WC":"🚽","Kinderbad":"🛁","Bad":"🛁","Eltern-WC":"🚽","Schlafzimmer":"🛏️",
-  "Ankleidezimmer":"👗","Kinderzimmer 1":"🧸","Kinderzimmer 2":"🧸","Waschküche":"🧺",
-  "Musikzimmer":"🎵","Trainingsraum":"🏋️","Technikraum":"⚙️","Lagerraum":"📦","Saunaraum":"🧖",
-  "Stiegenhaus":"🪜"
+  "Küche":"","Essbereich":"","Wohnzimmer":"","Garderobe":"","Eingangsbereich":"",
+  "Flur":"","Flur OG":"","Flur KG":"","Büro":"","Abstellraum":"","Speis":"",
+  "Gäste-WC":"","Kinderbad":"","Bad":"","Eltern-WC":"","Schlafzimmer":"",
+  "Ankleidezimmer":"","Kinderzimmer 1":"","Kinderzimmer 2":"","Waschküche":"",
+  "Musikzimmer":"","Trainingsraum":"","Technikraum":"","Lagerraum":"","Saunaraum":"",
+  "Stiegenhaus":""
 };
-function roomIcon(room){return ROOM_ICONS[room]||"🏠"}
+function roomIcon(room){return ""}
 function stripTaskEmoji(text){return String(text||"").replace(/^\s*(?:[\p{Extended_Pictographic}\uFE0F]|\u200D|\u20E3|\u{1F3FB}-\u{1F3FF}|\s)+/u,"").trim()}
-function taskIcon(x){
-  const t=String(x?.text||"").toLowerCase();
-  if(x?.window||x?.windowSill||x?.raffstore||/fenster|fensterbank|raffstore|sonnenschutz/.test(t))return "🪟";
-  if(/bettwäsche|bettlaken|kissen|decke|matratze|bettpflege/.test(t))return "🛏️";
-  if(/wäsche|waschmaschine|trockner|bügel|wäscheständer/.test(t))return "🧺";
-  if(/wc|toilette|toilettenrand|wc-bürste/.test(t))return "🚽";
-  if(/dusche|badewanne|duschglas|duschrinne|waschbecken|armatur|fuge|silikon/.test(t))return "🛁";
-  if(/kühlschrank|gefrier|lebensmittel|vorrat|speis/.test(t))return "🥫";
-  if(/geschirrspüler|geschirr|spüle|besteck/.test(t))return "🍽️";
-  if(/herd|kochfeld|backofen|mikrowelle|dunstabzug/.test(t))return "🍳";
-  if(/kaffee|kaffeemaschine|wasserkocher|toaster/.test(t))return "☕";
-  if(/kamin|asche|holz|ruß/.test(t))return "🔥";
-  if(/sauna/.test(t))return "🧖";
-  if(/staubsaug|saugen|absaugen/.test(t))return "🧹";
-  if(/wischen|boden|sockelleisten/.test(t))return "🧽";
-  if(/staub|entstaub|abstauben|spinnweb/.test(t))return "✨";
-  if(/tür|türklink|türrahmen|lichtschalter|steckdose/.test(t))return "🚪";
-  if(/müll|abfall|mülleimer/.test(t))return "🗑️";
-  if(/schrank|schublade|regal|ordnen|sortieren|ausmisten/.test(t))return "🗂️";
-  if(/spiegel|glas/.test(t))return "🪞";
-  if(/heizkörper|lüftung|rauchmelder|technik|filter/.test(t))return "⚙️";
-  if(/teppich|polster|sofa|vorhang/.test(t))return "🛋️";
-  if(/tisch|stuhl|sideboard/.test(t))return "🪑";
-  if(/garten|terrasse|balkon|pflanz|rasen|hecke/.test(t))return "🌿";
-  return roomIcon(x?.room);
-}
+function taskIcon(x){return ""}
 function displayTaskName(x){return stripTaskEmoji(x?.text)}
 
 const ROTATIONS=[
@@ -58,32 +33,32 @@ const ROTATIONS=[
  {text:"Decken-/Wandecken auf Spinnweben prüfen",interval:120,rooms:["Wohnzimmer","Essbereich","Küche","Garderobe","Eingangsbereich","Flur","Büro","Abstellraum","Speis","Gäste-WC","Kinderbad","Bad","Eltern-WC","Schlafzimmer","Ankleidezimmer","Kinderzimmer 1","Kinderzimmer 2","Flur OG","Waschküche","Musikzimmer","Trainingsraum","Technikraum","Lagerraum","Flur KG","Saunaraum","Stiegenhaus"],area:"Raum"},
  {text:"Lichtschalter außen reinigen",interval:180,rooms:["Wohnzimmer","Essbereich","Küche","Garderobe","Eingangsbereich","Flur","Büro","Abstellraum","Speis","Gäste-WC","Kinderbad","Bad","Eltern-WC","Schlafzimmer","Ankleidezimmer","Kinderzimmer 1","Kinderzimmer 2","Flur OG","Waschküche","Musikzimmer","Trainingsraum","Technikraum","Lagerraum","Flur KG","Saunaraum","Stiegenhaus"],area:"Raum"},
  {text:"Steckdosen außen reinigen",interval:365,rooms:["Wohnzimmer","Essbereich","Küche","Garderobe","Eingangsbereich","Flur","Büro","Abstellraum","Speis","Gäste-WC","Kinderbad","Bad","Eltern-WC","Schlafzimmer","Ankleidezimmer","Kinderzimmer 1","Kinderzimmer 2","Flur OG","Waschküche","Musikzimmer","Trainingsraum","Technikraum","Lagerraum","Flur KG","Saunaraum","Stiegenhaus"],area:"Raum"},
- {text:"🏛️ Stuck vorsichtig trocken entstauben",interval:30,rooms:["Wohnzimmer","Flur","Stiegenhaus"],area:"Raum"},
+ {text:" Stuck vorsichtig trocken entstauben",interval:30,rooms:["Wohnzimmer","Flur","Stiegenhaus"],area:"Raum"},
  {text:"Vorhangstangen / Schienen reinigen",interval:365,rooms:["Wohnzimmer","Essbereich","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2","Ankleidezimmer"],area:"Raum"},
  {text:"Erreichbare Lampen reinigen",interval:180,rooms:["Wohnzimmer","Essbereich","Küche","Garderobe","Eingangsbereich","Flur","Büro","Abstellraum","Speis","Gäste-WC","Kinderbad","Bad","Eltern-WC","Schlafzimmer","Ankleidezimmer","Kinderzimmer 1","Kinderzimmer 2","Flur OG","Waschküche","Musikzimmer","Trainingsraum","Technikraum","Lagerraum","Flur KG","Saunaraum","Stiegenhaus"],area:"Raum"},
- {text:"🧊 Kühlschrank prüfen und bei Bedarf reinigen",interval:90,rooms:["Küche"],area:"EG"},
- {text:"🔥 Backofen gründlich reinigen",interval:90,rooms:["Küche"],area:"EG"},
- {text:"🍽️ Geschirrspüler: Filter, Dichtung & Pflegeprogramm nach Hersteller",interval:90,rooms:["Küche"],area:"EG"},
- {text:"🧺 Waschmaschine: Waschmittelschublade & Dichtung reinigen",interval:90,rooms:["Waschküche"],area:"Keller"},
- {text:"🧖 Sauna reinigen / pflegen",interval:90,rooms:["Saunaraum"],area:"OG"},
- {text:"🛏️ Matratzen wenden/pflegen nach Herstellerangabe",interval:180,rooms:["Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"OG"},
- {text:"🧼 Fugen & Silikon kontrollieren / materialgerecht reinigen",interval:180,rooms:["Gäste-WC","Kinderbad","Bad","Eltern-WC"],area:"Raum"},
- {text:"🔥 Kamin: erkaltete Asche entfernen",interval:60,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Kamin: Feuerraum auskehren",interval:60,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Kaminrost reinigen",interval:60,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Kaminbesteck abwischen",interval:60,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Kaminholz schlichten",interval:14,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Holzablage reinigen",interval:60,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Bereich direkt vor Kamin gründlich absaugen",interval:14,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Ruß-/Aschespuren entfernen",interval:30,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Kaminverkleidung materialgerecht reinigen",interval:90,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Kaminglas reinigen, falls vorhanden",interval:90,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🔥 Fachgerechte Kamin-/Schornsteinkontrolle und Wartung nach Vorgabe",interval:365,rooms:["Wohnzimmer"],area:"EG"},
- {text:"🧺 Bettwäsche wechseln",interval:14,rooms:["Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"OG"},
- {text:"🧺 Handtücher wechseln",interval:14,rooms:["Gäste-WC","Kinderbad","Bad","Eltern-WC"],area:"Raum"},
- {text:"🧺 Decken nach Pflegeetikett reinigen",interval:365,rooms:["Wohnzimmer","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"Raum"},
- {text:"🧺 Teppiche nach Pflegehinweisen reinigen",interval:365,rooms:["Wohnzimmer","Essbereich","Kinderzimmer 1","Kinderzimmer 2"],area:"Raum"},
- {text:"🧺 Vorhänge nach Pflegeetikett reinigen",interval:365,rooms:["Wohnzimmer","Essbereich","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"Raum"},
+ {text:" Kühlschrank prüfen und bei Bedarf reinigen",interval:90,rooms:["Küche"],area:"EG"},
+ {text:" Backofen gründlich reinigen",interval:90,rooms:["Küche"],area:"EG"},
+ {text:" Geschirrspüler: Filter, Dichtung & Pflegeprogramm nach Hersteller",interval:90,rooms:["Küche"],area:"EG"},
+ {text:" Waschmaschine: Waschmittelschublade & Dichtung reinigen",interval:90,rooms:["Waschküche"],area:"Keller"},
+ {text:" Sauna reinigen / pflegen",interval:90,rooms:["Saunaraum"],area:"OG"},
+ {text:" Matratzen wenden/pflegen nach Herstellerangabe",interval:180,rooms:["Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"OG"},
+ {text:" Fugen & Silikon kontrollieren / materialgerecht reinigen",interval:180,rooms:["Gäste-WC","Kinderbad","Bad","Eltern-WC"],area:"Raum"},
+ {text:" Kamin: erkaltete Asche entfernen",interval:60,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Kamin: Feuerraum auskehren",interval:60,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Kaminrost reinigen",interval:60,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Kaminbesteck abwischen",interval:60,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Kaminholz schlichten",interval:14,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Holzablage reinigen",interval:60,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Bereich direkt vor Kamin gründlich absaugen",interval:14,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Ruß-/Aschespuren entfernen",interval:30,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Kaminverkleidung materialgerecht reinigen",interval:90,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Kaminglas reinigen, falls vorhanden",interval:90,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Fachgerechte Kamin-/Schornsteinkontrolle und Wartung nach Vorgabe",interval:365,rooms:["Wohnzimmer"],area:"EG"},
+ {text:" Bettwäsche wechseln",interval:14,rooms:["Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"OG"},
+ {text:" Handtücher wechseln",interval:14,rooms:["Gäste-WC","Kinderbad","Bad","Eltern-WC"],area:"Raum"},
+ {text:" Decken nach Pflegeetikett reinigen",interval:365,rooms:["Wohnzimmer","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"Raum"},
+ {text:" Teppiche nach Pflegehinweisen reinigen",interval:365,rooms:["Wohnzimmer","Essbereich","Kinderzimmer 1","Kinderzimmer 2"],area:"Raum"},
+ {text:" Vorhänge nach Pflegeetikett reinigen",interval:365,rooms:["Wohnzimmer","Essbereich","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"Raum"},
  {text:"Heizkörper gründlich entstauben",interval:180,rooms:["Wohnzimmer","Essbereich","Küche","Garderobe","Eingangsbereich","Flur","Büro","Abstellraum","Speis","Gäste-WC","Kinderbad","Bad","Eltern-WC","Schlafzimmer","Ankleidezimmer","Kinderzimmer 1","Kinderzimmer 2","Flur OG","Waschküche","Musikzimmer","Trainingsraum","Technikraum","Lagerraum","Flur KG","Saunaraum","Stiegenhaus"],area:"Raum"},
  {text:"Lüftungsgitter außen reinigen, falls vorhanden",interval:180,rooms:["Gäste-WC","Kinderbad","Bad","Eltern-WC","Saunaraum","Technikraum"],area:"Raum"},
  {text:"Rauchmelder Funktionstest nach Herstellerangabe",interval:180,rooms:["Wohnzimmer","Essbereich","Flur","Flur OG","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2","Flur KG","Stiegenhaus"],area:"Raum"},
@@ -293,45 +268,45 @@ const WINDOW_INVENTORY = [
 ];
 const SEASONAL_SPECIALS = [
  // Herbst 2026 – erste Runde, bewusst klein portioniert
- {key:"fenster-kg-waschkueche-musik",text:"🪟 Fenster KG · Waschküche + Musikzimmer",room:"Waschküche + Musikzimmer",area:"KG",dates:["2026-09-15","2026-09-17","2026-09-19"]},
- {key:"fenster-kg-technik-training",text:"🪟 Fenster KG · Technikraum + Trainingsraum",room:"Technikraum + Trainingsraum",area:"KG",dates:["2026-09-22","2026-09-24","2026-09-26"]},
- {key:"fenster-kg-flur-stiegenhaus",text:"🪟 Fenster KG · Flur + großes Stiegenhausfenster",room:"Flur KG + Stiegenhaus",area:"KG",dates:["2026-09-29","2026-10-01","2026-10-03"]},
- {key:"fenster-eg-garderobe-buero",text:"🪟 Fenster EG · Garderobe + Büro",room:"Garderobe + Büro",area:"EG",dates:["2026-10-06","2026-10-08","2026-10-10"]},
- {key:"fenster-eg-wohnen-essen",text:"🪟 Fenster EG · Wohnzimmer + Essbereich",room:"Wohnzimmer + Essbereich",area:"EG",dates:["2026-10-13","2026-10-15","2026-10-17"]},
- {key:"fenster-eg-kueche-speis-abstell",text:"🪟 Fenster EG · Küche + Speis + Abstellraum + Gäste-WC",room:"Küche + Speis + Abstellraum + Gäste-WC",area:"EG",dates:["2026-10-20","2026-10-22","2026-10-24"]},
- {key:"fenster-og-kinder",text:"🪟 Fenster OG · beide Kinderzimmer",room:"Kinderzimmer 1 + Kinderzimmer 2",area:"OG",dates:["2026-10-27","2026-10-29","2026-10-31"]},
- {key:"fenster-og-schlaf-ankleide",text:"🪟 Fenster OG · Schlafzimmer + Ankleide",room:"Schlafzimmer + Ankleide",area:"OG",dates:["2026-11-03","2026-11-05","2026-11-07"]},
- {key:"fenster-og-baeder-wc-sauna",text:"🪟 Fenster OG · Kinderbad + Eltern-WC + Sauna",room:"Kinderbad + Eltern-WC + Sauna",area:"OG",dates:["2026-11-10","2026-11-12","2026-11-14"]},
- {key:"fenster-og-bad",text:"🪟 Fenster OG · großes Bad",room:"Bad",area:"OG",dates:["2026-11-17","2026-11-19","2026-11-21"]},
+ {key:"fenster-kg-waschkueche-musik",text:" Fenster KG · Waschküche + Musikzimmer",room:"Waschküche + Musikzimmer",area:"KG",dates:["2026-09-15","2026-09-17","2026-09-19"]},
+ {key:"fenster-kg-technik-training",text:" Fenster KG · Technikraum + Trainingsraum",room:"Technikraum + Trainingsraum",area:"KG",dates:["2026-09-22","2026-09-24","2026-09-26"]},
+ {key:"fenster-kg-flur-stiegenhaus",text:" Fenster KG · Flur + großes Stiegenhausfenster",room:"Flur KG + Stiegenhaus",area:"KG",dates:["2026-09-29","2026-10-01","2026-10-03"]},
+ {key:"fenster-eg-garderobe-buero",text:" Fenster EG · Garderobe + Büro",room:"Garderobe + Büro",area:"EG",dates:["2026-10-06","2026-10-08","2026-10-10"]},
+ {key:"fenster-eg-wohnen-essen",text:" Fenster EG · Wohnzimmer + Essbereich",room:"Wohnzimmer + Essbereich",area:"EG",dates:["2026-10-13","2026-10-15","2026-10-17"]},
+ {key:"fenster-eg-kueche-speis-abstell",text:" Fenster EG · Küche + Speis + Abstellraum + Gäste-WC",room:"Küche + Speis + Abstellraum + Gäste-WC",area:"EG",dates:["2026-10-20","2026-10-22","2026-10-24"]},
+ {key:"fenster-og-kinder",text:" Fenster OG · beide Kinderzimmer",room:"Kinderzimmer 1 + Kinderzimmer 2",area:"OG",dates:["2026-10-27","2026-10-29","2026-10-31"]},
+ {key:"fenster-og-schlaf-ankleide",text:" Fenster OG · Schlafzimmer + Ankleide",room:"Schlafzimmer + Ankleide",area:"OG",dates:["2026-11-03","2026-11-05","2026-11-07"]},
+ {key:"fenster-og-baeder-wc-sauna",text:" Fenster OG · Kinderbad + Eltern-WC + Sauna",room:"Kinderbad + Eltern-WC + Sauna",area:"OG",dates:["2026-11-10","2026-11-12","2026-11-14"]},
+ {key:"fenster-og-bad",text:" Fenster OG · großes Bad",room:"Bad",area:"OG",dates:["2026-11-17","2026-11-19","2026-11-21"]},
 
  // Ab Frühjahr 2027 derselbe Rhythmus, nochmals mit kleinen Portionen.
- {key:"fenster-kg-waschkueche-musik",text:"🪟 Fenster KG · Waschküche + Musikzimmer",room:"Waschküche + Musikzimmer",area:"KG",dates:["2027-04-06","2027-04-08","2027-04-10"]},
- {key:"fenster-kg-technik-training",text:"🪟 Fenster KG · Technikraum + Trainingsraum",room:"Technikraum + Trainingsraum",area:"KG",dates:["2027-04-13","2027-04-15","2027-04-17"]},
- {key:"fenster-kg-flur-stiegenhaus",text:"🪟 Fenster KG · Flur + großes Stiegenhausfenster",room:"Flur KG + Stiegenhaus",area:"KG",dates:["2027-04-20","2027-04-22","2027-04-24"]},
- {key:"fenster-eg-garderobe-buero",text:"🪟 Fenster EG · Garderobe + Büro",room:"Garderobe + Büro",area:"EG",dates:["2027-04-27","2027-04-29","2027-05-01"]},
- {key:"fenster-eg-wohnen-essen",text:"🪟 Fenster EG · Wohnzimmer + Essbereich",room:"Wohnzimmer + Essbereich",area:"EG",dates:["2027-05-04","2027-05-06","2027-05-08"]},
- {key:"fenster-eg-kueche-speis-abstell",text:"🪟 Fenster EG · Küche + Speis + Abstellraum + Gäste-WC",room:"Küche + Speis + Abstellraum + Gäste-WC",area:"EG",dates:["2027-05-11","2027-05-13","2027-05-15"]},
- {key:"fenster-og-kinder",text:"🪟 Fenster OG · beide Kinderzimmer",room:"Kinderzimmer 1 + Kinderzimmer 2",area:"OG",dates:["2027-05-18","2027-05-20","2027-05-22"]},
- {key:"fenster-og-schlaf-ankleide",text:"🪟 Fenster OG · Schlafzimmer + Ankleide",room:"Schlafzimmer + Ankleide",area:"OG",dates:["2027-05-25","2027-05-27","2027-05-29"]},
- {key:"fenster-og-baeder-wc-sauna",text:"🪟 Fenster OG · Kinderbad + Eltern-WC + Sauna",room:"Kinderbad + Eltern-WC + Sauna",area:"OG",dates:["2027-06-01","2027-06-03","2027-06-05"]},
- {key:"fenster-og-bad",text:"🪟 Fenster OG · großes Bad",room:"Bad",area:"OG",dates:["2027-06-08","2027-06-10","2027-06-12"]},
+ {key:"fenster-kg-waschkueche-musik",text:" Fenster KG · Waschküche + Musikzimmer",room:"Waschküche + Musikzimmer",area:"KG",dates:["2027-04-06","2027-04-08","2027-04-10"]},
+ {key:"fenster-kg-technik-training",text:" Fenster KG · Technikraum + Trainingsraum",room:"Technikraum + Trainingsraum",area:"KG",dates:["2027-04-13","2027-04-15","2027-04-17"]},
+ {key:"fenster-kg-flur-stiegenhaus",text:" Fenster KG · Flur + großes Stiegenhausfenster",room:"Flur KG + Stiegenhaus",area:"KG",dates:["2027-04-20","2027-04-22","2027-04-24"]},
+ {key:"fenster-eg-garderobe-buero",text:" Fenster EG · Garderobe + Büro",room:"Garderobe + Büro",area:"EG",dates:["2027-04-27","2027-04-29","2027-05-01"]},
+ {key:"fenster-eg-wohnen-essen",text:" Fenster EG · Wohnzimmer + Essbereich",room:"Wohnzimmer + Essbereich",area:"EG",dates:["2027-05-04","2027-05-06","2027-05-08"]},
+ {key:"fenster-eg-kueche-speis-abstell",text:" Fenster EG · Küche + Speis + Abstellraum + Gäste-WC",room:"Küche + Speis + Abstellraum + Gäste-WC",area:"EG",dates:["2027-05-11","2027-05-13","2027-05-15"]},
+ {key:"fenster-og-kinder",text:" Fenster OG · beide Kinderzimmer",room:"Kinderzimmer 1 + Kinderzimmer 2",area:"OG",dates:["2027-05-18","2027-05-20","2027-05-22"]},
+ {key:"fenster-og-schlaf-ankleide",text:" Fenster OG · Schlafzimmer + Ankleide",room:"Schlafzimmer + Ankleide",area:"OG",dates:["2027-05-25","2027-05-27","2027-05-29"]},
+ {key:"fenster-og-baeder-wc-sauna",text:" Fenster OG · Kinderbad + Eltern-WC + Sauna",room:"Kinderbad + Eltern-WC + Sauna",area:"OG",dates:["2027-06-01","2027-06-03","2027-06-05"]},
+ {key:"fenster-og-bad",text:" Fenster OG · großes Bad",room:"Bad",area:"OG",dates:["2027-06-08","2027-06-10","2027-06-12"]},
 
  // Herbst 2027
- {key:"fenster-kg-waschkueche-musik",text:"🪟 Fenster KG · Waschküche + Musikzimmer",room:"Waschküche + Musikzimmer",area:"KG",dates:["2027-09-07","2027-09-09","2027-09-11"]},
- {key:"fenster-kg-technik-training",text:"🪟 Fenster KG · Technikraum + Trainingsraum",room:"Technikraum + Trainingsraum",area:"KG",dates:["2027-09-14","2027-09-16","2027-09-18"]},
- {key:"fenster-kg-flur-stiegenhaus",text:"🪟 Fenster KG · Flur + großes Stiegenhausfenster",room:"Flur KG + Stiegenhaus",area:"KG",dates:["2027-09-21","2027-09-23","2027-09-25"]},
- {key:"fenster-eg-garderobe-buero",text:"🪟 Fenster EG · Garderobe + Büro",room:"Garderobe + Büro",area:"EG",dates:["2027-09-28","2027-09-30","2027-10-02"]},
- {key:"fenster-eg-wohnen-essen",text:"🪟 Fenster EG · Wohnzimmer + Essbereich",room:"Wohnzimmer + Essbereich",area:"EG",dates:["2027-10-05","2027-10-07","2027-10-09"]},
- {key:"fenster-eg-kueche-speis-abstell",text:"🪟 Fenster EG · Küche + Speis + Abstellraum + Gäste-WC",room:"Küche + Speis + Abstellraum + Gäste-WC",area:"EG",dates:["2027-10-12","2027-10-14","2027-10-16"]},
- {key:"fenster-og-kinder",text:"🪟 Fenster OG · beide Kinderzimmer",room:"Kinderzimmer 1 + Kinderzimmer 2",area:"OG",dates:["2027-10-19","2027-10-21","2027-10-23"]},
- {key:"fenster-og-schlaf-ankleide",text:"🪟 Fenster OG · Schlafzimmer + Ankleide",room:"Schlafzimmer + Ankleide",area:"OG",dates:["2027-10-26","2027-10-28","2027-10-30"]},
- {key:"fenster-og-baeder-wc-sauna",text:"🪟 Fenster OG · Kinderbad + Eltern-WC + Sauna",room:"Kinderbad + Eltern-WC + Sauna",area:"OG",dates:["2027-11-02","2027-11-04","2027-11-06"]},
- {key:"fenster-og-bad",text:"🪟 Fenster OG · großes Bad",room:"Bad",area:"OG",dates:["2027-11-09","2027-11-11","2027-11-13"]}
+ {key:"fenster-kg-waschkueche-musik",text:" Fenster KG · Waschküche + Musikzimmer",room:"Waschküche + Musikzimmer",area:"KG",dates:["2027-09-07","2027-09-09","2027-09-11"]},
+ {key:"fenster-kg-technik-training",text:" Fenster KG · Technikraum + Trainingsraum",room:"Technikraum + Trainingsraum",area:"KG",dates:["2027-09-14","2027-09-16","2027-09-18"]},
+ {key:"fenster-kg-flur-stiegenhaus",text:" Fenster KG · Flur + großes Stiegenhausfenster",room:"Flur KG + Stiegenhaus",area:"KG",dates:["2027-09-21","2027-09-23","2027-09-25"]},
+ {key:"fenster-eg-garderobe-buero",text:" Fenster EG · Garderobe + Büro",room:"Garderobe + Büro",area:"EG",dates:["2027-09-28","2027-09-30","2027-10-02"]},
+ {key:"fenster-eg-wohnen-essen",text:" Fenster EG · Wohnzimmer + Essbereich",room:"Wohnzimmer + Essbereich",area:"EG",dates:["2027-10-05","2027-10-07","2027-10-09"]},
+ {key:"fenster-eg-kueche-speis-abstell",text:" Fenster EG · Küche + Speis + Abstellraum + Gäste-WC",room:"Küche + Speis + Abstellraum + Gäste-WC",area:"EG",dates:["2027-10-12","2027-10-14","2027-10-16"]},
+ {key:"fenster-og-kinder",text:" Fenster OG · beide Kinderzimmer",room:"Kinderzimmer 1 + Kinderzimmer 2",area:"OG",dates:["2027-10-19","2027-10-21","2027-10-23"]},
+ {key:"fenster-og-schlaf-ankleide",text:" Fenster OG · Schlafzimmer + Ankleide",room:"Schlafzimmer + Ankleide",area:"OG",dates:["2027-10-26","2027-10-28","2027-10-30"]},
+ {key:"fenster-og-baeder-wc-sauna",text:" Fenster OG · Kinderbad + Eltern-WC + Sauna",room:"Kinderbad + Eltern-WC + Sauna",area:"OG",dates:["2027-11-02","2027-11-04","2027-11-06"]},
+ {key:"fenster-og-bad",text:" Fenster OG · großes Bad",room:"Bad",area:"OG",dates:["2027-11-09","2027-11-11","2027-11-13"]}
 ];
 
 const BASEMENT=["Waschküche","Musikzimmer","Trainingsraum","Technikraum","Lagerraum","Flur KG"];
 const WEEKDAYS={Wohnzimmer:1,Essbereich:1,Küche:1,"Gäste-WC":2,Kinderbad:2,Bad:2,"Eltern-WC":2,Schlafzimmer:3,Ankleidezimmer:3,"Kinderzimmer 1":3,"Kinderzimmer 2":3,"Flur OG":3,Saunaraum:3,Stiegenhaus:3,Eingangsbereich:4,Garderobe:4,Flur:4,Büro:4,Abstellraum:4,Speis:4};
-const DAY_THEME={1:"EG · Wohnen, Essen & Küche",2:"Bäder & WCs",3:"OG · Schlafen, Kinder & Sauna",4:"EG · Nebenräume",5:"Keller · nur ein Raum",6:"Wäsche + maximal eine Sonderaufgabe",0:"Haushaltsfrei ❤️"};
+const DAY_THEME={1:"EG · Wohnen, Essen & Küche",2:"Bäder & WCs",3:"OG · Schlafen, Kinder & Sauna",4:"EG · Nebenräume",5:"Keller · nur ein Raum",6:"Wäsche + maximal eine Sonderaufgabe",0:"Haushaltsfrei "};
 
 function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
 function pad(n){return String(n).padStart(2,"0")}
@@ -620,7 +595,7 @@ function postponeTask(x){
  const until=dayKey(planned);const id=taskId(x);
  delete state.done[doneKey(x)];
  state.postponed[id]={...x,key:x.key||id,from:day,postponedUntil:until,actionDate:day,planningOnly:true};
- save();render();toast(`Für später geplant · ${formatDateKey(until)} ❤️`)
+ save();render();toast(`Für später geplant · ${formatDateKey(until)} `)
 }
 function restorePostponed(id){delete state.postponed[id];save();render()}
 function purgePostponed(){const k=dayKey();for(const [id,v] of Object.entries(state.postponed||{}))if(v.from&&v.from<k&&!v.postponedUntil)delete state.postponed[id]}
@@ -669,19 +644,19 @@ function celebrateCompletedDay(){
   state.dayCelebrations=state.dayCelebrations&&typeof state.dayCelebrations==="object"?state.dayCelebrations:{};
   state.dayCelebrations[k]=true;
   const rewards=[
-    ["🛋️","Jetzt ist wirklich Feierabend.","Mach es dir gemütlich — dein Zuhause ist für heute versorgt."],
-    ["☕","Diese Pause hast du dir verdient.","Jetzt darfst du ganz ohne schlechtes Gewissen genießen."],
-    ["🌿","Heute darfst du einfach zufrieden sein.","Du hast deinem Zuhause etwas Gutes getan."],
-    ["🍰","Kleine Belohnung, großer Unterschied.","Jetzt ist Zeit für etwas Schönes nur für dich."],
-    ["🕯️","Zuhause geschafft.","Licht an, Füße hoch — für heute ist genug getan."],
-    ["👑","Haushaltsheldin des Tages.","Dein Reich ist für heute in Ordnung. Der Rest darf bis morgen warten."],
-    ["🎬","Haushalt aus. Entspannung an.","Heute hast du dir einen richtig guten Feierabend verdient."],
-    ["💐","Ein schöner Abschluss für heute.","Du hast wieder ein kleines Stück Zuhause geschaffen."]
+    ["","Jetzt ist wirklich Feierabend.","Mach es dir gemütlich — dein Zuhause ist für heute versorgt."],
+    ["","Diese Pause hast du dir verdient.","Jetzt darfst du ganz ohne schlechtes Gewissen genießen."],
+    ["","Heute darfst du einfach zufrieden sein.","Du hast deinem Zuhause etwas Gutes getan."],
+    ["","Kleine Belohnung, großer Unterschied.","Jetzt ist Zeit für etwas Schönes nur für dich."],
+    ["","Zuhause geschafft.","Licht an, Füße hoch — für heute ist genug getan."],
+    ["","Haushaltsheldin des Tages.","Dein Reich ist für heute in Ordnung. Der Rest darf bis morgen warten."],
+    ["","Haushalt aus. Entspannung an.","Heute hast du dir einen richtig guten Feierabend verdient."],
+    ["","Ein schöner Abschluss für heute.","Du hast wieder ein kleines Stück Zuhause geschaffen."]
   ];
   const dt=new Date(k+"T12:00:00"),r=rewards[(dt.getDate()+dt.getMonth())%rewards.length];
   const overlay=document.createElement("div");
   overlay.className="rewardOverlay";
-  overlay.innerHTML=`<div class="rewardConfetti" aria-hidden="true">${Array.from({length:18},(_,i)=>`<i style="--i:${i}"></i>`).join("")}</div><div class="rewardSparkles" aria-hidden="true">✦　✧　✦　✧　✦</div><div class="rewardCard"><div class="rewardCheck">✓</div><div class="rewardIcon">${r[0]}</div><div class="rewardEyebrow">✨ Tagesabschluss</div><h2>Tag geschafft!</h2><div class="rewardCount">${count} ${count===1?"Aufgabe":"Aufgaben"} erledigt</div><p><b>${r[1]}</b><br>${r[2]}</p><button class="btn primary" id="rewardClose">🌙 Feierabend genießen</button></div>`;
+  overlay.innerHTML=`<div class="rewardConfetti" aria-hidden="true">${Array.from({length:18},(_,i)=>`<i style="--i:${i}"></i>`).join("")}</div><div class="rewardSparkles" aria-hidden="true">　　　　</div><div class="rewardCard"><div class="rewardCheck"></div><div class="rewardIcon">${r[0]}</div><div class="rewardEyebrow"> Tagesabschluss</div><h2>Tag geschafft!</h2><div class="rewardCount">${count} ${count===1?"Aufgabe":"Aufgaben"} erledigt</div><p><b>${r[1]}</b><br>${r[2]}</p><button class="btn primary" id="rewardClose"> Feierabend genießen</button></div>`;
   document.body.appendChild(overlay);
   requestAnimationFrame(()=>overlay.classList.add("open"));
   const close=()=>{overlay.classList.remove("open");setTimeout(()=>overlay.remove(),220)};
@@ -748,8 +723,8 @@ function windowEntries(){
    const wk=`${area}|${room}|${i}`;
    const baseLabel=`Fenster ${area} · ${room}${count>1?" "+i:""}${large?" · groß":""}`;
    const sides=[
-     {side:"innen",key:`window-in|${area}|${room}|${i}`,editKey:`window-in|${area}|${room}|${i}`,text:`🪟 ${baseLabel} · innen`,description:"Nur die Innenseite dieses Fensters gründlich reinigen – inklusive Glas, Rahmen und Falz dieses Fensters sowie der zugehörigen Fensterbank. Keine anderen Fenster zusätzlich."},
-     {side:"außen",key:`window-out|${area}|${room}|${i}`,editKey:`window-out|${area}|${room}|${i}`,text:`🪟 ${baseLabel} · außen`,description:"Nur die Außenseite dieses Fensters gründlich reinigen – inklusive Außenglas, zugänglichem Rahmen und Falz dieses Fensters. Außen-/Höhenarbeiten nur durchführen, wenn sie sicher möglich sind; keine anderen Fenster zusätzlich."}
+     {side:"innen",key:`window-in|${area}|${room}|${i}`,editKey:`window-in|${area}|${room}|${i}`,text:` ${baseLabel} · innen`,description:"Nur die Innenseite dieses Fensters gründlich reinigen – inklusive Glas, Rahmen und Falz dieses Fensters sowie der zugehörigen Fensterbank. Keine anderen Fenster zusätzlich."},
+     {side:"außen",key:`window-out|${area}|${room}|${i}`,editKey:`window-out|${area}|${room}|${i}`,text:` ${baseLabel} · außen`,description:"Nur die Außenseite dieses Fensters gründlich reinigen – inklusive Außenglas, zugänglichem Rahmen und Falz dieses Fensters. Außen-/Höhenarbeiten nur durchführen, wenn sie sicher möglich sind; keine anderen Fenster zusätzlich."}
    ];
    // Fensterbank is a property of every physical window. Keep it as a
    // separate catalog task so each window can be planned, completed and
@@ -758,7 +733,7 @@ function windowEntries(){
    const se=editFor(sillKey)||{};
    if(!catalogDeleted(sillKey)) out.push({
      key:sillKey,
-     text:se.text??`🪟 Fensterbank ${area} · ${room}${count>1?" "+i:""}`,
+     text:se.text??` Fensterbank ${area} · ${room}${count>1?" "+i:""}`,
      room:se.room??room,
      area:se.area??area,
      place:se.place??`Fenster ${i} · Fensterbank`,
@@ -780,13 +755,13 @@ function windowEntries(){
      });
    }
    const sealKey=`window-seal|${area}|${room}|${i}`;const see=editFor(sealKey)||{};
-   if(!catalogDeleted(sealKey)) out.push({key:sealKey,text:see.text??`🪟 Fensterdichtung prüfen · ${area} · ${room}${count>1?" "+i:""}`,room:see.room??room,area:see.area??area,place:see.place??`Fenster ${i} · Dichtung`,description:see.description??"Die Dichtung dieses einen Fensters auf sichtbare Beschädigungen, Verschmutzung und offensichtliche Undichtigkeitszeichen prüfen; nur zugängliche Bereiche reinigen.",source:"windowSeal",editable:true,interval:Number(see.interval??365)||365,start:see.start||""});
+   if(!catalogDeleted(sealKey)) out.push({key:sealKey,text:see.text??` Fensterdichtung prüfen · ${area} · ${room}${count>1?" "+i:""}`,room:see.room??room,area:see.area??area,place:see.place??`Fenster ${i} · Dichtung`,description:see.description??"Die Dichtung dieses einen Fensters auf sichtbare Beschädigungen, Verschmutzung und offensichtliche Undichtigkeitszeichen prüfen; nur zugängliche Bereiche reinigen.",source:"windowSeal",editable:true,interval:Number(see.interval??365)||365,start:see.start||""});
    const drainKey=`window-drain|${area}|${room}|${i}`;const de=editFor(drainKey)||{};
-   if(!catalogDeleted(drainKey)) out.push({key:drainKey,text:de.text??`🪟 Fenster-Entwässerung prüfen · ${area} · ${room}${count>1?" "+i:""}`,room:de.room??room,area:de.area??area,place:de.place??`Fenster ${i} · Entwässerung`,description:de.description??"Die sichtbaren Entwässerungsöffnungen dieses einen Fensters auf Schmutz und Verstopfung prüfen und nur zugängliche Verschmutzungen entfernen.",source:"windowDrain",editable:true,interval:Number(de.interval??365)||365,start:de.start||""});
+   if(!catalogDeleted(drainKey)) out.push({key:drainKey,text:de.text??` Fenster-Entwässerung prüfen · ${area} · ${room}${count>1?" "+i:""}`,room:de.room??room,area:de.area??area,place:de.place??`Fenster ${i} · Entwässerung`,description:de.description??"Die sichtbaren Entwässerungsöffnungen dieses einen Fensters auf Schmutz und Verstopfung prüfen und nur zugängliche Verschmutzungen entfernen.",source:"windowDrain",editable:true,interval:Number(de.interval??365)||365,start:de.start||""});
    const screenKey=`window-screen|${area}|${room}|${i}`;const scre=editFor(screenKey)||{};
-   if(!catalogDeleted(screenKey)) out.push({key:screenKey,text:scre.text??`🪟 Insektenschutz prüfen/reinigen · ${area} · ${room}${count>1?" "+i:""}`,room:scre.room??room,area:scre.area??area,place:scre.place??`Fenster ${i} · Insektenschutz`,description:scre.description??"Nur falls an diesem Fenster ein Insektenschutz vorhanden ist: Gewebe, Rahmen und Befestigungen sichtbar prüfen und den Insektenschutz materialgerecht reinigen.",source:"windowScreen",editable:true,interval:Number(scre.interval??180)||180,start:scre.start||""});
+   if(!catalogDeleted(screenKey)) out.push({key:screenKey,text:scre.text??` Insektenschutz prüfen/reinigen · ${area} · ${room}${count>1?" "+i:""}`,room:scre.room??room,area:scre.area??area,place:scre.place??`Fenster ${i} · Insektenschutz`,description:scre.description??"Nur falls an diesem Fenster ein Insektenschutz vorhanden ist: Gewebe, Rahmen und Befestigungen sichtbar prüfen und den Insektenschutz materialgerecht reinigen.",source:"windowScreen",editable:true,interval:Number(scre.interval??180)||180,start:scre.start||""});
    const raffKey=`raffstore|${area}|${room}|${i}`;const re=editFor(raffKey)||{};
-   if(!catalogDeleted(raffKey))out.push({key:raffKey,text:re.text??`☀️ Raffstore ${area} · ${room}${count>1?" "+i:""}`,room:re.room??room,area:re.area??area,place:re.place??`Raffstore ${i}`,description:re.description??"Nur den zum jeweiligen Fenster gehörenden Raffstore/Sonnenschutz reinigen und nach Herstellerangabe pflegen. Lamellen vorsichtig behandeln; bei empfindlichen Oberflächen keine ungeeigneten Reiniger verwenden.",raffstore:true,raffstoreWindowKey:wk,source:"raffstore",editable:true,interval:Number(re.interval??365)||365,start:re.start||""});
+   if(!catalogDeleted(raffKey))out.push({key:raffKey,text:re.text??` Raffstore ${area} · ${room}${count>1?" "+i:""}`,room:re.room??room,area:re.area??area,place:re.place??`Raffstore ${i}`,description:re.description??"Nur den zum jeweiligen Fenster gehörenden Raffstore/Sonnenschutz reinigen und nach Herstellerangabe pflegen. Lamellen vorsichtig behandeln; bei empfindlichen Oberflächen keine ungeeigneten Reiniger verwenden.",raffstore:true,raffstoreWindowKey:wk,source:"raffstore",editable:true,interval:Number(re.interval??365)||365,start:re.start||""});
  }
  return out
 }
@@ -1663,9 +1638,9 @@ function plannedDateLabel(x){
  return d?d.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}):"—";
 }
 function themeFor(d){
- if(d.getDay()===0)return "Haushaltsfrei ❤️";
+ if(d.getDay()===0)return "Haushaltsfrei ";
  const tasks=plannedForDate(d).filter(x=>x.source!=="rotation"&&!isDailyTask(x));
- if(!tasks.length)return "🌿 Puffer & Luft";
+ if(!tasks.length)return " Puffer & Luft";
  // The room remains the visible theme. Efficiency may add one nearby room,
  // but it never replaces the main room focus with a generic category.
  const roomScores={};
@@ -1679,20 +1654,20 @@ function themeFor(d){
  }
  const cat=dominantCategory(tasks);
  const labels={
-   "🪟 Fenster & Fensterbänke":"🪟 Fenster & frische Aussichten",
-   "☀️ Sonnenschutz":"🏡 Rund ums Haus",
-   "🚿 Sanitär & WCs":"🚿 Bad & Sanitär",
-   "🛁 Dusche, Wanne & Fugen":"🛁 Badpflege",
-   "🧹 Böden & Sockelleisten":"🧹 Böden & Grundreinigung",
-   "🧺 Textilien & Wäsche":"🧺 Wäsche & Textilien",
-   "🍽️ Küche & Geräte":"🍽️ Küche & Geräte",
-   "📦 Ordnung & Organisation":"📦 Ordnung & Organisation",
-   "✨ Staub & Oberflächen":"✨ Oberflächen & Staub",
-   "🔥 Kamin & Feuerstelle":"🔥 Kamin & Feuerstelle",
-   "🧖 Sauna":"🧖 Wellness & Sauna",
-   "🔧 Technik & Keller":"🔧 Technik & Keller"
+   " Fenster & Fensterbänke":" Fenster & frische Aussichten",
+   " Sonnenschutz":" Rund ums Haus",
+   " Sanitär & WCs":" Bad & Sanitär",
+   " Dusche, Wanne & Fugen":" Badpflege",
+   " Böden & Sockelleisten":" Böden & Grundreinigung",
+   " Textilien & Wäsche":" Wäsche & Textilien",
+   " Küche & Geräte":" Küche & Geräte",
+   " Ordnung & Organisation":" Ordnung & Organisation",
+   " Staub & Oberflächen":" Oberflächen & Staub",
+   " Kamin & Feuerstelle":" Kamin & Feuerstelle",
+   " Sauna":" Wellness & Sauna",
+   " Technik & Keller":" Technik & Keller"
  };
- return labels[cat]||"✨ Haushalt & Pflege";
+ return labels[cat]||" Haushalt & Pflege";
 }
 
 function dailyTasks(){
@@ -1708,23 +1683,23 @@ function dailyTasks(){
  return out;
 }
 function recent(x,d=today,days=7){const l=lastDone(x);return !!l&&(d-fromKey(l))/86400000<days}
-function groupFor(x){if(x.window)return "🪟 Fenster & Fensterbänke";if(x.raffstore)return "☀️ Sonnenschutz";if(["Wohnzimmer","Essbereich","Küche"].includes(x.room))return "EG · Wohnen, Essen & Küche";if(["Gäste-WC","Kinderbad","Bad","Eltern-WC"].includes(x.room))return "Bäder & WCs";if(["Schlafzimmer","Ankleidezimmer","Kinderzimmer 1","Kinderzimmer 2","Saunaraum"].includes(x.room))return "OG · Schlafen, Kinder & Sauna";if(["Eingangsbereich","Garderobe","Flur","Büro","Abstellraum","Speis"].includes(x.room))return "EG · Nebenräume";if(BASEMENT.includes(x.room))return "Keller · "+x.room;return "Weitere Aufgaben"}
+function groupFor(x){if(x.window)return " Fenster & Fensterbänke";if(x.raffstore)return " Sonnenschutz";if(["Wohnzimmer","Essbereich","Küche"].includes(x.room))return "EG · Wohnen, Essen & Küche";if(["Gäste-WC","Kinderbad","Bad","Eltern-WC"].includes(x.room))return "Bäder & WCs";if(["Schlafzimmer","Ankleidezimmer","Kinderzimmer 1","Kinderzimmer 2","Saunaraum"].includes(x.room))return "OG · Schlafen, Kinder & Sauna";if(["Eingangsbereich","Garderobe","Flur","Büro","Abstellraum","Speis"].includes(x.room))return "EG · Nebenräume";if(BASEMENT.includes(x.room))return "Keller · "+x.room;return "Weitere Aufgaben"}
 // A task category is deliberately more granular than the room/floor group. It is
 // used by the planner to bundle compatible work together, while groupFor()
 // remains useful for room/floor context elsewhere in the app.
 function taskCategory(x){const t=(x.text||"").toLowerCase();
- if(x.window||x.windowSill||/fensterbank/.test(t))return "🪟 Fenster & Fensterbänke";
- if(x.raffstore)return "☀️ Sonnenschutz";
- if(/toilette|wc|wc-bürste|wc bürste|waschbecken|armatur|papierhalter/.test(t))return "🚿 Sanitär & WCs";
- if(/dusche|duschglas|duschrinne|badewanne|badewannenarmatur|fuge|silikon/.test(t))return "🛁 Dusche, Wanne & Fugen";
- if(/boden|sockelleisten|stufen|stiege|ecken absaugen|unter bett|unter möbeln|unter schränken/.test(t))return "🧹 Böden & Sockelleisten";
- if(/bettwäsche|handtücher|decke|vorhang|wäsche|waschmaschine|trockner|waschmittel|wäschekörbe/.test(t))return "🧺 Textilien & Wäsche";
- if(/kühlschrank|gefrierfach|herd|kochfeld|dunstabzug|backofen|mikrowelle|spüle|mülleimer|arbeitsplatten|fronten|schubladen innen|sockelleisten reinigen/.test(t))return "🍽️ Küche & Geräte";
- if(/vorrat|mindesthaltbarkeit|packungen|ordnen|sortieren|kleidung|spielzeug|bücher|schreibtisch|papier|regal|schrank|schubladen|ablage|jacken|schuhe/.test(t))return "📦 Ordnung & Organisation";
- if(/staub|abstauben|entstauben|spinnweben|lichtschalter|türklink|türrahmen|türblätter|handlauf|geländer|fensterbank|spiegel|oberflächen|dekor/.test(t))return "✨ Staub & Oberflächen";
- if(/kamin|ruß|asche/.test(t))return "🔥 Kamin & Feuerstelle";
- if(/sauna/.test(t))return "🧖 Sauna";
- if(/technik|zugänge|komponenten/.test(t))return "🔧 Technik & Keller";
+ if(x.window||x.windowSill||/fensterbank/.test(t))return " Fenster & Fensterbänke";
+ if(x.raffstore)return " Sonnenschutz";
+ if(/toilette|wc|wc-bürste|wc bürste|waschbecken|armatur|papierhalter/.test(t))return " Sanitär & WCs";
+ if(/dusche|duschglas|duschrinne|badewanne|badewannenarmatur|fuge|silikon/.test(t))return " Dusche, Wanne & Fugen";
+ if(/boden|sockelleisten|stufen|stiege|ecken absaugen|unter bett|unter möbeln|unter schränken/.test(t))return " Böden & Sockelleisten";
+ if(/bettwäsche|handtücher|decke|vorhang|wäsche|waschmaschine|trockner|waschmittel|wäschekörbe/.test(t))return " Textilien & Wäsche";
+ if(/kühlschrank|gefrierfach|herd|kochfeld|dunstabzug|backofen|mikrowelle|spüle|mülleimer|arbeitsplatten|fronten|schubladen innen|sockelleisten reinigen/.test(t))return " Küche & Geräte";
+ if(/vorrat|mindesthaltbarkeit|packungen|ordnen|sortieren|kleidung|spielzeug|bücher|schreibtisch|papier|regal|schrank|schubladen|ablage|jacken|schuhe/.test(t))return " Ordnung & Organisation";
+ if(/staub|abstauben|entstauben|spinnweben|lichtschalter|türklink|türrahmen|türblätter|handlauf|geländer|fensterbank|spiegel|oberflächen|dekor/.test(t))return " Staub & Oberflächen";
+ if(/kamin|ruß|asche/.test(t))return " Kamin & Feuerstelle";
+ if(/sauna/.test(t))return " Sauna";
+ if(/technik|zugänge|komponenten/.test(t))return " Technik & Keller";
  return groupFor(x);
 }
 function weeklyCandidates(d){return plannedForDate(d).filter(x=>!x.window&&x.source!=="rotation").map(x=>({...x,group:taskCategory(x)}))}
@@ -1990,7 +1965,7 @@ function definition(x){
  else if(/vorräte an waschmittel/.test(t)){
    set("Den Bestand an Waschmittel und Wäschepflegeprodukten kurz prüfen, angebrochene Produkte zusammenstellen und feststellen, was bald nachgekauft werden muss.",["Waschmittel","Weichspüler bzw. Pflegeprodukte","Vorratsplatz"],["Keine Produkte nur wegen eines alten Designs oder einer angebrochenen Packung wegwerfen","Keine anderen Vorräte inventarisieren"],["Reinigungs- und Waschmittel sicher und außerhalb der Reichweite von Kindern lagern."]);
  }
- else if(/bettwäsche wechseln/.test(t)||/🧺 bettwäsche wechseln/.test(raw.toLowerCase())){
+ else if(/bettwäsche wechseln/.test(t)||/ bettwäsche wechseln/.test(raw.toLowerCase())){
    set("Die Bettwäsche vollständig abziehen, frische Bettwäsche aufziehen und gebrauchte Wäsche zur Wäsche geben.",["Bettlaken","Kissenbezüge","Deckenbezug","Bett bzw. Matratze"],["Matratze nicht automatisch gründlich reinigen","Keine Schrank- oder Zimmerordnung daraus machen"],["Saubere Wäsche trocken und sauber aufbewahren; Matratze kurz auslüften lassen, wenn es gut passt."]);
  }
  else if(/matratze absaugen/.test(t)){
@@ -2284,7 +2259,7 @@ function swipeRow(el,x){
   let sx=0,sy=0,dx=0,drag=false,moved=false;
   const c=el.querySelector(".taskContent"),bg=el.querySelector(".swipeBg");
   const reset=()=>{dx=0;drag=false;moved=false;c.style.transition="transform .18s";c.style.transform="translateX(0)";bg.style.opacity="0";bg.classList.remove("green","red")};
-  const upd=()=>{c.style.transform=`translateX(${dx}px)`;bg.classList.toggle("green",dx>0);bg.classList.toggle("red",dx<0);bg.style.opacity=Math.min(1,Math.abs(dx)/70);bg.querySelector(".swipeLabel").textContent=dx<0?"↩ Später":"✓ Erledigt"};
+  const upd=()=>{c.style.transform=`translateX(${dx}px)`;bg.classList.toggle("green",dx>0);bg.classList.toggle("red",dx<0);bg.style.opacity=Math.min(1,Math.abs(dx)/70);bg.querySelector(".swipeLabel").textContent=dx<0?"↩ Später":" Erledigt"};
   const start=(clientX,clientY)=>{sx=clientX;sy=clientY;dx=0;drag=true;moved=false;c.style.transition="none"};
   const move=(clientX,clientY,e)=>{if(!drag)return;const rawX=clientX-sx,rawY=clientY-sy;if(!moved && Math.abs(rawY)>Math.abs(rawX)+6){drag=false;return}dx=Math.max(-150,Math.min(150,rawX));if(Math.abs(dx)>6)moved=true;if(moved){if(e&&e.cancelable)e.preventDefault();upd()}};
   const end=()=>{if(!drag)return;drag=false;c.style.transition="transform .18s";if(dx>75){c.style.transform="translateX(105%)";bg.classList.add("green");bg.style.opacity="1";setTimeout(()=>toggleTask(x),120)}else if(dx<-75){c.style.transform="translateX(-105%)";bg.classList.add("red");bg.style.opacity="1";setTimeout(()=>postponeTask(x),120)}else reset()};
@@ -2297,7 +2272,7 @@ function swipeRow(el,x){
   el.addEventListener("touchend",end,{passive:true});
   el.addEventListener("touchcancel",reset,{passive:true});
 }
-function taskRow(x,opts={}){const el=document.createElement("div");el.className="task"+(isDone(x)?" done":"");const showDue=!!opts.showDue,hideRoom=!!opts.hideRoom,showPullToday=!!opts.showPullToday,returnTo=opts.returnTo||"today";const showManage=opts.showManage!==false&&x.source!=="extra";const due=nextDueLabel(x),planned=plannedDateForTask(x);const plannedText=planned?planned.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}):"—";const plannedDiff=planned?Math.round((planned-nextDue(x))/86400000):null;const shiftNote=plannedDiff!==null&&plannedDiff!==0?` <span class="small">(${plannedDiff>0?"+":""}${plannedDiff} ${Math.abs(plannedDiff)===1?"Tag":"Tage"})</span>`:"";el.innerHTML=`<div class="swipeBg"><span class="swipeLabel">✓ Erledigt</span></div><div class="taskContent"><button class="check">${isDone(x)?"✓":""}</button><div class="taskMain"><div class="taskName"><span class="taskIcon" aria-hidden="true">${taskIcon(x)}</span><span>${esc(displayTaskName(x))}</span></div>${!hideRoom?`<div class="meta">${esc(x.room)}${x.area?" · "+esc(x.area):""}</div>`:""}${showDue&&!isDone(x)?`<div class="meta nextDue">Fällig: <b>${esc(due)}</b></div><div class="meta plannedDate">Geplant: <b>${esc(plannedText)}</b>${shiftNote}</div>`:""}${isDone(x)?`<div class="meta nextDue">${isDailyTask(x)?"Fälligkeit: <b>täglich</b>":`Nächster Termin: <b>${esc(due)}</b>`}</div>`:""}</div><div class="taskButtons">${showPullToday&&!isDone(x)?`<button class="iconBtn pullToday" title="Aufgabe vorziehen">⚡</button>`:""}${showManage?`<button class="iconBtn todayEdit" title="Aufgabe bearbeiten">✏️</button><button class="iconBtn todayDelete" title="Aufgabe löschen">🗑️</button>`:""}<button class="iconBtn info">ⓘ</button></div></div>`;el.querySelector(".check").onclick=()=>toggleTask(x);el.querySelector(".info").onclick=()=>openDetail(x);const pull=el.querySelector(".pullToday");if(pull)pull.onclick=()=>{pullCatalogTaskToday(x);render()};const edit=el.querySelector(".todayEdit");if(edit)edit.onclick=e=>{e.stopPropagation();openEditor(x,{preservePlan:true,returnTo})};const del=el.querySelector(".todayDelete");if(del)del.onclick=e=>{e.stopPropagation();if(!confirm(`„${x.text}“ wirklich aus dem Aufgabenkatalog löschen?`))return;state.catalogDeleted=state.catalogDeleted||{};state.catalogDeleted[x.key]=true;state.custom=state.custom.filter(c=>(c.key||`custom|${c.id}`)!==x.key);delete state.catalogEdits?.[x.key];save();refreshCatalog();render();toast("Aufgabe gelöscht")};swipeRow(el,x);return el}
+function taskRow(x,opts={}){const el=document.createElement("div");el.className="task"+(isDone(x)?" done":"");const showDue=!!opts.showDue,hideRoom=!!opts.hideRoom,showPullToday=!!opts.showPullToday,returnTo=opts.returnTo||"today";const showManage=opts.showManage!==false&&x.source!=="extra";const due=nextDueLabel(x),planned=plannedDateForTask(x);const plannedText=planned?planned.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}):"—";const plannedDiff=planned?Math.round((planned-nextDue(x))/86400000):null;const shiftNote=plannedDiff!==null&&plannedDiff!==0?` <span class="small">(${plannedDiff>0?"+":""}${plannedDiff} ${Math.abs(plannedDiff)===1?"Tag":"Tage"})</span>`:"";el.innerHTML=`<div class="swipeBg"><span class="swipeLabel"> Erledigt</span></div><div class="taskContent"><button class="check">${isDone(x)?"":""}</button><div class="taskMain"><div class="taskName"><span>${esc(displayTaskName(x))}</span></div>${!hideRoom?`<div class="meta">${esc(x.room)}${x.area?" · "+esc(x.area):""}</div>`:""}${showDue&&!isDone(x)?`<div class="meta nextDue">Fällig: <b>${esc(due)}</b></div><div class="meta plannedDate">Geplant: <b>${esc(plannedText)}</b>${shiftNote}</div>`:""}${isDone(x)?`<div class="meta nextDue">${isDailyTask(x)?"Fälligkeit: <b>täglich</b>":`Nächster Termin: <b>${esc(due)}</b>`}</div>`:""}</div><div class="taskButtons">${showPullToday&&!isDone(x)?`<button class="iconBtn pullToday" title="Aufgabe vorziehen"></button>`:""}${showManage?`<button class="iconBtn todayEdit" title="Aufgabe bearbeiten"></button><button class="iconBtn todayDelete" title="Aufgabe löschen"></button>`:""}<button class="iconBtn info">ⓘ</button></div></div>`;el.querySelector(".check").onclick=()=>toggleTask(x);el.querySelector(".info").onclick=()=>openDetail(x);const pull=el.querySelector(".pullToday");if(pull)pull.onclick=()=>{pullCatalogTaskToday(x);render()};const edit=el.querySelector(".todayEdit");if(edit)edit.onclick=e=>{e.stopPropagation();openEditor(x,{preservePlan:true,returnTo})};const del=el.querySelector(".todayDelete");if(del)del.onclick=e=>{e.stopPropagation();if(!confirm(`„${x.text}“ wirklich aus dem Aufgabenkatalog löschen?`))return;state.catalogDeleted=state.catalogDeleted||{};state.catalogDeleted[x.key]=true;state.custom=state.custom.filter(c=>(c.key||`custom|${c.id}`)!==x.key);delete state.catalogEdits?.[x.key];save();refreshCatalog();render();toast("Aufgabe gelöscht")};swipeRow(el,x);return el}
 
 function focusRoomMatches(x,room){
   if(!x || !room || isDailyTask(x))return false;
@@ -2325,7 +2300,7 @@ function renderRoomFocus(main, tasks){
   card.className="card roomFocus";
   const rooms=[...new Set(CATALOG.filter(x=>x && !x.window && x.source!=="window").map(x=>x.room).filter(r=>r && r!=="Alltag" && r!=="Ganzes Haus" && r!=="Rotationsaufgabe" && r!=="Keller allgemein" && !String(r).startsWith("Fenster ")))].sort((a,b)=>a.localeCompare(b,"de"));
   const day=dayKey(today), selected=state.roomFocus?.[day]||"";
-  card.innerHTML=`<div class="topline"><div><b>🏡 Heute einen Raum machen</b><div class="small">Freiwillig: Wähle einen Raum und sieh alle offenen Aufgaben dieses Raumes – auch wenn sie regulär erst später fällig wären.</div></div></div><select class="roomSelect" id="roomSelect"><option value="">Raum auswählen …</option>${rooms.map(r=>`<option value="${esc(r)}"${r===selected?" selected":""}>${esc(r)}</option>`).join("")}</select>`;
+  card.innerHTML=`<div class="topline"><div><b> Heute einen Raum machen</b><div class="small">Freiwillig: Wähle einen Raum und sieh alle offenen Aufgaben dieses Raumes – auch wenn sie regulär erst später fällig wären.</div></div></div><select class="roomSelect" id="roomSelect"><option value="">Raum auswählen …</option>${rooms.map(r=>`<option value="${esc(r)}"${r===selected?" selected":""}>${esc(r)}</option>`).join("")}</select>`;
   main.appendChild(card);
   const select=card.querySelector("#roomSelect");
   const renderSelected=()=>{
@@ -2336,7 +2311,7 @@ function renderRoomFocus(main, tasks){
     const open=roomFocusTasks(room,today);
     const sec=document.createElement("section");sec.className="roomFocusTasks";
     const heading=document.createElement("div");heading.className="sectionTitle";heading.textContent=`${room} · heute freiwillig`;sec.appendChild(heading);
-    if(!open.length){const empty=document.createElement("div");empty.className="card empty";empty.textContent="In diesem Raum ist gerade nichts Sinnvolles offen. 🥰";sec.appendChild(empty)}
+    if(!open.length){const empty=document.createElement("div");empty.className="card empty";empty.textContent="In diesem Raum ist gerade nichts Sinnvolles offen. ";sec.appendChild(empty)}
     else {
       // All open tasks are shown together under the selected room. They can also be pulled into the real Today plan.
       open.forEach(x=>sec.appendChild(taskRow(x,{showDue:true,hideRoom:true,showPullToday:true})));
@@ -2367,10 +2342,10 @@ function clearHouseholdFreeRange(startKey,endKey){
 function openHouseholdFreeDialog(){
   const overlay=document.createElement("div");overlay.className="catalogEditorOverlay";overlay.id="freeDayEditor";
   const t=dayKey(today);
-  overlay.innerHTML=`<div class="catalogEditorSheet"><div class="sheetTop"><div><div class="small">Haushaltsplanung pausieren</div><h2>🏖️ Ausflug / Urlaub</h2></div><button class="close" id="x">×</button></div>
+  overlay.innerHTML=`<div class="catalogEditorSheet"><div class="sheetTop"><div><div class="small">Haushaltsplanung pausieren</div><h2> Ausflug / Urlaub</h2></div><button class="close" id="x">×</button></div>
   <p class="small" style="margin-top:8px">Für diese Tage wird kein Haushalt eingeplant. Fälligkeiten und Erledigungen bleiben unverändert; die Planung sucht danach automatisch neue passende Tage.</p>
   <div class="editorTwo"><label class="editorLabel">Von<input id="s" type="date" value="${t}"></label><label class="editorLabel">Bis<input id="e" type="date" value="${t}"></label></div>
-  <label class="editorLabel">Anlass<input id="l" value="🏖️ Ausflug / Urlaub"></label>
+  <label class="editorLabel">Anlass<input id="l" value=" Ausflug / Urlaub"></label>
   <div class="editorActions"><button class="btn" id="cancel">Abbrechen</button><button class="btn primary" id="saveFree">Diese Tage haushaltsfrei machen</button></div>
   <div class="editorHint">Bereits eingetragene haushaltsfreie Tage werden unten angezeigt und können wieder entfernt werden.</div><div id="freeList"></div></div>`;
   document.body.appendChild(overlay);
@@ -2379,9 +2354,9 @@ function openHouseholdFreeDialog(){
   const grouped=[]; const keys=Object.keys(state.householdFreeDays||{}).sort();
   let cur=null;
   for(const k of keys){const label=state.householdFreeDays[k]||"Haushaltsfrei";if(!cur||cur.label!==label||dayKey(addDays(fromKey(cur.end),1))!==k){cur={start:k,end:k,label};grouped.push(cur)}else cur.end=k;}
-  list.innerHTML=grouped.length?grouped.map(g=>`<div class="result"><div class="resultText"><b>🏖️ ${esc(g.label)}</b><div class="meta">${esc(formatDateKey(g.start))}${g.start!==g.end?` – ${esc(formatDateKey(g.end))}`:""}</div></div><button class="btn" data-del="${g.start}|${g.end}">Entfernen</button></div>`).join(""):``;
+  list.innerHTML=grouped.length?grouped.map(g=>`<div class="result"><div class="resultText"><b> ${esc(g.label)}</b><div class="meta">${esc(formatDateKey(g.start))}${g.start!==g.end?` – ${esc(formatDateKey(g.end))}`:""}</div></div><button class="btn" data-del="${g.start}|${g.end}">Entfernen</button></div>`).join(""):``;
   list.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{const [a,z]=b.dataset.del.split("|");clearHouseholdFreeRange(a,z);close();render();});
-  overlay.querySelector("#saveFree").onclick=()=>{const a=overlay.querySelector("#s").value,z=overlay.querySelector("#e").value,l=overlay.querySelector("#l").value.trim()||"Haushaltsfrei";if(!a||!z||a>z)return toast("Bitte einen gültigen Zeitraum auswählen ❤️");setHouseholdFreeRange(a,z,l);close();render();toast("🏖️ Diese Tage sind jetzt haushaltsfrei ❤️")};
+  overlay.querySelector("#saveFree").onclick=()=>{const a=overlay.querySelector("#s").value,z=overlay.querySelector("#e").value,l=overlay.querySelector("#l").value.trim()||"Haushaltsfrei";if(!a||!z||a>z)return toast("Bitte einen gültigen Zeitraum auswählen ");setHouseholdFreeRange(a,z,l);close();render();toast(" Diese Tage sind jetzt haushaltsfrei ")};
 }
 
 function roomColorClass(room){
@@ -2409,7 +2384,7 @@ function appendRoomGroups(container,tasks,opts={}){
     sec.className="roomGroup "+roomColorClass(room);
     const head=document.createElement("div");
     head.className="roomGroupHead";
-    head.innerHTML=`<span class="roomStripe"></span><span class="roomGroupIcon">${roomIcon(room)}</span><span class="roomGroupName">${esc(room)}</span><span class="roomGroupCount">${arr.length} ${arr.length===1?"Aufgabe":"Aufgaben"}</span>`;
+    head.innerHTML=`<span class="roomStripe"></span><span class="roomGroupName">${esc(room)}</span><span class="roomGroupCount">${arr.length} ${arr.length===1?"Aufgabe":"Aufgaben"}</span>`;
     sec.appendChild(head);
     arr.forEach(x=>sec.appendChild(taskRow(x,opts)));
     container.appendChild(sec);
@@ -2419,7 +2394,7 @@ function roomGroupTasksSorted(tasks){
   return [...tasks].sort((a,b)=>roomLabel(a.room).localeCompare(roomLabel(b.room),"de")||nextDue(a)-nextDue(b)||taskWeight(b)-taskWeight(a)||String(a.text||"").localeCompare(String(b.text||""),"de"));
 }
 function appendDailyRoutineGroups(container,tasks){
-  const order=["☀️ Morgenroutine","🍽️ Nach Mahlzeiten","🌙 Abend · max. 10 Minuten","🔎 Tagescheck"];
+  const order=[" Morgenroutine"," Nach Mahlzeiten"," Abend · max. 10 Minuten"," Tagescheck"];
   const groups=new Map();
   tasks.filter(x=>x.source==="daily").forEach(x=>{const g=x.group||"Alltag";if(!groups.has(g))groups.set(g,[]);groups.get(g).push(x)});
   order.forEach(g=>{
@@ -2446,9 +2421,9 @@ function renderToday(){
     ? (state.todayExtras||[]).filter(e=>e.date===dayKey(today)).map(e=>({...e,key:e.id,source:"extra",group:"Heute zusätzlich"}))
     : plannedToday();
   const done=tasks.filter(x=>isDone(x)).length;
-  main.innerHTML=`<div class="card hero"><div class="topline"><div><b>${esc(dateLabel())}</b><div class="small">${esc(themeFor(today))}</div></div><span class="badge">${freeToday?"🏖️ Haushaltsfrei":(state.chaos?"Heute leicht":(sunday?"Haushaltsfrei":"Normal"))}</span></div><div class="progress"><i style="width:${tasks.length?Math.round(done/tasks.length*100):0}%"></i></div><div class="small">${done} von ${tasks.length} Aufgaben erledigt</div><div class="actions"><button class="btn" id="energy">⚡ Ich habe Energie</button><button class="btn" id="chaos">🧸 Heute leicht</button><button class="btn" id="free">🏖️ Ausflug / Urlaub</button></div></div>`;
-  if(freeToday){const note=document.createElement("div");note.className="card";note.innerHTML=`<div class="celebrate">🏖️ Heute bleibt der Haushalt liegen.</div><div class="small">${esc(state.householdFreeDays?.[dayKey(today)]||"Ausflug / Urlaub")} · Deine gespeicherten Erledigungen und Fälligkeiten bleiben erhalten.</div>`;main.appendChild(note);} else if(sunday){
-    const note=document.createElement("div");note.className="card";note.innerHTML=`<div class="celebrate">🌿 Sonntag = haushaltsfrei.</div><div class="small">Heute gibt es keinen festen Tagesplan. Wenn du trotzdem Lust auf einen Raum hast, kannst du ihn unten freiwillig öffnen.</div>`;main.appendChild(note);
+  main.innerHTML=`<div class="card hero"><div class="topline"><div><b>${esc(dateLabel())}</b><div class="small">${esc(themeFor(today))}</div></div><span class="badge">${freeToday?" Haushaltsfrei":(state.chaos?"Heute leicht":(sunday?"Haushaltsfrei":"Normal"))}</span></div><div class="progress"><i style="width:${tasks.length?Math.round(done/tasks.length*100):0}%"></i></div><div class="small">${done} von ${tasks.length} Aufgaben erledigt</div><div class="actions"><button class="btn" id="energy"> Ich habe Energie</button><button class="btn" id="chaos"> Heute leicht</button><button class="btn" id="free"> Ausflug / Urlaub</button></div></div>`;
+  if(freeToday){const note=document.createElement("div");note.className="card";note.innerHTML=`<div class="celebrate"> Heute bleibt der Haushalt liegen.</div><div class="small">${esc(state.householdFreeDays?.[dayKey(today)]||"Ausflug / Urlaub")} · Deine gespeicherten Erledigungen und Fälligkeiten bleiben erhalten.</div>`;main.appendChild(note);} else if(sunday){
+    const note=document.createElement("div");note.className="card";note.innerHTML=`<div class="celebrate"> Sonntag = haushaltsfrei.</div><div class="small">Heute gibt es keinen festen Tagesplan. Wenn du trotzdem Lust auf einen Raum hast, kannst du ihn unten freiwillig öffnen.</div>`;main.appendChild(note);
   }
   // Regular Today tasks: daily routines and scheduled tasks are rendered here
   // before the collapsed summary sections. Keep this as the authoritative
@@ -2490,7 +2465,7 @@ function renderToday(){
   if(completed.length){
     const card=document.createElement("div");
     card.className="card";
-    card.innerHTML=`<div class="topline"><b>✓ Erledigt (${completed.length})</b><button class="btn" id="co">${state.completedOpen?"Ausblenden":"Anzeigen"}</button></div>`;
+    card.innerHTML=`<div class="topline"><b> Erledigt (${completed.length})</b><button class="btn" id="co">${state.completedOpen?"Ausblenden":"Anzeigen"}</button></div>`;
     if(state.completedOpen)completed.forEach(x=>card.appendChild(taskRow(x)));
     main.appendChild(card);
     card.querySelector("#co").onclick=()=>{state.completedOpen=!state.completedOpen;render()};
@@ -2507,7 +2482,7 @@ function renderToday(){
   if(postponedToday.length){
     const card=document.createElement("div");
     card.className="card";
-    card.innerHTML=`<div class="topline"><b>↩️ Später (${postponedToday.length})</b><button class="btn" id="po">${state.postponedOpen?"Ausblenden":"Anzeigen"}</button></div>`;
+    card.innerHTML=`<div class="topline"><b>↩ Später (${postponedToday.length})</b><button class="btn" id="po">${state.postponedOpen?"Ausblenden":"Anzeigen"}</button></div>`;
     const body=document.createElement("div");
     body.dataset.postponedBody="1";
     body.style.display=state.postponedOpen?"":"none";
@@ -2554,8 +2529,8 @@ function showEnergy(){
       if(!candidates.some(y=>taskId(y)===taskId(x)))candidates.push(x);
     }
   }
-  box.innerHTML=`<div class="topline"><div><b>⚡ Ich habe Energie</b><div class="small">Nur wenn du möchtest – diese Aufgaben werden heute zusätzlich vorgezogen.</div></div><button class="btn" id="energyOther">↻ Andere 3</button></div>`;
-  if(!candidates.length)box.innerHTML+=`<div class="empty">Gerade gibt es keine sinnvolle Zusatzaufgabe. 🥰</div>`;
+  box.innerHTML=`<div class="topline"><div><b> Ich habe Energie</b><div class="small">Nur wenn du möchtest – diese Aufgaben werden heute zusätzlich vorgezogen.</div></div><button class="btn" id="energyOther">↻ Andere 3</button></div>`;
+  if(!candidates.length)box.innerHTML+=`<div class="empty">Gerade gibt es keine sinnvolle Zusatzaufgabe. </div>`;
   candidates.forEach(x=>{
     const r=document.createElement("div");r.className="result";
     r.innerHTML=`<div class="resultText"><b>${esc(x.text)}</b><div class="meta">${esc(x.room)}</div><div class="meta"><strong>Fällig:</strong> ${esc(nextDueLabel(x))}</div><div class="meta"><strong>Geplant:</strong> ${esc(isDailyTask(x)?"täglich":formatDateKey(dayKey(plannedDateForTask(x))))}</div></div><button class="btn primary">Heute vorziehen</button>`;
@@ -2581,29 +2556,29 @@ function openEditor(x=null,opts={}){
  const rooms=[...new Set([...Object.keys(SEED_ROOMS),...state.custom.map(c=>c.room).filter(Boolean)])].sort();
  const overlay=document.createElement("div");overlay.className="catalogEditorOverlay";overlay.id="editor";
  const dailyDescription=daily?(old.description||definition(old).what):"";
- overlay.innerHTML=`<div class="catalogEditorSheet"><div class="sheetTop"><div><div class="small">${edit?"Aufgabe bearbeiten":"Neue Aufgabe"}</div><h2>${edit?"✏️ Aufgabe ändern":"＋ Aufgabe hinzufügen"}</h2></div><button class="close" id="x">×</button></div><label class="editorLabel">Aufgabe<input id="t" value="${esc(old.text||"")}"></label><label class="editorLabel">Raum<input id="r" list="rooms" value="${esc(old.room||"")} "><datalist id="rooms">${rooms.map(r=>`<option value="${esc(r)}">`).join("")}</datalist></label><label class="editorLabel">Bereich / Etage<input id="a" value="${esc(old.area||"")}"></label><label class="editorLabel">Genauer Ort<input id="p" value="${esc(old.place||"")}"></label><label class="editorLabel">Beschreibung / genaue Durchführung<textarea id="d">${esc(dailyDescription||old.description||"")}</textarea></label>${daily?`<div class="editorHint">Diese Aufgabe bleibt eine tägliche Aufgabe. Fälligkeit und Wiederholung bleiben automatisch „täglich“ und können hier nicht verändert werden.</div>`:`<div class="editorTwo"><label class="editorLabel">Erster Fälligkeitstermin<input id="s" type="date" value="${esc(state.manualDates?.[old.key]||state.catalogDates?.[old.key]||old.start||iso(nextDue(old)))}" ${preservePlan?"disabled":""}></label><label class="editorLabel">Periode (Tage)<input id="i" type="number" min="1" value="${old.interval||catalogInterval(old)||60}" ${preservePlan?"disabled":""}></label></div><div class="editorHint">${preservePlan?"Beim Bearbeiten aus „Heute“ bleiben Fälligkeit, Intervall und der bestehende Geplant-Termin unverändert.":"Dieser Termin ist die verbindliche Fälligkeit. Der intelligente Planer darf flexible Aufgaben nur auf einen geeigneten Tag verschieben; die Fälligkeit bleibt im Katalog sichtbar."}</div>`}<div class="editorActions"><button class="btn" id="cancel">Abbrechen</button><button class="btn primary" id="saveTask">${edit?"Änderungen speichern":"Aufgabe speichern"}</button></div>${edit?`<button class="deleteBtn" id="del">🗑️ Aufgabe aus dem Katalog löschen</button>`:""}</div>`;
+ overlay.innerHTML=`<div class="catalogEditorSheet"><div class="sheetTop"><div><div class="small">${edit?"Aufgabe bearbeiten":"Neue Aufgabe"}</div><h2>${edit?" Aufgabe ändern":"＋ Aufgabe hinzufügen"}</h2></div><button class="close" id="x">×</button></div><label class="editorLabel">Aufgabe<input id="t" value="${esc(old.text||"")}"></label><label class="editorLabel">Raum<input id="r" list="rooms" value="${esc(old.room||"")} "><datalist id="rooms">${rooms.map(r=>`<option value="${esc(r)}">`).join("")}</datalist></label><label class="editorLabel">Bereich / Etage<input id="a" value="${esc(old.area||"")}"></label><label class="editorLabel">Genauer Ort<input id="p" value="${esc(old.place||"")}"></label><label class="editorLabel">Beschreibung / genaue Durchführung<textarea id="d">${esc(dailyDescription||old.description||"")}</textarea></label>${daily?`<div class="editorHint">Diese Aufgabe bleibt eine tägliche Aufgabe. Fälligkeit und Wiederholung bleiben automatisch „täglich“ und können hier nicht verändert werden.</div>`:`<div class="editorTwo"><label class="editorLabel">Erster Fälligkeitstermin<input id="s" type="date" value="${esc(state.manualDates?.[old.key]||state.catalogDates?.[old.key]||old.start||iso(nextDue(old)))}" ${preservePlan?"disabled":""}></label><label class="editorLabel">Periode (Tage)<input id="i" type="number" min="1" value="${old.interval||catalogInterval(old)||60}" ${preservePlan?"disabled":""}></label></div><div class="editorHint">${preservePlan?"Beim Bearbeiten aus „Heute“ bleiben Fälligkeit, Intervall und der bestehende Geplant-Termin unverändert.":"Dieser Termin ist die verbindliche Fälligkeit. Der intelligente Planer darf flexible Aufgaben nur auf einen geeigneten Tag verschieben; die Fälligkeit bleibt im Katalog sichtbar."}</div>`}<div class="editorActions"><button class="btn" id="cancel">Abbrechen</button><button class="btn primary" id="saveTask">${edit?"Änderungen speichern":"Aufgabe speichern"}</button></div>${edit?`<button class="deleteBtn" id="del"> Aufgabe aus dem Katalog löschen</button>`:""}</div>`;
  document.body.appendChild(overlay);
  const close=()=>overlay.remove();overlay.querySelector("#x").onclick=close;overlay.querySelector("#cancel").onclick=close;overlay.onclick=e=>{if(e.target===overlay)close()};
  overlay.querySelector("#saveTask").onclick=()=>{
    const text=overlay.querySelector("#t").value.trim(),room=overlay.querySelector("#r").value.trim(),area=overlay.querySelector("#a").value.trim(),place=overlay.querySelector("#p").value.trim(),description=overlay.querySelector("#d").value.trim();
-   if(!text||!room||!area)return toast("Bitte Aufgabe, Raum und Bereich ausfüllen ❤️");
+   if(!text||!room||!area)return toast("Bitte Aufgabe, Raum und Bereich ausfüllen ");
    if(edit){
      const prior=state.catalogEdits?.[old.key]||{};
      if(daily){
        state.catalogEdits[old.key]={...prior,text,room,area,place,description};
      }else{
        const start=overlay.querySelector("#s").value,interval=Math.max(1,Number(overlay.querySelector("#i").value)||60);
-       if(!start)return toast("Bitte Aufgabe, Raum, Bereich und Termin ausfüllen ❤️");
+       if(!start)return toast("Bitte Aufgabe, Raum, Bereich und Termin ausfüllen ");
        state.catalogEdits[old.key]={text,room,area,place,description,start:preservePlan?(state.manualDates?.[old.key]||state.catalogDates?.[old.key]||old.start||iso(nextDue(old))):start,interval:preservePlan?(old.interval||catalogInterval(old)||60):interval,manualStart:true};
        if(!preservePlan){state.manualDates=state.manualDates||{};state.catalogDates=state.catalogDates||{};state.manualDates[old.key]=start;state.catalogDates[old.key]=start;}
        if(old.source==="custom"){const c=state.custom.find(c=>(c.key||`custom|${c.id}`)===old.key);if(c)Object.assign(c,{text,room,area,place,description,...(preservePlan?{}:{start,interval})})}
      }
    }else{
-     const start=overlay.querySelector("#s")?.value,interval=Math.max(1,Number(overlay.querySelector("#i")?.value)||60);if(!start)return toast("Bitte Aufgabe, Raum, Bereich und Termin ausfüllen ❤️");
+     const start=overlay.querySelector("#s")?.value,interval=Math.max(1,Number(overlay.querySelector("#i")?.value)||60);if(!start)return toast("Bitte Aufgabe, Raum, Bereich und Termin ausfüllen ");
      const id=`custom|${uid()}`;state.custom.push({id,key:id,text,room,area,place,description,start,interval,manualStart:true});state.manualDates=state.manualDates||{};state.manualDates[id]=start;state.catalogDates=state.catalogDates||{};state.catalogDates[id]=start;
    }
    if(edit&&preservePlan&&!daily){const currentPlan=plannedDateForTask(old);if(currentPlan){state.plannedOverrides=state.plannedOverrides||{};state.plannedOverrides[old.key]=dayKey(currentPlan)}}
-   save();refreshCatalog();close();(returnTo==="today"?renderToday():returnTo==="calendar"?renderCalendar():renderCatalog());toast(edit?"Aufgabe geändert ❤️":"Neue Aufgabe hinzugefügt ❤️");
+   save();refreshCatalog();close();(returnTo==="today"?renderToday():returnTo==="calendar"?renderCalendar():renderCatalog());toast(edit?"Aufgabe geändert ":"Neue Aufgabe hinzugefügt ");
  };
  if(edit)overlay.querySelector("#del").onclick=()=>{if(!confirm(`„${old.text}“ wirklich löschen?`))return;state.catalogDeleted=state.catalogDeleted||{};state.catalogDeleted[old.key]=true;state.custom=state.custom.filter(c=>(c.key||`custom|${c.id}`)!==old.key);save();refreshCatalog();close();(returnTo==="today"?renderToday():returnTo==="calendar"?renderCalendar():renderCatalog());toast("Aufgabe gelöscht")};
 }
@@ -2637,7 +2612,7 @@ function pullCatalogTaskToday(x){
     plannerCache={key:"",days:new Map(),next:new Map()};
     calendarCache={year:null,days:new Map()};
     save();
-    toast(`„${canonical.text}“ ist heute bereits eingeplant ❤️`);
+    toast(`„${canonical.text}“ ist heute bereits eingeplant `);
     return;
   }
   state.todayExtras.push({id:`extra|${day}|${uid()}`,date:day,text:canonical.text,room:canonical.room,area:canonical.area,place:canonical.place||"",description:canonical.description||"",source:"extra",sourceKey:tid,canonical:tid,interval:canonical.interval,start:canonical.start,manual:true});
@@ -2645,12 +2620,12 @@ function pullCatalogTaskToday(x){
   plannerCache={key:"",days:new Map(),next:new Map()};
   calendarCache={year:null,days:new Map()};
   save();
-  toast(`„${canonical.text}“ für heute vorgezogen ❤️`);
+  toast(`„${canonical.text}“ für heute vorgezogen `);
 }
 
 function renderCatalog(){
  const main=document.getElementById("main");
- main.innerHTML=`<div class="card"><div class="topline"><div><h2 style="margin:0">📚 Aufgabenkatalog</h2><div class="small">Die vollständige Masterliste – sauber nach Räumen gruppiert.</div></div><button class="btn primary" id="new">＋ Aufgabe hinzufügen</button></div><input class="search" id="q" placeholder="Aufgabe, Raum, Bereich, Ort suchen …" style="margin-top:14px"><div id="res"></div></div>`;
+ main.innerHTML=`<div class="card"><div class="topline"><div><h2 style="margin:0"> Aufgabenkatalog</h2><div class="small">Die vollständige Masterliste – sauber nach Räumen gruppiert.</div></div><button class="btn primary" id="new">＋ Aufgabe hinzufügen</button></div><input class="search" id="q" placeholder="Aufgabe, Raum, Bereich, Ort suchen …" style="margin-top:14px"><div id="res"></div></div>`;
  const q=main.querySelector("#q"),res=main.querySelector("#res");q.value=catalogSearchTerm||"";
  main.querySelector("#new").onclick=()=>openEditor();
  const draw=()=>{
@@ -2673,7 +2648,7 @@ function renderCatalog(){
   for(const x of arr){if(!groups.has(x.room||"Sonstiges"))groups.set(x.room||"Sonstiges",[]);groups.get(x.room||"Sonstiges").push(x)}
   for(const [room,items] of groups){
    const sec=document.createElement("section");sec.className="catalogRoomGroup";
-   sec.innerHTML=`<div class="catalogRoomHead"><span class="roomStripe"></span><span class="roomGroupIcon">${roomIcon(room)}</span><b>${esc(room)}</b><span class="roomGroupCount">${items.length} ${items.length===1?"Aufgabe":"Aufgaben"}</span></div><div class="catalogRoomBody"></div>`;
+   sec.innerHTML=`<div class="catalogRoomHead"><span class="roomStripe"></span><b>${esc(room)}</b><span class="roomGroupCount">${items.length} ${items.length===1?"Aufgabe":"Aufgaben"}</span></div><div class="catalogRoomBody"></div>`;
    const body=sec.querySelector(".catalogRoomBody");
    items.forEach(x=>{
     const r=document.createElement("div");r.className="result";
@@ -2681,7 +2656,7 @@ function renderCatalog(){
     const ptxt=x.source==="daily"?"täglich":(pd?pd.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}):"—");
     const diff=(x.source==="daily"||!pd||!due)?null:Math.round((pd-due)/86400000);
     const note=diff!==null&&diff!==0?` <span class="small">(${diff>0?"+":""}${diff} ${Math.abs(diff)===1?"Tag":"Tage"})</span>`:"";
-    r.innerHTML=`<div class="resultText"><div class="catalogTaskTitle"><span class="taskIcon">${taskIcon(x)}</span><b>${esc(displayTaskName(x))}</b></div><div class="meta">${esc(x.area||"")}${x.place?" · "+esc(x.place):""}</div><div class="meta nextDue">Fällig: <b>${esc(nextDueLabel(x))}</b></div><div class="meta plannedDate">Geplant: <b>${esc(ptxt)}</b>${note}</div></div><div class="catalogActions"><button class="iconBtn edit" title="Bearbeiten">✏️</button><button class="iconBtn remove" title="Löschen">🗑️</button>${x.source!=="daily"?`<button class="iconBtn pullToday" title="Heute vorziehen">⚡</button>`:""}<button class="iconBtn info" title="Info">ⓘ</button></div>`;
+    r.innerHTML=`<div class="resultText"><div class="catalogTaskTitle"><b>${esc(displayTaskName(x))}</b></div><div class="meta">${esc(x.area||"")}${x.place?" · "+esc(x.place):""}</div><div class="meta nextDue">Fällig: <b>${esc(nextDueLabel(x))}</b></div><div class="meta plannedDate">Geplant: <b>${esc(ptxt)}</b>${note}</div></div><div class="catalogActions"><button class="iconBtn edit" title="Bearbeiten"></button><button class="iconBtn remove" title="Löschen"></button>${x.source!=="daily"?`<button class="iconBtn pullToday" title="Heute vorziehen"></button>`:""}<button class="iconBtn info" title="Info">ⓘ</button></div>`;
     r.querySelector(".edit").onclick=()=>openEditor(x);
     r.querySelector(".remove").onclick=()=>{if(confirm(`„${displayTaskName(x)}“ wirklich löschen?`)){state.catalogDeleted[x.key]=true;state.custom=state.custom.filter(c=>(c.key||`custom|${c.id}`)!==x.key);save();refreshCatalog();renderCatalog();toast("Aufgabe gelöscht")}};
     const pull=r.querySelector(".pullToday");if(pull)pull.onclick=()=>pullCatalogTaskToday(x);
@@ -2702,10 +2677,10 @@ function renderWeek(){
     .slice(0,20);
   main.innerHTML=`<div class="card"><div class="topline"><div><h2 style="margin:0">Bald fällig</h2><div class="small">Die nächsten 20 offenen Aufgaben · nach Räumen gebündelt</div></div><span class="badge">${candidates.length}</span></div><div id="soonList"></div></div>`;
   const list=main.querySelector("#soonList");
-  if(!candidates.length){list.innerHTML=`<div class="empty">Gerade ist nichts offen, das bald ansteht. 🥰</div>`;return;}
+  if(!candidates.length){list.innerHTML=`<div class="empty">Gerade ist nichts offen, das bald ansteht. </div>`;return;}
   appendRoomGroups(list,roomGroupTasksSorted(candidates),{showDue:true});
 }
-function renderCalendar(){const main=document.getElementById("main"),year=state.calendarYear||today.getFullYear(),months=["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];main.innerHTML=`<div class="card"><div class="yearIntro"><div><div class="small">Jahresvorschau</div><div class="yearTitle">📅 ${year}</div></div><div class="yearNav"><button id="prev">‹</button><button id="cur">Dieses Jahr</button><button id="next">›</button></div></div><div class="calendarLegend"><span>🟢 erledigt</span><span>☀️ Sonntag frei</span><span>🏖️ Ausflug/Urlaub</span><span>Die Zahl = sinnvoll eingeplante Aufgaben · ✨ = Tag geschafft</span></div><div class="monthGrid" id="mg"></div><div id="detailDay"></div></div>`;const mg=main.querySelector("#mg");for(let m=0;m<12;m++){const card=document.createElement("div");card.className="monthCard";card.innerHTML=`<div class="monthName">${months[m]}</div><div class="weekdays">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<span>${x}</span>`).join("")}</div><div class="monthDays"></div>`;const grid=card.querySelector(".monthDays"),first=new Date(year,m,1,12),offset=(first.getDay()+6)%7;for(let z=0;z<offset;z++)grid.appendChild(document.createElement("span"));const count=new Date(year,m+1,0).getDate();for(let n=1;n<=count;n++){const d=new Date(year,m,n,12),tasks=calendarTasksForDate(d),el=document.createElement("button");const completed=calendarDayCompleted(d,tasks);el.className="yearDay"+(d.getDay()===0||isHouseholdFree(d)?" free":"")+(sameDay(d,today)?" today":"")+(completed?" completed":"");el.innerHTML=`<span class="dayNum">${n}</span>${tasks.length?`<span class="dayMark">${tasks.length}</span>`:""}${completed?`<span class="dayComplete" title="Tag geschafft">✨</span>`:""}`;el.onclick=()=>showCalendarDay(d,tasks);grid.appendChild(el)}mg.appendChild(card)}main.querySelector("#prev").onclick=()=>{state.calendarYear=year-1;save();renderCalendar()};main.querySelector("#next").onclick=()=>{state.calendarYear=year+1;save();renderCalendar()};main.querySelector("#cur").onclick=()=>{state.calendarYear=today.getFullYear();save();renderCalendar()}}
+function renderCalendar(){const main=document.getElementById("main"),year=state.calendarYear||today.getFullYear(),months=["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];main.innerHTML=`<div class="card"><div class="yearIntro"><div><div class="small">Jahresvorschau</div><div class="yearTitle"> ${year}</div></div><div class="yearNav"><button id="prev">‹</button><button id="cur">Dieses Jahr</button><button id="next">›</button></div></div><div class="calendarLegend"><span> erledigt</span><span> Sonntag frei</span><span> Ausflug/Urlaub</span><span>Die Zahl = sinnvoll eingeplante Aufgaben ·  = Tag geschafft</span></div><div class="monthGrid" id="mg"></div><div id="detailDay"></div></div>`;const mg=main.querySelector("#mg");for(let m=0;m<12;m++){const card=document.createElement("div");card.className="monthCard";card.innerHTML=`<div class="monthName">${months[m]}</div><div class="weekdays">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<span>${x}</span>`).join("")}</div><div class="monthDays"></div>`;const grid=card.querySelector(".monthDays"),first=new Date(year,m,1,12),offset=(first.getDay()+6)%7;for(let z=0;z<offset;z++)grid.appendChild(document.createElement("span"));const count=new Date(year,m+1,0).getDate();for(let n=1;n<=count;n++){const d=new Date(year,m,n,12),tasks=calendarTasksForDate(d),el=document.createElement("button");const completed=calendarDayCompleted(d,tasks);el.className="yearDay"+(d.getDay()===0||isHouseholdFree(d)?" free":"")+(sameDay(d,today)?" today":"")+(completed?" completed":"");el.innerHTML=`<span class="dayNum">${n}</span>${tasks.length?`<span class="dayMark">${tasks.length}</span>`:""}${completed?`<span class="dayComplete" title="Tag geschafft"></span>`:""}`;el.onclick=()=>showCalendarDay(d,tasks);grid.appendChild(el)}mg.appendChild(card)}main.querySelector("#prev").onclick=()=>{state.calendarYear=year-1;save();renderCalendar()};main.querySelector("#next").onclick=()=>{state.calendarYear=year+1;save();renderCalendar()};main.querySelector("#cur").onclick=()=>{state.calendarYear=today.getFullYear();save();renderCalendar()}}
 function showCalendarDay(d,tasks){
  const box=document.getElementById("detailDay");
  // Calendar day details always come from the same canonical plan as Today and
@@ -2714,10 +2689,10 @@ function showCalendarDay(d,tasks){
  const completed=calendarDayCompleted(d,dayTasks),done=completedTasksForDate(d,dayTasks),doneBy={};
  done.forEach(x=>(doneBy[x.room]??=[]).push(x));
  const plannedBy={};dayTasks.forEach(x=>(plannedBy[x.room]??=[]).push(x));
- box.innerHTML=`<div class="yearDetail"><h3>${esc(dateLabel(d))}${completed?` ✨`:``}</h3><div class="small">${esc(isHouseholdFree(d)?"🏖️ Haushaltsfrei":themeFor(d))}</div>
- ${completed?`<div class="completedDayBadge">✨ <b>Tag geschafft!</b><br><span class="small">Alle geplanten Aufgaben dieses Tages wurden erledigt.</span></div>`:""}
+ box.innerHTML=`<div class="yearDetail"><h3>${esc(dateLabel(d))}${completed?` `:``}</h3><div class="small">${esc(isHouseholdFree(d)?" Haushaltsfrei":themeFor(d))}</div>
+ ${completed?`<div class="completedDayBadge"> <b>Tag geschafft!</b><br><span class="small">Alle geplanten Aufgaben dieses Tages wurden erledigt.</span></div>`:""}
  ${dayTasks.length?`<div class="detailTasks"><b>Geplante Arbeiten · ${dayTasks.length}</b><div id="calendarDayTasks"></div></div>`:`<div class="empty">Für diesen Tag sind keine geplanten Arbeiten eingetragen.</div>`}
- ${done.length?`<div class="detailTasks"><b>✓ Erledigte Arbeiten · ${done.length}</b>${Object.entries(doneBy).map(([r,arr])=>`<div class="detailTasks"><b>${esc(r)}</b>${arr.map(x=>`<div class="detailTask">✓ ${esc(displayTaskName(x))}</div>`).join("")}</div>`).join("")}</div>`:""}
+ ${done.length?`<div class="detailTasks"><b> Erledigte Arbeiten · ${done.length}</b>${Object.entries(doneBy).map(([r,arr])=>`<div class="detailTasks"><b>${esc(r)}</b>${arr.map(x=>`<div class="detailTask"> ${esc(displayTaskName(x))}</div>`).join("")}</div>`).join("")}</div>`:""}
  </div>`;
  const list=box.querySelector("#calendarDayTasks");
  if(list){

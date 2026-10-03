@@ -13,18 +13,18 @@
 /* V266 – ruhige Raumgruppen in Heute, Kalender und Bald fällig */
 .roomGroup{margin:0 0 14px;border:1px solid var(--line);border-radius:18px;background:var(--card);overflow:hidden}
 
-.roomGroupIcon,.taskIcon{width:24px;min-width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:17px;line-height:1}
-.roomGroupIcon{font-size:16px}
-.taskName{display:flex;align-items:flex-start;gap:7px}
-.taskName .taskIcon{font-size:16px;width:20px;min-width:20px;height:20px}
+
+
+
+
 .catalogRoomGroup{margin:0 0 14px;border:1px solid var(--line);border-radius:18px;background:var(--card);overflow:hidden}
 .catalogRoomHead{display:flex;align-items:center;gap:9px;padding:10px 12px;background:linear-gradient(90deg,#faf8f5,#fff);border-bottom:1px solid var(--line)}
 .catalogRoomHead .roomStripe{width:4px;height:25px;border-radius:6px;flex:none;background:var(--accent)}
 .catalogRoomHead b{font-size:14px;flex:1}
 .catalogRoomBody .result{border:0;border-bottom:1px solid #f0ece7;border-radius:0;margin:0;padding:10px 12px}
 .catalogRoomBody .result:last-child{border-bottom:0}
-.catalogTaskTitle{display:flex;align-items:flex-start;gap:7px;line-height:1.2}
-.catalogTaskTitle .taskIcon{font-size:16px;width:21px;min-width:21px;height:21px}
+
+
 
 .roomGroupHead{display:flex;align-items:center;gap:9px;padding:9px 12px;background:linear-gradient(90deg,#faf8f5,#fff);border-bottom:1px solid var(--line)}
 .roomStripe{width:4px;height:25px;border-radius:6px;flex:none}
@@ -79,9 +79,9 @@
 </style>
 </head>
 <body>
-<div class="app"><div class="brand">🌿 Unser Zuhause</div><h1>Haushaltsplan</h1>
-<div class="tabs"><button class="tab active" data-tab="today">Heute</button><button class="tab" data-tab="week">⏳ Bald fällig</button><button class="tab" data-tab="calendar">📅 Kalender</button><button class="tab" data-tab="catalog">📚 Aufgabenkatalog</button></div>
-<main id="main"></main><footer>Flexibel statt perfekt. Ein ausgelassener Tag wird nicht automatisch nachgeholt. ❤️</footer></div>
+<div class="app"><div class="brand"> Unser Zuhause</div><h1>Haushaltsplan</h1>
+<div class="tabs"><button class="tab active" data-tab="today">Heute</button><button class="tab" data-tab="week"> Bald fällig</button><button class="tab" data-tab="calendar"> Kalender</button><button class="tab" data-tab="catalog"> Aufgabenkatalog</button></div>
+<main id="main"></main><footer>Flexibel statt perfekt. Ein ausgelassener Tag wird nicht automatisch nachgeholt. </footer></div>
 <div class="detailOverlay" id="detailOverlay"><div class="sheet"><div class="sheetTop"><div><div class="small" id="detailMeta"></div><h2 id="detailTitle"></h2></div><button class="close" id="closeDetail">×</button></div><div id="detailContent"></div></div></div><div class="toast" id="toast"></div>
 <script src="app.js?v=269"></script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").catch(()=>{});}</script>
