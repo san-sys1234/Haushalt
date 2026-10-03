@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V284";
+const APP_BUILD="V285";
 const STORAGE="unser-zuhause-v274";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
@@ -772,9 +772,6 @@ function windowEntries(){
  return out
 }
 const WINDOW_TASKS=windowEntries();
-for(const w of WINDOW_TASKS){
- if(!w.start){const wd=windowDate(w,today);if(wd instanceof Date)w.start=dayKey(wd);}
-}
 const WINDOW_GROUP_DATES={};for(const s of SEASONAL_SPECIALS){if(!WINDOW_GROUP_DATES[s.key])WINDOW_GROUP_DATES[s.key]=[];WINDOW_GROUP_DATES[s.key].push(...s.dates)}for(const k in WINDOW_GROUP_DATES)WINDOW_GROUP_DATES[k]=[...new Set(WINDOW_GROUP_DATES[k])].sort();
 function windowDate(x,ref=today){
  // Window work is scheduled by PHYSICAL ROOM, never by a multi-room synthetic
@@ -808,22 +805,25 @@ function windowDate(x,ref=today){
  return candidates[0] ? addDays(candidates[0],180) : ref;
 }
 const FIRST_DUE_WINDOW_DAYS=90;
-function bootstrapFirstDueDate(key,ref=today){
- let d=addDays(ref,stableBootstrapHash(key)%FIRST_DUE_WINDOW_DAYS);
- for(let i=0;i<=FIRST_DUE_WINDOW_DAYS;i++,d=addDays(d,1)){
-   if(d.getDay()===0||isHouseholdFree(d))continue;
-   return dayKey(d);
- }
- return dayKey(ref);
-}
 function stableBootstrapHash(v){
  const str=String(v||"");let h=2166136261;
  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
  return h>>>0;
 }
-function buildCatalog(){const out=[];const add=(text,room,area,meta={})=>{const key=meta.key||`seed|${room}|${text}`;if(catalogDeleted(key))return;const e=editFor(key)||{};let savedDate=state.manualDates?.[key]||state.catalogDates?.[key]||e.start||meta.start||"";
-if(!savedDate && meta.source!=="custom" && meta.source!=="daily" && !meta.window && !meta.seasonal){savedDate=bootstrapFirstDueDate(key)}
-out.push({text:e.text??text,room:e.room??room,area:e.area??area,place:e.place??meta.place??"",description:e.description??meta.description??"",start:savedDate,manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart||meta.manualStart),interval:Number(e.interval??meta.interval??0)||0,key,source:meta.source||"seed",editable:meta.editable!==false,window:!!meta.window,windowKey:meta.windowKey,windowGroup:meta.windowGroup,seasonal:!!meta.seasonal,seasonalKey:meta.seasonalKey})};for(const [room,area,tasks] of catalogSeed){for(const text of tasks){if(/^(Fenster innen reinigen|Fenster außen reinigen, wenn sicher|Fensterbänke reinigen|Fensterbank reinigen|Fensterbank abwischen|Dichtungen kontrollieren|Vorhangstangen reinigen|Vorhänge nach Pflegeetikett reinigen|Raffstores nach Herstellerangabe reinigen)$/.test(text))continue;add(text,room,area,{key:`seed|${room}|${text}`})}}for(const [room,area,tasks] of EXTRA_ROOM_TASKS){for(const text of tasks){add(text,room,area,{key:`extra-seed|${room}|${text}`})}}const roomText=new Set(out.map(x=>`${x.room}|${x.text}`));for(const r of ROTATIONS){for(const room of r.rooms||[]){const rk=`${room}|${r.text}`;if(roomText.has(rk))continue;add(r.text,room,r.area,{key:`rotation|${room}|${r.text}`,editable:true,source:"rotation",interval:r.interval});roomText.add(rk)}}for(const c of state.custom){const key=c.key||`custom|${c.id}`;if(catalogDeleted(key))continue;add(c.text,c.room,c.area,{...c,key,source:"custom",editable:true,start:c.start||c.date||"",interval:Number(c.interval||c.repeat||0)||60,place:c.place,description:c.description})}for(const [group,tasks] of DAILY){for(const text of tasks){const key=`daily|${text}`;if(catalogDeleted(key))continue;const e=editFor(key)||{};out.push({text:e.text??text,room:e.room??"Alltag",area:e.area??"Haushalt",place:e.place??"",description:e.description??"",start:"",manualStart:false,interval:0,key,source:"daily",editable:true,group});}}for(const w of WINDOW_TASKS)out.push(w);return out}
+function firstDueDateForTask(x,ref=today){
+ if(!x||isDailyTask(x)||isDone(x))return null;
+ const explicit=state.manualDates?.[x.key]||state.catalogDates?.[x.key]||x.start||"";
+ if(/^\\d{4}-\\d{2}-\\d{2}$/.test(explicit))return fromKey(explicit);
+ const max=addDays(ref,FIRST_DUE_WINDOW_DAYS);
+ let d=addDays(ref,stableBootstrapHash(taskId(x))%(FIRST_DUE_WINDOW_DAYS+1));
+ for(let i=0;i<=FIRST_DUE_WINDOW_DAYS;i++,d=addDays(d,1)){
+   if(d>max)break;
+   if(d.getDay()===0||isHouseholdFree(d))continue;
+   return d;
+ }
+ return max;
+}
+function buildCatalog(){const out=[];const add=(text,room,area,meta={})=>{const key=meta.key||`seed|${room}|${text}`;if(catalogDeleted(key))return;const e=editFor(key)||{};const savedDate=state.manualDates?.[key]||state.catalogDates?.[key]||e.start||meta.start||"";const initialDue=(!savedDate&&meta.source!=="custom"&&meta.source!=="daily"&&!meta.window&&!meta.seasonal)?firstDueDateForTask({key,room,text,source:meta.source||"seed"}):null;out.push({text:e.text??text,room:e.room??room,area:e.area??area,place:e.place??meta.place??"",description:e.description??meta.description??"",start:savedDate,initialDue:initialDue?dayKey(initialDue):"",manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart||meta.manualStart),interval:Number(e.interval??meta.interval??0)||0,key,source:meta.source||"seed",editable:meta.editable!==false,window:!!meta.window,windowKey:meta.windowKey,windowGroup:meta.windowGroup,seasonal:!!meta.seasonal,seasonalKey:meta.seasonalKey})};for(const [room,area,tasks] of catalogSeed){for(const text of tasks){if(/^(Fenster innen reinigen|Fenster außen reinigen, wenn sicher|Fensterbänke reinigen|Fensterbank reinigen|Fensterbank abwischen|Dichtungen kontrollieren|Vorhangstangen reinigen|Vorhänge nach Pflegeetikett reinigen|Raffstores nach Herstellerangabe reinigen)$/.test(text))continue;add(text,room,area,{key:`seed|${room}|${text}`})}}for(const [room,area,tasks] of EXTRA_ROOM_TASKS){for(const text of tasks){add(text,room,area,{key:`extra-seed|${room}|${text}`})}}const roomText=new Set(out.map(x=>`${x.room}|${x.text}`));for(const r of ROTATIONS){for(const room of r.rooms||[]){const rk=`${room}|${r.text}`;if(roomText.has(rk))continue;add(r.text,room,r.area,{key:`rotation|${room}|${r.text}`,editable:true,source:"rotation",interval:r.interval});roomText.add(rk)}}for(const c of state.custom){const key=c.key||`custom|${c.id}`;if(catalogDeleted(key))continue;add(c.text,c.room,c.area,{...c,key,source:"custom",editable:true,start:c.start||c.date||"",interval:Number(c.interval||c.repeat||0)||60,place:c.place,description:c.description})}for(const [group,tasks] of DAILY){for(const text of tasks){const key=`daily|${text}`;if(catalogDeleted(key))continue;const e=editFor(key)||{};out.push({text:e.text??text,room:e.room??"Alltag",area:e.area??"Haushalt",place:e.place??"",description:e.description??"",start:"",manualStart:false,interval:0,key,source:"daily",editable:true,group});}}for(const w of WINDOW_TASKS)out.push(w);return out}
 function refreshCatalog(){
  CATALOG=buildCatalog().filter(x=>!isInvalidLegacyTask(x));
  invalidatePlans();
@@ -1145,7 +1145,17 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v284|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v285|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+}
+function planningNextDue(x,ref=today){
+ // The first-due onboarding date is a catalog deadline, not permission to
+ // overload the short-term planner. Planning continues to use the existing
+ // cadence/room logic until the task is actually due.
+ const explicit=state.manualDates?.[x.key]||state.catalogDates?.[x.key];
+ if(explicit||x.start||x.manualStart)return nextDue(x,ref);
+ const savedLast=lastDone(x);
+ if(savedLast)return nextDue(x,ref);
+ return rawNextDue(x,ref);
 }
 function plannerHorizon(){
  const start=new Date(today.getFullYear(),today.getMonth(),today.getDate(),12);
@@ -1156,7 +1166,7 @@ function plannerHorizon(){
  let end=fromKey("2027-12-31");
  for(const x of CATALOG){
    if(isDailyTask(x)||isInvalidLegacyTask(x))continue;
-   const due=nextDue(x,today);
+   const due=planningNextDue(x,today);
    if(due instanceof Date && !Number.isNaN(due.getTime())){
      const candidate=addDays(due,30);
      if(candidate>end)end=candidate;
@@ -1264,7 +1274,7 @@ function buildIntelligentPlan(){
   };
 
   const place=(x,preferred,opts={})=>{
-    if(!preferred)preferred=nextDue(x,today);
+    if(!preferred)preferred=planningNextDue(x,today);
     const candidates=[];
     const range=opts.range??30;
     for(let delta=-range;delta<=range;delta++){
@@ -1287,7 +1297,7 @@ function buildIntelligentPlan(){
   // 1. Fixed weekday routines first. They still pass the same hard room gate.
   const fixed=CATALOG.filter(isFixedTask).filter(x=>!isDone(x)&&!isPostponed(x));
   for(const x of fixed){
-    const d=isFixedRhythmRoutine(x)?fixedRoutineDate(x,today):nextDue(x,today);
+    const d=isFixedRhythmRoutine(x)?fixedRoutineDate(x,today):planningNextDue(x,today);
     if(d)place(x,d,{range:30,allowFixedRoutine:false});
   }
 
@@ -1301,8 +1311,8 @@ function buildIntelligentPlan(){
     wcGroups.get(p.key).push(x);
   }
   for(const group of wcGroups.values()){
-    const anchor=group.reduce((best,x)=>!best||nextDue(x,today)<nextDue(best,today)?x:best,null);
-    const d=nextDue(anchor,today), candidates=[];
+    const anchor=group.reduce((best,x)=>!best||planningNextDue(x,today)<planningNextDue(best,today)?x:best,null);
+    const d=planningNextDue(anchor,today), candidates=[];
     for(let delta=-30;delta<=30;delta++){
       const cd=addDays(d,delta),k=dayKey(cd),arr=days.get(k);
       if(!arr||isFreeDay(cd)||arr._fixedRoutine)continue;
@@ -1323,7 +1333,7 @@ function buildIntelligentPlan(){
 
   // 3. All remaining tasks: one occurrence per active task, sorted by urgency.
   const remaining=CATALOG.filter(x=>!isDailyTask(x)&&!isFixedTask(x)&&!isDone(x)&&!isPostponed(x)&&!wcPackage(x))
-    .map(x=>({x,due:nextDue(x,today)}))
+    .map(x=>({x,due:planningNextDue(x,today)}))
     .sort((a,b)=>a.due-b.due||taskWeight(b.x)-taskWeight(a.x)||String(a.x.room).localeCompare(String(b.x.room),'de'));
 
   for(const o of remaining){
@@ -1340,7 +1350,7 @@ function buildIntelligentPlan(){
   for(const x of CATALOG){
     if(isDailyTask(x)||isDone(x)||isFixedTask(x))continue;
     if([...days.values()].some(a=>a.some(y=>taskId(y)===taskId(x))))continue;
-    const due=nextDue(x,today);
+    const due=planningNextDue(x,today);
     let placed=false;
     for(let radius=0;radius<=30&&!placed;radius++){
       for(const sign of radius===0?[1]:[1,-1]){
@@ -1356,7 +1366,7 @@ function buildIntelligentPlan(){
   // A failed move leaves the task where it was only if no legal date exists;
   // with the available horizon there should always be another legal weekday.
   const findPlacement=(x)=>{
-    const due=nextDue(x,today),c=[];
+    const due=planningNextDue(x,today),c=[];
     for(let delta=-30;delta<=30;delta++){
       for(const sign of delta===0?[1]:[1,-1]){
         const d=addDays(due,delta*sign),arr=days.get(dayKey(d));
@@ -1444,6 +1454,7 @@ function nextDue(x,ref=today){
  if(/^\d{4}-\d{2}-\d{2}$/.test(override||"")){const od=fromKey(override);if(od>=ref)return od;}
  if(x.manualStart&&normalizeDateKey(x.start)){const sd=fromKey(x.start);if(sd>=ref)return sd;}
  if(x.start)return explicitNext(x,ref);
+ if(!last){const initial=normalizeDateKey(x.initialDue);if(initial){const id=fromKey(initial);if(id>=ref)return id;}}
  return rawNextDue(x,ref);
 }
 function dueOn(x,d){return plannedForDate(d).some(y=>taskId(y)===taskId(x))}
