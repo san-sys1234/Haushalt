@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V271";
+const APP_BUILD="V272";
 const STORAGE="unser-zuhause-v269";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
@@ -656,7 +656,7 @@ function celebrateCompletedDay(){
   const dt=new Date(k+"T12:00:00"),r=rewards[(dt.getDate()+dt.getMonth())%rewards.length];
   const overlay=document.createElement("div");
   overlay.className="rewardOverlay";
-  overlay.innerHTML=`<div class="rewardConfetti" aria-hidden="true">${Array.from({length:18},(_,i)=>`<i style="--i:${i}"></i>`).join("")}</div><div class="rewardSparkles" aria-hidden="true">　　　　</div><div class="rewardCard"><div class="rewardCheck"></div><div class="rewardIcon">${r[0]}</div><div class="rewardEyebrow"> Tagesabschluss</div><h2>Tag geschafft!</h2><div class="rewardCount">${count} ${count===1?"Aufgabe":"Aufgaben"} erledigt</div><p><b>${r[1]}</b><br>${r[2]}</p><button class="btn primary" id="rewardClose"> Feierabend genießen</button></div>`;
+  overlay.innerHTML=`<div class="rewardConfetti" aria-hidden="true">${Array.from({length:18},(_,i)=>`<i style="--i:${i}"></i>`).join("")}</div><div class="rewardCard"><div class="rewardCheck"></div><div class="rewardEyebrow">Tagesabschluss</div><h2>Tag geschafft!</h2><div class="rewardCount">${count} ${count===1?"Aufgabe":"Aufgaben"} erledigt</div><p><b>${r[1]}</b><br>${r[2]}</p><button class="btn primary" id="rewardClose"> Feierabend genießen</button></div>`;
   document.body.appendChild(overlay);
   requestAnimationFrame(()=>overlay.classList.add("open"));
   const close=()=>{overlay.classList.remove("open");setTimeout(()=>overlay.remove(),220)};
