@@ -1,15 +1,36 @@
-# Unser Zuhause 🏡
+# Unser Zuhause – V3
 
-GitHub-Pages-fertige, dependency-freie PWA.
+Diese Version führt **jede tägliche Routine und jede wiederkehrende Haushaltsarbeit als eigene Aufgabe**.
 
-## Wichtig
-Diese Version verwendet ausschließlich relative Pfade (`./...`), damit sie auch in einem GitHub-Pages-Repository unter einem Unterpfad korrekt funktioniert. Die App hat außerdem einen sichtbaren Fehler-Fallback statt einer komplett leeren Seite.
+Beispiele:
+- Bett machen
+- Schlafzimmer lüften
+- Geschirrspüler ausräumen
+- Frühstücksgeschirr in den Geschirrspüler geben
+- Küchenarbeitsflächen abwischen
+- Esstisch abwischen
+- Baby-Hochstuhl / Essbereich reinigen
+- Wege freihalten
+- Wäsche in den Wäschekorb
+- Geschirr wegräumen
+- Spielzeug grob zurücksetzen
+- Geschirrspüler beladen/starten
+- Herd abwischen
+- Spüle und Armatur reinigen
+- Müll kontrollieren
 
-## GitHub Pages
-1. Inhalt dieses Ordners ins Repository hochladen.
-2. Settings → Pages → Deploy from branch → `main` → `/ (root)`.
-3. Die erzeugte Pages-Adresse auf dem iPhone in Safari öffnen.
-4. Teilen → Zum Home-Bildschirm.
+Auch Sanitärarbeiten sind getrennt: Toilette, Waschbecken und Toilettenbürste werden nicht zu „Bad reinigen“ zusammengefasst.
 
-## Architektur
-Katalog, Kalender und Heute lesen dieselbe lokale Aufgaben-Datenbasis. Terminänderungen werden auf derselben Aufgabe gespeichert. Die Daten liegen lokal auf dem Gerät.
+Die tägliche Basisroutine erscheint jeden Tag. Das Belastungsbudget steuert nur die **zusätzlichen Turnusaufgaben**, damit die tägliche Routine nicht gegen Fensteretappen oder andere Großaufgaben ausgespielt wird.
+
+
+## Strikte Raumregel V4
+
+Für **zusätzliche Turnus-/Haushaltsaufgaben** gilt:
+- maximal **2 konkrete Räume pro Tag**
+- niemals „alle Türklinken im Haus“
+- niemals „alle Lichtschalter im Haus“
+- niemals „alle Sockelleisten im Haus“
+- niemals Sammelaufgaben mit `Alle Räume` oder `Mehrere Räume`
+- Detailarbeiten wie Türklinken, Lichtschalter, Steckdosen, Zargen, Türblätter, Sockelleisten und erreichbare Lampen sind pro Raum eigene Aufgaben.
+- Die tägliche Basisroutine bleibt separat sichtbar, weil sie laut Master jeden Tag erscheinen soll; sie wird nicht als Turnus-Raumpaket gezählt.

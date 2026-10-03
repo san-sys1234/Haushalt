@@ -1,7 +1,6 @@
 {
-  "name": "Unser Zuhause",
-  "planningHorizonDays": 120,
-  "fixedTuesdaySanitary": true,
-  "sundayFree": true,
-  "pwa": true
+  "version": "3",
+  "principle": "Every routine and recurring physical action is an individual task",
+  "dailyRoutineAlwaysVisible": true,
+  "genericCombinedTasksForbidden": true
 }
