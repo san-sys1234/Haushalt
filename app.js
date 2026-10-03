@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V281";
+const APP_BUILD="V282";
 const STORAGE="unser-zuhause-v274";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
@@ -352,7 +352,7 @@ function purgeWholeHouseDoorFrameData(s){
    for(const [k,v] of Object.entries(s.postponed)) if(isInvalidLegacyTask(v)){delete s.postponed[k]}
  }
 }
-function defaultState(){return {done:{},lastDone:{},completionHistory:{},dailyDone:{},postponed:{},custom:[],catalogEdits:{},catalogDates:{},manualDates:{},catalogDeleted:{},todayExtras:[],completedDays:{},dayCelebrations:{},plannedOverrides:{},completedOpen:false,postponedOpen:false,chaos:false,sundayOptional:{},energyOffset:0,energySkipDay:"",energySeen:[],calendarYear:new Date().getFullYear(),todayPlanLock:{},todayPlanSnapshot:{},householdFreeDays:{}}}
+function defaultState(){return {done:{},lastDone:{},completionHistory:{},dailyDone:{},postponed:{},custom:[],catalogEdits:{},catalogDates:{},manualDates:{},initialDueDates:{},catalogDeleted:{},todayExtras:[],completedDays:{},dayCelebrations:{},plannedOverrides:{},completedOpen:false,postponedOpen:false,chaos:false,sundayOptional:{},energyOffset:0,energySkipDay:"",energySeen:[],calendarYear:new Date().getFullYear(),todayPlanLock:{},todayPlanSnapshot:{},householdFreeDays:{}}}
 function migrateWCRoomNames(s){
  if(!s)return;
  const renameKey=k=>String(k||"").replace(/\|WC(?=\||$)/g,"|Eltern-WC");
@@ -403,7 +403,7 @@ function loadState(){
  migrateWCRoomNames(s);
  s.done=s.done||{};s.lastDone=s.lastDone||{};s.completionHistory=s.completionHistory&&typeof s.completionHistory==='object'?s.completionHistory:{};s.dailyDone=s.dailyDone&&typeof s.dailyDone==="object"?s.dailyDone:{};s.postponed=s.postponed||{};
  s.custom=Array.isArray(s.custom)?s.custom.filter(c=>!isInvalidLegacyTask(c)):[];
- s.catalogEdits=s.catalogEdits||{};s.catalogDates=s.catalogDates||{};s.manualDates=s.manualDates||{};s.catalogDeleted=s.catalogDeleted||{};
+ s.catalogEdits=s.catalogEdits||{};s.catalogDates=s.catalogDates||{};s.manualDates=s.manualDates||{};s.initialDueDates=s.initialDueDates||{};s.catalogDeleted=s.catalogDeleted||{};
  purgeWholeHouseDoorFrameData(s);
   migrateTaskCatalogQuality(s);
  s.todayExtras=Array.isArray(s.todayExtras)?s.todayExtras:[];s.completedDays=s.completedDays||{};s.dayPlanHistory=s.dayPlanHistory&&typeof s.dayPlanHistory==="object"?s.dayPlanHistory:{};s.dayCelebrations=s.dayCelebrations&&typeof s.dayCelebrations==="object"?s.dayCelebrations:{};s.completedOpen=false;s.postponedOpen=false;s.todayPlanLock=s.todayPlanLock&&typeof s.todayPlanLock==="object"?s.todayPlanLock:{};s.todayPlanSnapshot=s.todayPlanSnapshot&&typeof s.todayPlanSnapshot==="object"?s.todayPlanSnapshot:{};s.energyOffset=Number.isFinite(Number(s.energyOffset))?Number(s.energyOffset):0;s.energySkipDay=s.energySkipDay||"";s.energySeen=Array.isArray(s.energySeen)?s.energySeen:[];s.roomFocus=s.roomFocus&&typeof s.roomFocus==="object"?s.roomFocus:{};s.householdFreeDays=s.householdFreeDays&&typeof s.householdFreeDays==="object"?s.householdFreeDays:{};
@@ -807,6 +807,7 @@ function windowDate(x,ref=today){
 function buildCatalog(){const out=[];const add=(text,room,area,meta={})=>{const key=meta.key||`seed|${room}|${text}`;if(catalogDeleted(key))return;const e=editFor(key)||{};const savedDate=state.manualDates?.[key]||state.catalogDates?.[key]||e.start||meta.start||"";out.push({text:e.text??text,room:e.room??room,area:e.area??area,place:e.place??meta.place??"",description:e.description??meta.description??"",start:savedDate,manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart||meta.manualStart),interval:Number(e.interval??meta.interval??0)||0,key,source:meta.source||"seed",editable:meta.editable!==false,window:!!meta.window,windowKey:meta.windowKey,windowGroup:meta.windowGroup,seasonal:!!meta.seasonal,seasonalKey:meta.seasonalKey})};for(const [room,area,tasks] of catalogSeed){for(const text of tasks){if(/^(Fenster innen reinigen|Fenster außen reinigen, wenn sicher|Fensterbänke reinigen|Fensterbank reinigen|Fensterbank abwischen|Dichtungen kontrollieren|Vorhangstangen reinigen|Vorhänge nach Pflegeetikett reinigen|Raffstores nach Herstellerangabe reinigen)$/.test(text))continue;add(text,room,area,{key:`seed|${room}|${text}`})}}for(const [room,area,tasks] of EXTRA_ROOM_TASKS){for(const text of tasks){add(text,room,area,{key:`extra-seed|${room}|${text}`})}}const roomText=new Set(out.map(x=>`${x.room}|${x.text}`));for(const r of ROTATIONS){for(const room of r.rooms||[]){const rk=`${room}|${r.text}`;if(roomText.has(rk))continue;add(r.text,room,r.area,{key:`rotation|${room}|${r.text}`,editable:true,source:"rotation",interval:r.interval});roomText.add(rk)}}for(const c of state.custom){const key=c.key||`custom|${c.id}`;if(catalogDeleted(key))continue;add(c.text,c.room,c.area,{...c,key,source:"custom",editable:true,start:c.start||c.date||"",interval:Number(c.interval||c.repeat||0)||60,place:c.place,description:c.description})}for(const [group,tasks] of DAILY){for(const text of tasks){const key=`daily|${text}`;if(catalogDeleted(key))continue;const e=editFor(key)||{};out.push({text:e.text??text,room:e.room??"Alltag",area:e.area??"Haushalt",place:e.place??"",description:e.description??"",start:"",manualStart:false,interval:0,key,source:"daily",editable:true,group});}}for(const w of WINDOW_TASKS)out.push(w);return out}
 function refreshCatalog(){
  CATALOG=buildCatalog().filter(x=>!isInvalidLegacyTask(x));
+ensureInitialDueDates();
  invalidatePlans();
  invalidatePlanner();
 }
@@ -1126,7 +1127,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v278|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v282|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function plannerHorizon(){
  const start=new Date(today.getFullYear(),today.getMonth(),today.getDate(),12);
@@ -1407,6 +1408,78 @@ function plannedForDate(d){
 }
 function scheduledForDate(d){return plannedForDate(d)}
 function normalizeDateKey(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||""))?String(v):""}
+const INITIAL_DUE_DAYS=90;
+function stableTaskHash(x){
+ const str=String(x?.key||taskId(x)||x?.text||"");
+ let h=2166136261;
+ for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
+ return (h>>>0);
+}
+function firstDueDateForTask(x,ref=today){
+ if(!x||isDailyTask(x))return null;
+ const last=lastDone(x);
+ if(last)return rawNextDue(x,ref);
+ const id=taskId(x);
+ const stored=normalizeDateKey(state.initialDueDates?.[id]);
+ const max=addDays(ref,INITIAL_DUE_DAYS);
+ if(stored){
+   const d=fromKey(stored);
+   if(d>=ref&&d<=max&&!isHouseholdFree(d))return d;
+ }
+ // Explicit dates created by the user remain authoritative. The 3-month
+ // bootstrap applies to the master catalog's not-yet-completed tasks.
+ const explicit=normalizeDateKey(state.manualDates?.[id]||state.catalogDates?.[id]||x.start);
+ if(explicit&&x.source==="custom"){
+   const d=fromKey(explicit);
+   if(d>=ref)return d;
+ }
+ let candidate=rawNextDue(x,ref);
+ if(candidate instanceof Date&&!Number.isNaN(candidate.getTime())&&candidate>=ref&&candidate<=max&&!isHouseholdFree(candidate))return candidate;
+ // Preserve special/seasonal logic whenever possible.
+ if(x.window){
+   const d=windowDate(x,ref);
+   if(d&&d<=max&&!isHouseholdFree(d))return d;
+ }
+ // If an annual/room-rotation anchor lies beyond the first 90 days, bootstrap
+ // the first occurrence into the 3-month onboarding window. Completion then
+ // starts the normal interval again, so the long-term cadence is preserved.
+ const span=INITIAL_DUE_DAYS-2;
+ let offset=stableTaskHash(x)%Math.max(1,span);
+ let d=addDays(ref,offset);
+ for(let i=0;i<=INITIAL_DUE_DAYS;i++,d=addDays(d,1)){
+   if(d>max)break;
+   if(isHouseholdFree(d)||d.getDay()===0)continue;
+   if(x.window){
+     const wd=windowDate(x,d);
+     if(wd&&sameDay(wd,d))return d;
+     continue;
+   }
+   if(isFixedRhythmRoutine(x))continue;
+   return d;
+ }
+ return max;
+}
+function ensureInitialDueDates(){
+ state.initialDueDates=state.initialDueDates||{};
+ let changed=false;
+ const max=addDays(today,INITIAL_DUE_DAYS);
+ for(const x of CATALOG){
+   if(isDailyTask(x)||isDone(x)||isInvalidLegacyTask(x))continue;
+   const id=taskId(x);
+   if(state.initialDueDates[id]){
+     const existing=fromKey(state.initialDueDates[id]);
+     if(existing>=today&&existing<=max)continue;
+     // Completed tasks and explicit custom dates are not re-bootstrapped.
+     if(lastDone(x)||x.source==="custom")continue;
+   }
+   const d=firstDueDateForTask(x,today);
+   if(d instanceof Date&&!Number.isNaN(d.getTime())){
+     const k=dayKey(d);
+     if(k!==state.initialDueDates[id]){state.initialDueDates[id]=k;changed=true;}
+   }
+ }
+ if(changed){try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{} invalidatePlans()}
+}
 function nextDue(x,ref=today){
  // The lifecycle has a strict order:
  // 1) after completion, the next due date is completion + this task's interval;
@@ -1421,6 +1494,8 @@ function nextDue(x,ref=today){
    while(d<ref)d=addDays(d,interval);
    return d;
  }
+ const initial=firstDueDateForTask(x,ref);
+ if(initial instanceof Date&&!Number.isNaN(initial.getTime()))return initial;
  const override=normalizeDateKey(state.manualDates?.[x.key]||state.catalogDates?.[x.key]);
  if(/^\d{4}-\d{2}-\d{2}$/.test(override||"")){const od=fromKey(override);if(od>=ref)return od;}
  if(x.manualStart&&normalizeDateKey(x.start)){const sd=fromKey(x.start);if(sd>=ref)return sd;}
