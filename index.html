@@ -7,84 +7,67 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Unser Zuhause">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<link rel="icon" href="assets/icon-192.png">
-<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+<link rel="icon" href="./assets/icon-192.png">
+<link rel="stylesheet" href="./styles.css">
 <title>Unser Zuhause</title>
 </head>
 <body>
 <div id="app">
-  <header class="topbar">
-    <div class="brand">
-      <img src="assets/icon-192.png" alt="">
-      <div><strong>Unser Zuhause</strong><span>Dein intelligenter Haushaltsassistent</span></div>
-    </div>
-    <button class="iconbtn" id="settingsBtn" aria-label="Einstellungen">⚙️</button>
-  </header>
-
-  <main id="main"></main>
-
-  <nav class="bottomnav">
-    <button data-view="today">☀️<span>Heute</span></button>
-    <button data-view="calendar">📅<span>Kalender</span></button>
-    <button data-view="catalog">📚<span>Aufgaben</span></button>
-    <button data-view="home">⌂<span>Haus</span></button>
-  </nav>
+<header class="topbar">
+  <div class="brand">
+    <img src="./assets/icon-192.png" onerror="this.style.display='none'" alt="">
+    <div><div class="brandtitle">Unser Zuhause</div><div class="subtitle">Dein intelligenter Haushaltsassistent</div></div>
+  </div>
+  <button class="round" id="settingsBtn">⚙︎</button>
+</header>
+<main id="main"></main>
+<nav class="tabbar">
+  <button data-view="today"><span>☀️</span><small>Heute</small></button>
+  <button data-view="calendar"><span>▦</span><small>Kalender</small></button>
+  <button data-view="catalog"><span>▤</span><small>Aufgaben</small></button>
+  <button data-view="house"><span>⌂</span><small>Haus</small></button>
+</nav>
 </div>
 
 <dialog id="taskDialog">
-  <form method="dialog" id="taskForm">
-    <div class="dialoghead"><h2 id="dialogTitle">Aufgabe</h2><button value="cancel" class="iconbtn">✕</button></div>
-    <input type="hidden" id="taskId">
-    <label>Aufgabenname<input id="fName" required></label>
-    <div class="grid2">
-      <label>Etage/Bereich<input id="fFloor"></label>
-      <label>Raum<input id="fRoom"></label>
-      <label>Genauer Ort<input id="fPlace"></label>
-      <label>Kategorie<input id="fCategory"></label>
-    </div>
-    <label>Beschreibung<textarea id="fDesc" rows="3"></textarea></label>
-    <div class="grid2">
-      <label>Aufwand
-        <select id="fEffort">
-          <option value="mini">🫧 MINI · 5–10 Min.</option>
-          <option value="small">🌱 KLEIN · 15–20 Min.</option>
-          <option value="medium">🧹 MITTEL · 25–35 Min.</option>
-          <option value="large">💪 GROSS · 45–60 Min.</option>
-          <option value="huge">🔥 SEHR GROSS · 60–90 Min.</option>
-          <option value="mighty">🪟 MÄCHTIG · 90+ Min.</option>
-        </select>
-      </label>
-      <label>Intervall (Tage)<input id="fInterval" type="number" min="1" value="30"></label>
-      <label>Erster/nächster Termin<input id="fDue" type="date" required></label>
-      <label>Wochentag
-        <select id="fWeekday"><option value="">— keiner —</option><option value="1">Montag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option><option value="6">Samstag</option><option value="0">Sonntag</option></select>
-      </label>
-    </div>
-    <label class="check"><input id="fFixed" type="checkbox"> Termin exakt einhalten</label>
-    <label class="check"><input id="fSeasonal" type="checkbox"> Saisonale Aufgabe</label>
-    <div class="grid2" id="seasonFields" hidden>
-      <label>Saison von<input id="fSeasonStart" type="text" placeholder="01.09."></label>
-      <label>Saison bis<input id="fSeasonEnd" type="text" placeholder="31.10."></label>
-    </div>
-    <div class="dialogactions">
-      <button value="cancel" class="secondary">Abbrechen</button>
-      <button id="saveTask" value="default" class="primary">Speichern</button>
-    </div>
-  </form>
+<form id="taskForm">
+<div class="dialog-head"><h2 id="dialogTitle">Aufgabe</h2><button type="button" class="close" data-close="taskDialog">×</button></div>
+<input type="hidden" id="fId">
+<label>Aufgabenname<input id="fName" required></label>
+<div class="two">
+<label>Etage/Bereich<input id="fFloor"></label><label>Raum<input id="fRoom"></label>
+<label>Genauer Ort<input id="fPlace"></label><label>Kategorie<input id="fCategory"></label>
+</div>
+<label>Beschreibung<textarea id="fDesc"></textarea></label>
+<div class="two">
+<label>Aufwand<select id="fEffort">
+<option value="mini">🫧 MINI · 5–10 Min.</option><option value="small">🌱 KLEIN · 15–20 Min.</option>
+<option value="medium">🧹 MITTEL · 25–35 Min.</option><option value="large">💪 GROSS · 45–60 Min.</option>
+<option value="huge">🔥 SEHR GROSS · 60–90 Min.</option><option value="mighty">🪟 MÄCHTIG · 90+ Min.</option>
+</select></label>
+<label>Intervall (Tage)<input id="fInterval" type="number" min="1" value="30"></label>
+<label>Termin<input id="fDue" type="date" required></label>
+<label>Wochentag<select id="fWeekday"><option value="">kein fester Wochentag</option><option value="1">Montag</option><option value="2">Dienstag</option><option value="3">Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option><option value="6">Samstag</option><option value="0">Sonntag</option></select></label>
+</div>
+<label class="check"><input id="fFixed" type="checkbox"> Termin exakt einhalten</label>
+<label class="check"><input id="fSeasonal" type="checkbox"> Saisonale Aufgabe</label>
+<div class="two season" id="seasonFields" hidden><label>Saison von<input id="fSeasonStart" placeholder="09-01"></label><label>Saison bis<input id="fSeasonEnd" placeholder="10-31"></label></div>
+<div class="actions"><button type="button" class="secondary" data-close="taskDialog">Abbrechen</button><button class="primary">Speichern</button></div>
+</form>
 </dialog>
 
 <dialog id="settingsDialog">
-  <form method="dialog" class="settings">
-    <div class="dialoghead"><h2>Einstellungen</h2><button value="cancel" class="iconbtn">✕</button></div>
-    <p class="muted">Die App speichert alles lokal auf diesem Gerät. Ein Refresh löscht deine Daten nicht.</p>
-    <label class="check"><input type="checkbox" id="babyMode"> 🫶 Baby-/Leichtmodus</label>
-    <label class="check"><input type="checkbox" id="energyMode"> ⚡ Ich habe Energie</label>
-    <button id="resetDemo" class="danger" value="default">Demo-Daten zurücksetzen</button>
-  </form>
+<form id="settingsForm">
+<div class="dialog-head"><h2>Einstellungen</h2><button type="button" class="close" data-close="settingsDialog">×</button></div>
+<div class="setting"><div><b>🫶 Baby-/Leichtmodus</b><small>Weniger Tagesbelastung, große flexible Aufgaben werden verschoben.</small></div><input type="checkbox" id="babyMode"></div>
+<div class="setting"><div><b>⚡ Ich habe Energie</b><small>Bis zu drei zusätzliche sinnvolle Kandidaten.</small></div><input type="checkbox" id="energyMode"></div>
+<div class="setting"><div><div><b>Sonntag</b><small>Grundsätzlich haushaltsfrei.</small></div></div></div>
+<button type="button" class="danger" id="reset">Demo-Daten zurücksetzen</button>
+</form>
 </dialog>
 
-<script src="app.js"></script>
+<script src="./app.js"></script>
 </body>
 </html>

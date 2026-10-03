@@ -1,0 +1,7 @@
+{
+  "name": "Unser Zuhause",
+  "planningHorizonDays": 120,
+  "fixedTuesdaySanitary": true,
+  "sundayFree": true,
+  "pwa": true
+}
