@@ -34,3 +34,10 @@ Für **zusätzliche Turnus-/Haushaltsaufgaben** gilt:
 - niemals Sammelaufgaben mit `Alle Räume` oder `Mehrere Räume`
 - Detailarbeiten wie Türklinken, Lichtschalter, Steckdosen, Zargen, Türblätter, Sockelleisten und erreichbare Lampen sind pro Raum eigene Aufgaben.
 - Die tägliche Basisroutine bleibt separat sichtbar, weil sie laut Master jeden Tag erscheinen soll; sie wird nicht als Turnus-Raumpaket gezählt.
+
+
+## V5 Startstabilität
+- Fehler in der Dienstagstermin-Berechnung (`nextWeekday`) behoben.
+- Neuer LocalStorage-Key verhindert alte Demo-/Fehlerdaten.
+- Service Worker wird vor der App-Initialisierung registriert.
+- Sichtbarer Start-Fehler statt leerer Seite bei einem künftigen Laufzeitfehler.

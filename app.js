@@ -1,12 +1,14 @@
 (() => {
 "use strict";
-const KEY="unser-zuhause-v2";
+if("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(()=>{});
+const KEY="unser-zuhause-v5";
 const E={mini:["🫧",8],small:["🌱",18],medium:["🧹",30],large:["💪",55],huge:["🔥",75],mighty:["🪟",110]};
 const $=id=>document.getElementById(id);
 const iso=d=>{const x=new Date(d);x.setHours(12,0,0,0);return x.toISOString().slice(0,10)};
 const today=()=>iso(new Date());
 const add=(s,n)=>{const d=new Date(s+"T12:00:00");d.setDate(d.getDate()+n);return iso(d)};
 const day=s=>new Date(s+"T12:00:00").getDay();
+const nextWeekday=target=>{const d=new Date();d.setHours(12,0,0,0);const delta=(Number(target)-d.getDay()+7)%7;d.setDate(d.getDate()+delta);return iso(d)};
 const fmt=s=>new Intl.DateTimeFormat("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(s+"T12:00:00"));
 const monthName=(y,m)=>new Intl.DateTimeFormat("de-AT",{month:"long",year:"numeric"}).format(new Date(y,m,1));
 const uid=()=>("id-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2));
@@ -372,7 +374,14 @@ $("settingsForm").addEventListener("submit",e=>e.preventDefault());
 $("babyMode").addEventListener("change",e=>{state.settings.baby=e.target.checked;save();render();$("settingsDialog").close()});
 $("energyMode").addEventListener("change",e=>{state.settings.energy=e.target.checked;save();render();$("settingsDialog").close()});
 $("reset").onclick=()=>{if(confirm("Demo-Daten zurücksetzen?")){state=seed();save();location.reload()}};
-window.addEventListener("error",e=>console.error(e.error||e.message));
-if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
-render();
+window.addEventListener("error",e=>{
+ console.error(e.error||e.message);
+ const main=document.getElementById("main");
+ if(main && !main.innerHTML.trim()) main.innerHTML='<div class="empty"><b>Unser Zuhause konnte nicht gestartet werden.</b><p>Bitte Seite einmal neu laden.</p><button class="primary" onclick="location.reload()">Neu laden</button></div>';
+});
+try{render()}catch(err){
+ console.error(err);
+ const main=document.getElementById("main");
+ if(main) main.innerHTML='<div class="empty"><b>Unser Zuhause konnte nicht gestartet werden.</b><p>Die App hat beim Start einen Fehler abgefangen.</p><button class="primary" onclick="location.reload()">Neu laden</button></div>';
+}
 })();
