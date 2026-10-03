@@ -1,6 +1,6 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V272";
-const STORAGE="unser-zuhause-v269";
+const APP_BUILD="V274";
+const STORAGE="unser-zuhause-v274";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
 const LEGACY_STORAGE_OLD2="unser-zuhause-v139";
@@ -970,9 +970,19 @@ function fixedRoutineDate(x,ref=today){
  const due=nextDue(x,ref);
  const d=new Date(due); d.setHours(12,0,0,0);
  // Hygiene block: Tuesday. Bed linen: Thursday. Hand towels: Tuesday.
- const dow=/bettwäsche wechseln/.test((x.text||"").toLowerCase())?4:2;
+ const isBed=/bettwäsche wechseln/.test((x.text||"").toLowerCase());
+ const dow=isBed?4:2;
  const delta=(dow-d.getDay()+7)%7;
- return addDays(d,delta);
+ let planned=addDays(d,delta);
+ // HARD ROOM LIMIT: bed linen exists in three bedrooms. Keep the fixed
+ // Thursday rhythm, but distribute the third bedroom to the following
+ // Thursday so no day can ever contain more than two rooms.
+ if(isBed){
+   const order=["Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"];
+   const idx=order.indexOf(x.room);
+   if(idx>=2)planned=addDays(planned,7);
+ }
+ return planned;
 }
 function fixedWeeklyDate(x,ref=today){return fixedRoutineDate(x,ref)}
 function taskWeight(x){const t=(x.text||"").toLowerCase();
@@ -1115,8 +1125,13 @@ function plannerHorizon(){
 }
 function dominantCategory(arr){if(!arr||!arr.length)return "";const scores={};for(const y of arr){const g=taskCategory(y);scores[g]=(scores[g]||0)+taskWeight(y)}return Object.entries(scores).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],"de"))[0]?.[0]||""}
 function nearbyCategoryPenalty(days,k,cat){let penalty=0;for(const off of [-1,1]){const a=days.get(dayKey(addDays(fromKey(k),off)));if(a&&dominantCategory(a)===cat)penalty+=12}return penalty}
-function plannedRoomSet(arr){return new Set((arr||[]).filter(x=>!isDailyTask(x)&&x.room&&x.room!=="Alltag").map(x=>x.room))}
-function violatesTwoRoomRule(arr,x){const rooms=plannedRoomSet(arr);return rooms.size>=2&&!rooms.has(x.room)}
+function taskRoomParts(x){
+ const room=String(x?.room||"").trim();
+ if(!room||room==="Alltag")return [];
+ return room.split(/\s*\+\s*/).map(r=>r.trim()).filter(Boolean);
+}
+function plannedRoomSet(arr){const rooms=new Set();for(const x of (arr||[])){if(isDailyTask(x))continue;for(const r of taskRoomParts(x))rooms.add(r)}return rooms}
+function violatesTwoRoomRule(arr,x){const rooms=plannedRoomSet(arr);for(const r of taskRoomParts(x))rooms.add(r);return rooms.size>2}
 function buildIntelligentPlan(){
  const key=plannerKey();if(plannerCache.key===key)return plannerCache;
  const {start,end}=plannerHorizon();const days=new Map();const dates=[];for(let d=new Date(start);d<=end;d=addDays(d,1)){const k=dayKey(d);days.set(k,[]);dates.push(d)}
@@ -1267,7 +1282,7 @@ function buildIntelligentPlan(){
        const cap=dayBudget(pd);
        const sameRoomWeight=arr.filter(y=>y.room===occ.x.room).reduce((n,y)=>n+taskWeight(y),0);
        const roomLimit=(weight>=5||hasMighty)?1:6;
-       if(!arr.some(y=>taskId(y)===taskId(occ.x)) && !(hasMighty&&weight>1) && !(weight>=5&&arr.length) && !(hasLarge&&weight>=3) && used+weight<=cap && sameRoomWeight+weight<=roomLimit){
+       if(!violatesTwoRoomRule(arr,occ.x) && !arr.some(y=>taskId(y)===taskId(occ.x)) && !(hasMighty&&weight>1) && !(weight>=5&&arr.length) && !(hasLarge&&weight>=3) && used+weight<=cap && sameRoomWeight+weight<=roomLimit){
          chosen=pk;
        }
      }
@@ -1456,10 +1471,10 @@ function buildIntelligentPlan(){
        const hasMighty=arr.some(y=>y.window||taskWeight(y)>=8);
        const hasLarge=arr.some(y=>!y.window&&taskWeight(y)>=5);
        const cap=dayBudget(d);
-       const canFit=arr.length>=dayTaskLimit(d) ? false : (weight>=8 ? arr.length===0 : (!hasMighty && !(weight>=5&&hasLarge) && !(hasLarge&&weight>=3) && used+weight<=cap));
+       const canFit=violatesTwoRoomRule(arr,x) ? false : (arr.length>=dayTaskLimit(d) ? false : (weight>=8 ? arr.length===0 : (!hasMighty && !(weight>=5&&hasLarge) && !(hasLarge&&weight>=3) && used+weight<=cap)));
        const sameTheme=arr.some(y=>groupFor(y)===groupFor(x));
        const sameRoom=arr.some(y=>y.room===x.room);
-       const roomCompatible=arr.length===0||sameRoom;
+       const roomCompatible=!violatesTwoRoomRule(arr,x);
        const score=(roomCompatible?0:1000000)+(canFit?0:100000)+((sameRoom?-90:(sameTheme?-18:0)))+roomSpreadPenalty(arr,x)+used*10+Math.abs(offset)*0.1;
        if(!best||score<best.score)best={k,d,score};
      }
@@ -1475,9 +1490,11 @@ function buildIntelligentPlan(){
          if(k===todayKey&&hasTodayLock&&!lockedToday.includes(id))continue;
          if(plannerBlocked(d))continue;
          const arr=days.get(k),sameRoom=arr.some(y=>y.room===x.room);
-         const roomCompatible=arr.length===0||sameRoom;
+         // Absolute room rule: this emergency fallback may relax capacity,
+         // but it may NEVER create a third room on the same day.
+         if(violatesTwoRoomRule(arr,x))continue;
          const countPenalty=arr.length>=dayTaskLimit(d)?500000:0;
-         const score=(roomCompatible?0:1000000)+countPenalty+((sameRoom?-90:0))+roomSpreadPenalty(arr,x)+(arr._weight||0)*10+Math.abs(delta*sign);
+         const score=countPenalty+((sameRoom?-90:0))+roomSpreadPenalty(arr,x)+(arr._weight||0)*10+Math.abs(delta*sign);
          if(!best||score<best.score)best={k,d,score};
        }
      }
