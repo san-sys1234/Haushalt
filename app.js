@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V278";
+const APP_BUILD="V280";
 const STORAGE="unser-zuhause-v274";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
@@ -59,7 +59,6 @@ const ROTATIONS=[
  {text:" Decken nach Pflegeetikett reinigen",interval:365,rooms:["Wohnzimmer","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"Raum"},
  {text:" Teppiche nach Pflegehinweisen reinigen",interval:365,rooms:["Wohnzimmer","Essbereich","Kinderzimmer 1","Kinderzimmer 2"],area:"Raum"},
  {text:" Vorhänge nach Pflegeetikett reinigen",interval:365,rooms:["Wohnzimmer","Essbereich","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"],area:"Raum"},
- {text:"Heizkörper gründlich entstauben",interval:180,rooms:["Wohnzimmer","Essbereich","Küche","Garderobe","Eingangsbereich","Flur","Büro","Abstellraum","Speis","Gäste-WC","Kinderbad","Bad","Eltern-WC","Schlafzimmer","Ankleidezimmer","Kinderzimmer 1","Kinderzimmer 2","Flur OG","Waschküche","Musikzimmer","Trainingsraum","Technikraum","Lagerraum","Flur KG","Saunaraum","Stiegenhaus"],area:"Raum"},
  {text:"Lüftungsgitter außen reinigen, falls vorhanden",interval:180,rooms:["Gäste-WC","Kinderbad","Bad","Eltern-WC","Saunaraum","Technikraum"],area:"Raum"},
  {text:"Rauchmelder Funktionstest nach Herstellerangabe",interval:180,rooms:["Wohnzimmer","Essbereich","Flur","Flur OG","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2","Flur KG","Stiegenhaus"],area:"Raum"},
  {text:"Rauchmelder äußerlich von Staub befreien",interval:180,rooms:["Wohnzimmer","Essbereich","Flur","Flur OG","Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2","Flur KG","Stiegenhaus"],area:"Raum"}
@@ -99,15 +98,15 @@ const EXTRA_ROOM_TASKS=[
   "Sofa: Polsterbezüge nach Pflegeetikett prüfen/reinigen","Sofa: unter und zwischen den Polstern saugen",
   "Sofa: Armlehnen und Kanten reinigen","Couchtisch: Oberseite und Kanten reinigen","Fernbedienungen abwischen",
   "Elektronikflächen außen abstauben","Lautsprecher außen abstauben","Kabel hinter TV-/Medienmöbeln ordnen",
-  "TV-/Medienmöbel: sichtbare Oberflächen reinigen","Heizkörper reinigen","Heizkörperzwischenräume entstauben",
-  "Unter dem Sofa reinigen","Unter dem Couchtisch reinigen","Dekorationsgegenstände einzeln abstauben",
+  "TV-/Medienmöbel: sichtbare Oberflächen reinigen",
+"Unter dem Sofa reinigen","Unter dem Couchtisch reinigen","Dekorationsgegenstände einzeln abstauben",
   "Fensterrahmen innen dieses Raumes prüfen","Vorhangstoff nach Pflegeetikett prüfen","Vorhangschiene von Staub befreien"
  ]],
  ["Essbereich","EG",[
   "Stühle: Sitzflächen gründlich reinigen","Stühle: Unterseiten und Kanten reinigen","Stuhlbeine abwischen",
   "Tischunterseite reinigen","Tischfuß / Gestell reinigen","Sideboard: Innenfächer kontrollieren",
-  "Sideboard: Griffe reinigen","Sideboard: Schubladen innen auswischen","Heizkörper reinigen",
-  "Unter Sideboard reinigen","Unter Stühlen gründlich saugen"
+  "Sideboard: Griffe reinigen","Sideboard: Schubladen innen auswischen",
+"Unter Sideboard reinigen","Unter Stühlen gründlich saugen"
  ]],
  ["Küche","EG",[
   "Küchenschrankgriffe gründlich reinigen","Besteckschublade komplett ausräumen und auswischen","Gewürzschublade ausräumen und auswischen",
@@ -120,33 +119,35 @@ const EXTRA_ROOM_TASKS=[
   "Gefrierfach: Vorräte kontrollieren","Gefrierfach: Schubladen auswischen","Backofen: Dichtung außen prüfen und reinigen",
   "Backofen: Einschubgitter reinigen","Backofen: Fettfilter / Geruchsfilter nach Herstellerangabe prüfen, falls vorhanden",
   "Dunstabzug: Bedienknöpfe reinigen","Dunstabzug: Unterseite gründlich entfetten","Küchenfronten: Griffe und Kanten einzeln reinigen",
-  "Heizkörper reinigen","Sockelleisten hinter/unter Küchenmöbeln reinigen, soweit zugänglich"
+  "Sockelleisten hinter/unter Küchenmöbeln reinigen, soweit zugänglich"
  ]],
  ["Garderobe","EG",[
   "Spiegel komplett streifenfrei reinigen","Garderobenbank reinigen","Garderobenbank unterhalb reinigen","Schuhschrank: Fächer auswischen",
   "Schuhschrank: Schuhmatten reinigen","Schirmständer leeren und auswischen","Schlüsselablage reinigen","Taschenablage reinigen",
-  "Garderobenhaken gründlich reinigen","Heizkörper reinigen","Boden unter Schuhschrank reinigen","Saisonale Kleidung vollständig umsortieren"
+  "Garderobenhaken gründlich reinigen",
+  "Boden unter Schuhschrank reinigen","Saisonale Kleidung vollständig umsortieren"
  ]],
  ["Eingangsbereich","EG",[
   "Haustür innen gründlich reinigen","Haustür außen gründlich reinigen, wenn sicher möglich","Haustürgriff innen reinigen","Haustürgriff außen reinigen",
   "Türdichtung der Haustür sichtbar prüfen","Türspion reinigen, falls vorhanden","Briefkasten außen reinigen, falls vorhanden",
   "Briefkasten innen reinigen, falls vorhanden","Hausnummer reinigen, falls vorhanden","Türklingel außen reinigen, falls vorhanden",
-  "Außenleuchte am Eingang außen abstauben, falls sicher erreichbar","Fußmatte tiefenreinigen","Heizkörper reinigen"
+  "Außenleuchte am Eingang außen abstauben, falls sicher erreichbar","Fußmatte tiefenreinigen"
  ]],
  ["Flur","EG",[
-  "Heizkörper reinigen","Konsole / Ablageflächen reinigen","Dekoration abstauben","Spiegel reinigen, falls vorhanden","Boden unter Möbeln reinigen"
+  "Konsole / Ablageflächen reinigen","Dekoration abstauben","Spiegel reinigen, falls vorhanden","Boden unter Möbeln reinigen"
  ]],
  ["Flur OG","OG",[
-  "Heizkörper reinigen","Konsole / Ablageflächen reinigen","Dekoration abstauben","Spiegel reinigen, falls vorhanden","Boden unter Möbeln reinigen"
+  "Konsole / Ablageflächen reinigen","Dekoration abstauben","Spiegel reinigen, falls vorhanden","Boden unter Möbeln reinigen"
  ]],
  ["Flur KG","Keller",[
-  "Heizkörper reinigen, falls vorhanden","Lager-/Ablageflächen reinigen","Boden unter Regalen reinigen"
+  "Lager-/Ablageflächen reinigen","Boden unter Regalen reinigen"
  ]],
  ["Büro","EG",[
   "Bürostuhl Sitzfläche reinigen","Bürostuhl Rollen und Standfuß reinigen","Schreibtischschubladen innen auswischen",
   "Drucker außen reinigen, falls vorhanden","Drucker Papierfach reinigen, falls vorhanden","Scannerfläche reinigen, falls vorhanden",
   "Aktenablage ordnen","Altpapier prüfen und aussortieren","Aktenvernichter außen reinigen, falls vorhanden","Aktenvernichter Behälter leeren, falls vorhanden",
-  "Kabel unter dem Schreibtisch ordnen","Heizkörper reinigen","Boden unter dem Schreibtisch reinigen"
+  "Kabel unter dem Schreibtisch ordnen",
+  "Boden unter dem Schreibtisch reinigen"
  ]],
  ["Abstellraum","EG",[
   "Staubsauger: Staubbehälter leeren / Beutel prüfen","Staubsauger: Filter nach Herstellerangabe reinigen","Staubsauger: Bürstenrolle reinigen, falls vorhanden",
@@ -163,58 +164,63 @@ const EXTRA_ROOM_TASKS=[
  ["Gäste-WC","EG",[
   "Seifenspender reinigen","Seifenspender nachfüllen","Handtuchhalter reinigen","Mülleimer innen reinigen","Mülleimer außen reinigen",
   "Toilettenspülknopf reinigen","Toilettendeckel gründlich reinigen","Toilettensitz-Scharniere reinigen","Toilettenrand von außen reinigen",
-  "Lüftungsgitter reinigen, falls vorhanden","Heizkörper reinigen, falls vorhanden","Badematte nach Pflegeetikett waschen, falls vorhanden"
+  "Lüftungsgitter reinigen, falls vorhanden",
+  "Badematte nach Pflegeetikett waschen, falls vorhanden"
  ]],
  ["Kinderbad","OG",[
   "Seifenspender reinigen","Seifenspender nachfüllen","Handtuchhalter reinigen","Mülleimer innen reinigen","Mülleimer außen reinigen",
   "Toilettenspülknopf reinigen","Toilettensitz-Scharniere reinigen","Duschkopf entkalken","Duschschlauch außen reinigen",
-  "Duschschienen / Führungsschienen reinigen","Duschablauf-Haarsieb reinigen","Lüftungsgitter reinigen, falls vorhanden","Heizkörper reinigen",
-  "Badematte nach Pflegeetikett waschen, falls vorhanden","Handtücher nach Pflegeetikett waschen"
+  "Duschschienen / Führungsschienen reinigen","Duschablauf-Haarsieb reinigen","Lüftungsgitter reinigen, falls vorhanden",
+"Badematte nach Pflegeetikett waschen, falls vorhanden","Handtücher nach Pflegeetikett waschen"
  ]],
  ["Bad","OG",[
   "Seifenspender reinigen","Seifenspender nachfüllen","Handtuchhalter reinigen","Mülleimer innen reinigen","Mülleimer außen reinigen",
   "Toilettenspülknopf reinigen","Toilettensitz-Scharniere reinigen","Duschkopf entkalken","Duschschlauch außen reinigen",
-  "Duschschienen / Führungsschienen reinigen","Duschablauf-Haarsieb reinigen","Lüftungsgitter reinigen, falls vorhanden","Heizkörper reinigen",
-  "Badematte nach Pflegeetikett waschen, falls vorhanden","Handtücher nach Pflegeetikett waschen"
+  "Duschschienen / Führungsschienen reinigen","Duschablauf-Haarsieb reinigen","Lüftungsgitter reinigen, falls vorhanden",
+"Badematte nach Pflegeetikett waschen, falls vorhanden","Handtücher nach Pflegeetikett waschen"
  ]],
  ["Eltern-WC","OG",[
   "Seifenspender reinigen","Seifenspender nachfüllen","Handtuchhalter reinigen","Mülleimer innen reinigen","Mülleimer außen reinigen",
-  "Toilettenspülknopf reinigen","Toilettensitz-Scharniere reinigen","Lüftungsgitter reinigen, falls vorhanden","Heizkörper reinigen, falls vorhanden",
-  "Badematte nach Pflegeetikett waschen, falls vorhanden"
+  "Toilettenspülknopf reinigen","Toilettensitz-Scharniere reinigen","Lüftungsgitter reinigen, falls vorhanden",
+"Badematte nach Pflegeetikett waschen, falls vorhanden"
  ]],
  ["Schlafzimmer","OG",[
   "Kopfkissen nach Pflegeetikett reinigen / waschen","Bettdecke nach Pflegeetikett reinigen / waschen","Matratzenschoner nach Pflegeetikett waschen",
   "Lattenrost / Bettunterbau absaugen, soweit zugänglich","Nachttischschubladen innen auswischen","Nachttischlampen außen reinigen",
-  "Ladegeräte / Kabel am Nachttisch ordnen","Heizkörper reinigen","Unter dem Bett bis in die Ecken saugen","Vorhangstoff nach Pflegeetikett prüfen"
+  "Ladegeräte / Kabel am Nachttisch ordnen",
+  "Unter dem Bett bis in die Ecken saugen","Vorhangstoff nach Pflegeetikett prüfen"
  ]],
  ["Ankleidezimmer","OG",[
   "Kleiderschrank: Griffe reinigen","Kleiderschrank: Schrankoberseiten reinigen","Kleiderschrank: Innenboden eines Abteils reinigen",
-  "Schuhablage reinigen","Taschenablage reinigen","Spiegel streifenfrei reinigen","Heizkörper reinigen","Boden unter Schränken reinigen"
+  "Schuhablage reinigen","Taschenablage reinigen","Spiegel streifenfrei reinigen",
+  "Boden unter Schränken reinigen"
  ]],
  ["Kinderzimmer 1","OG",[
   "Spielzeugkisten innen auswischen","Spielzeugkisten außen reinigen","Stofftiere nach Pflegehinweis reinigen","Bücherregal innen auswischen",
-  "Schreibtisch / Bastelfläche reinigen, falls vorhanden","Matratzenschoner waschen","Kissen nach Pflegeetikett reinigen","Heizkörper reinigen",
-  "Unter dem Bett saugen","Vorhänge / Rollos nach Pflegehinweis prüfen"
+  "Schreibtisch / Bastelfläche reinigen, falls vorhanden","Matratzenschoner waschen","Kissen nach Pflegeetikett reinigen",
+"Unter dem Bett saugen","Vorhänge / Rollos nach Pflegehinweis prüfen"
  ]],
  ["Kinderzimmer 2","OG",[
   "Spielzeugkisten innen auswischen","Spielzeugkisten außen reinigen","Stofftiere nach Pflegehinweis reinigen","Bücherregal innen auswischen",
-  "Schreibtisch / Bastelfläche reinigen, falls vorhanden","Matratzenschoner waschen","Kissen nach Pflegeetikett reinigen","Heizkörper reinigen",
-  "Unter dem Bett saugen","Vorhänge / Rollos nach Pflegehinweis prüfen"
+  "Schreibtisch / Bastelfläche reinigen, falls vorhanden","Matratzenschoner waschen","Kissen nach Pflegeetikett reinigen",
+"Unter dem Bett saugen","Vorhänge / Rollos nach Pflegehinweis prüfen"
  ]],
  ["Waschküche","Keller",[
   "Waschmaschine: Flusensieb / Fremdkörperfalle nach Herstellerangabe prüfen","Waschmaschine: Einspülkammer vollständig reinigen","Waschmaschine: Türglas reinigen",
   "Trockner: Flusensiebaufnahme reinigen","Trockner: Kondensator / Wärmetauscher nach Herstellerangabe pflegen, falls vorhanden",
   "Trockner: Wasserbehälter leeren/reinigen, falls vorhanden","Ablaufschlauch / sichtbare Anschlüsse auf Auffälligkeiten prüfen",
   "Bodenablauf reinigen, falls vorhanden","Bügelbrettbezug prüfen / waschen","Bügeleisen Sohle reinigen","Wäscheständer reinigen",
-  "Wäscheklammern reinigen / aussortieren","Wäschevorräte (Waschmittel, Fleckentferner) prüfen","Heizkörper reinigen, falls vorhanden"
+  "Wäscheklammern reinigen / aussortieren","Wäschevorräte (Waschmittel, Fleckentferner) prüfen"
  ]],
  ["Musikzimmer","Keller",[
   "Instrumentenständer abstauben","Notenständer reinigen","Notenablage ordnen","Kabel und Netzteile ordnen","Steckdosenleisten außen reinigen",
-  "Schutzhüllen nach Pflegehinweis reinigen","Heizkörper reinigen","Boden unter Möbeln reinigen"
+  "Schutzhüllen nach Pflegehinweis reinigen",
+  "Boden unter Möbeln reinigen"
  ]],
  ["Trainingsraum","Keller",[
   "Trainingsgeräte auf sichtbare Verschmutzung und sicheren Zustand prüfen","Griffe und Kontaktflächen gründlich reinigen","Trainingsmatten Unterseite reinigen",
-  "Spiegel streifenfrei reinigen","Handtuchvorrat prüfen","Ablagen reinigen","Heizkörper reinigen, falls vorhanden","Boden unter Geräten reinigen"
+  "Spiegel streifenfrei reinigen","Handtuchvorrat prüfen","Ablagen reinigen",
+  "Boden unter Geräten reinigen"
  ]],
  ["Technikraum","Keller",[
   "Heizungsanlage nur äußerlich auf sichtbare Auffälligkeiten prüfen","Lüftungs-/Technikgitter außen reinigen, falls vorhanden","Lüftungsfilter nach Herstellerangabe prüfen/wechseln, falls vorhanden",
@@ -233,7 +239,7 @@ const EXTRA_ROOM_TASKS=[
  ]],
  ["Stiegenhaus","EG/OG",[
   "Handlauf gründlich reinigen","Geländerstäbe einzeln reinigen","Geländeroberseite abwischen","Treppenstufen Kanten reinigen",
-  "Treppenpodest reinigen","Wandleuchten außen reinigen","Bilder / Dekoration abstauben","Heizkörper reinigen, falls vorhanden"
+  "Treppenpodest reinigen","Wandleuchten außen reinigen","Bilder / Dekoration abstauben"
  ]]
 ];
 
@@ -2146,7 +2152,7 @@ function swipeRow(el,x){
   el.addEventListener("touchend",end,{passive:true});
   el.addEventListener("touchcancel",reset,{passive:true});
 }
-function taskRow(x,opts={}){const el=document.createElement("div");el.className="task"+(isDone(x)?" done":"");const showDue=!!opts.showDue,hideRoom=!!opts.hideRoom,showPullToday=!!opts.showPullToday,returnTo=opts.returnTo||"today";const showManage=opts.showManage!==false&&x.source!=="extra";const due=nextDueLabel(x),planned=plannedDateForTask(x);const plannedText=planned?planned.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}):"—";const plannedDiff=planned?Math.round((planned-nextDue(x))/86400000):null;const shiftNote=plannedDiff!==null&&plannedDiff!==0?` <span class="small">(${plannedDiff>0?"+":""}${plannedDiff} ${Math.abs(plannedDiff)===1?"Tag":"Tage"})</span>`:"";el.innerHTML=`<div class="swipeBg"><span class="swipeLabel"> Erledigt</span></div><div class="taskContent"><button class="check">${isDone(x)?"":""}</button><div class="taskMain"><div class="taskName"><span>${esc(displayTaskName(x))}</span></div>${!hideRoom?`<div class="meta">${esc(x.room)}${x.area?" · "+esc(x.area):""}</div>`:""}${showDue&&!isDone(x)?`<div class="meta nextDue">Fällig: <b>${esc(due)}</b></div><div class="meta plannedDate">Geplant: <b>${esc(plannedText)}</b>${shiftNote}</div>`:""}${isDone(x)?`<div class="meta nextDue">${isDailyTask(x)?"Fälligkeit: <b>täglich</b>":`Nächster Termin: <b>${esc(due)}</b>`}</div>`:""}</div><div class="taskButtons">${showPullToday&&!isDone(x)?`<button class="iconBtn pullToday" title="Aufgabe vorziehen"></button>`:""}${showManage?`<button class="iconBtn todayEdit" title="Aufgabe bearbeiten"></button><button class="iconBtn todayDelete" title="Aufgabe löschen"></button>`:""}<button class="iconBtn info">ⓘ</button></div></div>`;el.querySelector(".check").onclick=()=>toggleTask(x);el.querySelector(".info").onclick=()=>openDetail(x);const pull=el.querySelector(".pullToday");if(pull)pull.onclick=()=>{pullCatalogTaskToday(x);render()};const edit=el.querySelector(".todayEdit");if(edit)edit.onclick=e=>{e.stopPropagation();openEditor(x,{preservePlan:true,returnTo})};const del=el.querySelector(".todayDelete");if(del)del.onclick=e=>{e.stopPropagation();if(!confirm(`„${x.text}“ wirklich aus dem Aufgabenkatalog löschen?`))return;state.catalogDeleted=state.catalogDeleted||{};state.catalogDeleted[x.key]=true;state.custom=state.custom.filter(c=>(c.key||`custom|${c.id}`)!==x.key);delete state.catalogEdits?.[x.key];save();refreshCatalog();render();toast("Aufgabe gelöscht")};swipeRow(el,x);return el}
+function taskRow(x,opts={}){const el=document.createElement("div");el.className="task"+(isDone(x)?" done":"");const showDue=!!opts.showDue,hideRoom=!!opts.hideRoom,showPullToday=!!opts.showPullToday,returnTo=opts.returnTo||"today";const showManage=opts.showManage!==false&&x.source!=="extra";const due=nextDueLabel(x),planned=plannedDateForTask(x);const plannedText=planned?planned.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}):"—";const plannedDiff=planned?Math.round((planned-nextDue(x))/86400000):null;const shiftNote=plannedDiff!==null&&plannedDiff!==0?` <span class="small">(${plannedDiff>0?"+":""}${plannedDiff} ${Math.abs(plannedDiff)===1?"Tag":"Tage"})</span>`:"";el.innerHTML=`<div class="swipeBg"><span class="swipeLabel"> Erledigt</span></div><div class="taskContent"><button class="check">${isDone(x)?"":""}</button><div class="taskMain"><div class="taskName"><span>${esc(displayTaskName(x))}</span></div>${!hideRoom?`<div class="meta">${esc(x.room)}${x.area?" · "+esc(x.area):""}</div>`:""}${showDue&&!isDone(x)?`<div class="meta nextDue">Fällig: <b>${esc(due)}</b></div><div class="meta plannedDate">Geplant: <b>${esc(plannedText)}</b>${shiftNote}</div>`:""}${isDone(x)?`<div class="meta nextDue">${isDailyTask(x)?"Fälligkeit: <b>täglich</b>":`Nächster Termin: <b>${esc(due)}</b>`}</div>`:""}</div><div class="taskButtons">${showPullToday&&!isDone(x)?`<button class="iconBtn actionTextBtn pullToday" title="Aufgabe vorziehen">Vorziehen</button>`:""}${showManage?`<button class="iconBtn actionTextBtn todayEdit" title="Aufgabe bearbeiten">Bearbeiten</button><button class="iconBtn actionTextBtn todayDelete" title="Aufgabe löschen">Löschen</button>`:""}<button class="iconBtn actionTextBtn info" title="Informationen">Info</button></div></div>`;el.querySelector(".check").onclick=()=>toggleTask(x);el.querySelector(".info").onclick=()=>openDetail(x);const pull=el.querySelector(".pullToday");if(pull)pull.onclick=()=>{pullCatalogTaskToday(x);render()};const edit=el.querySelector(".todayEdit");if(edit)edit.onclick=e=>{e.stopPropagation();openEditor(x,{preservePlan:true,returnTo})};const del=el.querySelector(".todayDelete");if(del)del.onclick=e=>{e.stopPropagation();if(!confirm(`„${x.text}“ wirklich aus dem Aufgabenkatalog löschen?`))return;state.catalogDeleted=state.catalogDeleted||{};state.catalogDeleted[x.key]=true;state.custom=state.custom.filter(c=>(c.key||`custom|${c.id}`)!==x.key);delete state.catalogEdits?.[x.key];save();refreshCatalog();render();toast("Aufgabe gelöscht")};swipeRow(el,x);return el}
 
 function focusRoomMatches(x,room){
   if(!x || !room || isDailyTask(x))return false;
@@ -2530,7 +2536,7 @@ function renderCatalog(){
     const ptxt=x.source==="daily"?"täglich":(pd?pd.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}):"—");
     const diff=(x.source==="daily"||!pd||!due)?null:Math.round((pd-due)/86400000);
     const note=diff!==null&&diff!==0?` <span class="small">(${diff>0?"+":""}${diff} ${Math.abs(diff)===1?"Tag":"Tage"})</span>`:"";
-    r.innerHTML=`<div class="resultText"><div class="catalogTaskTitle"><b>${esc(displayTaskName(x))}</b></div><div class="meta">${esc(x.area||"")}${x.place?" · "+esc(x.place):""}</div><div class="meta nextDue">Fällig: <b>${esc(nextDueLabel(x))}</b></div><div class="meta plannedDate">Geplant: <b>${esc(ptxt)}</b>${note}</div></div><div class="catalogActions"><button class="iconBtn edit" title="Bearbeiten"></button><button class="iconBtn remove" title="Löschen"></button>${x.source!=="daily"?`<button class="iconBtn pullToday" title="Heute vorziehen"></button>`:""}<button class="iconBtn info" title="Info">ⓘ</button></div>`;
+    r.innerHTML=`<div class="resultText"><div class="catalogTaskTitle"><b>${esc(displayTaskName(x))}</b></div><div class="meta">${esc(x.area||"")}${x.place?" · "+esc(x.place):""}</div><div class="meta nextDue">Fällig: <b>${esc(nextDueLabel(x))}</b></div><div class="meta plannedDate">Geplant: <b>${esc(ptxt)}</b>${note}</div></div><div class="catalogActions"><button class="iconBtn actionTextBtn edit" title="Bearbeiten">Bearbeiten</button><button class="iconBtn actionTextBtn remove" title="Löschen">Löschen</button>${x.source!=="daily"?`<button class="iconBtn actionTextBtn pullToday" title="Heute vorziehen">Vorziehen</button>`:""}<button class="iconBtn actionTextBtn info" title="Informationen">Info</button></div>`;
     r.querySelector(".edit").onclick=()=>openEditor(x);
     r.querySelector(".remove").onclick=()=>{if(confirm(`„${displayTaskName(x)}“ wirklich löschen?`)){state.catalogDeleted[x.key]=true;state.custom=state.custom.filter(c=>(c.key||`custom|${c.id}`)!==x.key);save();refreshCatalog();renderCatalog();toast("Aufgabe gelöscht")}};
     const pull=r.querySelector(".pullToday");if(pull)pull.onclick=()=>pullCatalogTaskToday(x);
