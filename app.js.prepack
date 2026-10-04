@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V292";
+const APP_BUILD="V291";
 const STORAGE="unser-zuhause-v274";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
@@ -1069,11 +1069,6 @@ function workPackage(x){
  return {key:`roomwork|${room}|${roomWorkflow(x)}`,label:`${room} · ${roomWorkflow(x)}`,heavy:isHeavyTask(x)};
 }
 function roomCap(x){if(x.window)return 1;if(x.raffstore)return 2;if(/boden|kamin|bad|dusche|wanne|wc|toilette/i.test(x.text||""))return 2;return 6}
-function roomPackageKey(x){return workPackage(x)?.key||`roomwork|${x?.room||""}|${roomWorkflow(x)}`}
-function roomPackageLoad(arr,room){
- const tasks=(arr||[]).filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&taskRoomParts(y).includes(room));
- return {tasks,weight:tasks.reduce((n,y)=>n+taskWeight(y),0),packages:new Set(tasks.map(roomPackageKey))};
-}
 function dayBudget(d){
  if(d.getDay()===0)return 0;
  // Household work should feel light, not like a second full-time job.
@@ -1150,7 +1145,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v292|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v291|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function planningNextDue(x,ref=today){
  // The first-due onboarding date is a catalog deadline, not permission to
@@ -1243,20 +1238,6 @@ function buildIntelligentPlan(){
     if(arr._fixedRoutine && !opts.allowFixedRoutine)return false;
 
     const weight=taskWeight(x),used=arr._weight||0;
-    // V292: rooms are scheduled as small rotating work packages. A normal
-    // room/day may contain only one package and a bounded amount of work.
-    // Different package types from the same room are deliberately rotated.
-    if(!opts.allowFixedRoutine && !isFixedTask(x) && !isWindowRelated(x)){
-      for(const room of taskRoomParts(x)){
-        const sameRoom=(arr||[]).filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&taskRoomParts(y).includes(room));
-        if(!sameRoom.length)continue;
-        const pkg=workPackage(x)?.key||`roomwork|${room}|${roomWorkflow(x)}`;
-        const existing=new Set(sameRoom.map(y=>workPackage(y)?.key||`roomwork|${room}|${roomWorkflow(y)}`));
-        if(!existing.has(pkg))return false;
-        const roomWeight=sameRoom.reduce((n,y)=>n+taskWeight(y),0);
-        if(roomWeight+weight>2 || sameRoom.length>=3 || isHeavyTask(x))return false;
-      }
-    }
     const hasMighty=arr.some(y=>y.window||taskWeight(y)>=8);
     const hasLarge=arr.some(y=>!y.window&&taskWeight(y)>=5);
     const xHeavy=isHeavyTask(x);
@@ -1282,18 +1263,12 @@ function buildIntelligentPlan(){
   };
 
   const score=(d,arr,x,preferred)=>{
-    const rooms=roomSet(arr),sameRoom=taskRoomParts(x).some(r=>rooms.has(r));
+    const rooms=roomSet(arr),sameRoom=rooms.has(x.room);
     const samePkg=arr.some(y=>workPackage(y).key===workPackage(x).key);
     const dist=Math.abs(Math.round((d-preferred)/86400000));
     let s=dayBreathingScore(d,arr)+roomSpreadPenalty(arr,x)+adjacentLoadPenalty(days,d)+dist*0.7;
     if(sameRoom)s-=90;
-    if(samePkg)s-=150;
-    if(sameRoom){
-      const pkg=workPackage(x)?.key;
-      const sameRoomTasks=arr.filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&taskRoomParts(y).includes(x.room));
-      if(sameRoomTasks.length && !sameRoomTasks.some(y=>workPackage(y)?.key===pkg))s+=180;
-      else if(sameRoomTasks.length)s-=35;
-    }
+    if(samePkg)s-=120;
     if(!arr.length)s-=20;
     if(d.getDay()===2 && isFixedRhythmRoutine(x))s-=25;
     return s;
@@ -1388,8 +1363,6 @@ function buildIntelligentPlan(){
   const isRestDay=d=>restDays.has(dayKey(d));
 
   // 4. All remaining tasks: one occurrence per active task, sorted by urgency.
-  // V292 package rotation: legal() prevents different work packages from the
-  // same room being stacked on one day and caps the normal room workload.
   const remaining=CATALOG.filter(x=>!isDailyTask(x)&&!isFixedTask(x)&&!wcPackage(x))
     .map(x=>({x,due:planningNextDue(x,today)}))
     .sort((a,b)=>a.due-b.due||taskWeight(b.x)-taskWeight(a.x)||String(a.x.room).localeCompare(String(b.x.room),'de'));
