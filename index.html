@@ -197,6 +197,18 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:39px;line-height:1.02;f
 .empty{text-align:center;color:var(--muted);padding:18px 8px}
 @media(max-width:500px){.app{padding:14px 11px 70px}h1{font-size:35px;margin-bottom:11px}.tab{padding:8px 11px;font-size:12px}.card{border-radius:19px;padding:12px}.hero{padding:12px 13px}.hero .topline>div:first-child b{font-size:20px}.taskContent{padding:6px 6px}.actionTextBtn{width:28px;height:28px;font-size:14px}.sundayCard{padding:11px 12px}}
 
+
+/* V297 – sanfte Aufwand-Farbkodierung: von zartem Grün bis zartem Rot */
+.taskContent{transition:background .18s ease,border-color .18s ease,box-shadow .18s ease}
+.task.effort-1 .taskContent,.result.effort-1{background:#f1f8ed}
+.task.effort-2 .taskContent,.result.effort-2{background:#f5f8e9}
+.task.effort-3 .taskContent,.result.effort-3{background:#fff8df}
+.task.effort-4 .taskContent,.result.effort-4{background:#fff0e5}
+.task.effort-5 .taskContent,.result.effort-5{background:#fde9e8}
+.task.effort-1 .check{border-color:#b8cfad}.task.effort-2 .check{border-color:#c9d6aa}.task.effort-3 .check{border-color:#e2c982}.task.effort-4 .check{border-color:#e3b69f}.task.effort-5 .check{border-color:#e0aaa6}
+.catalogRoomBody .result.effort-1,.catalogRoomBody .result.effort-2,.catalogRoomBody .result.effort-3,.catalogRoomBody .result.effort-4,.catalogRoomBody .result.effort-5{margin:3px 6px;border-radius:12px;border-bottom:0;padding:9px 10px}
+.catalogRoomBody .result.effort-1+.result.effort-1,.catalogRoomBody .result.effort-2+.result.effort-2,.catalogRoomBody .result.effort-3+.result.effort-3,.catalogRoomBody .result.effort-4+.result.effort-4,.catalogRoomBody .result.effort-5+.result.effort-5{margin-top:0}
+.effortColorLegend{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 12px;color:var(--muted);font-size:10px}.effortColorLegend span{display:inline-flex;align-items:center;gap:4px}.effortColorLegend i{width:9px;height:9px;border-radius:50%;display:inline-block}.effortColorLegend .e1{background:#dcebd5}.effortColorLegend .e2{background:#e6edd1}.effortColorLegend .e3{background:#f6e8b9}.effortColorLegend .e4{background:#f3d4c2}.effortColorLegend .e5{background:#f1c9c7}
 </style>
 </head>
 <body>
@@ -204,7 +216,7 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:39px;line-height:1.02;f
 <div class="tabs"><button class="tab active" data-tab="today">Heute</button><button class="tab" data-tab="week"> Bald fällig</button><button class="tab" data-tab="calendar"> Kalender</button><button class="tab" data-tab="catalog"> Aufgabenkatalog</button></div>
 <main id="main"></main><footer>Flexibel statt perfekt. Ein ausgelassener Tag wird nicht automatisch nachgeholt. </footer></div>
 <div class="detailOverlay" id="detailOverlay"><div class="sheet"><div class="sheetTop"><div><div class="small" id="detailMeta"></div><h2 id="detailTitle"></h2></div><button class="close" id="closeDetail">×</button></div><div id="detailContent"></div></div></div><div class="toast" id="toast"></div>
-<script src="app.js?v=296"></script>
+<script src="app.js?v=297"></script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").then(r=>r.update()).catch(()=>{});}</script>
 </body></html>
 
