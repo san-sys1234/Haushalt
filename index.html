@@ -213,6 +213,17 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:39px;line-height:1.02;f
 /* V298 – Aufwand wirklich auf jede sichtbare Aufgabenkarte anwenden, inklusive Fenster (Gewicht 8) und Kalender-Historie */
 .detailTask.effort-1{background:#f1f8ed;border-color:#dcebd5}.detailTask.effort-2{background:#f5f8e9;border-color:#e6edd1}.detailTask.effort-3{background:#fff8df;border-color:#f6e8b9}.detailTask.effort-4{background:#fff0e5;border-color:#f3d4c2}.detailTask.effort-5{background:#fde9e8;border-color:#f1c9c7}
 .result.effort-1,.result.effort-2,.result.effort-3,.result.effort-4,.result.effort-5{transition:background .18s ease,border-color .18s ease}
+
+.catalogMapIntro{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;padding:12px 14px;border:1px solid #eadfd4;border-radius:18px;background:linear-gradient(135deg,#fbf7f1,#fffdf9)}
+.catalogMapIntro>div{display:flex;flex-direction:column;gap:2px}.catalogMapIntro b{font-family:Georgia,'Times New Roman',serif;font-size:17px;color:#51463e}.catalogMapIntro span{font-size:11px;color:var(--muted)}
+.roomMap{display:grid;gap:10px;margin-top:10px}.mapFloor{border:1px solid #e7dbd0;border-radius:20px;padding:10px;background:rgba(255,253,249,.82)}
+.mapFloorHead{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 8px}.mapFloorHead span{font-family:Georgia,'Times New Roman',serif;font-weight:700;color:#564a42;font-size:15px}.mapFloorHead small{font-size:10px;color:var(--muted)}
+.floorPlan{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(68px,auto);gap:6px}
+.mapRoom{appearance:none;border:1px solid #e6d9ce;background:linear-gradient(145deg,#fffdf9,#f8f2eb);border-radius:14px;padding:8px 7px;text-align:left;color:var(--ink);display:flex;flex-direction:column;justify-content:space-between;min-width:0;transition:.16s;box-shadow:0 2px 7px rgba(76,58,43,.035)}
+.mapRoom:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(76,58,43,.08)}.mapRoom:active{transform:scale(.98)}.mapRoom.selected{border-color:#a99380;background:linear-gradient(145deg,#eee5dc,#faf5ef);box-shadow:inset 0 0 0 1px #b7a28e,0 5px 14px rgba(76,58,43,.08)}
+.mapRoomGlyph{width:25px;height:25px;border-radius:9px;display:grid;place-items:center;background:#eee7df;color:#806e5e;font-family:Georgia,serif;font-size:10px;font-weight:700;margin-bottom:5px}.mapRoomName{font-size:11px;font-weight:750;line-height:1.15;overflow:hidden;text-overflow:ellipsis}.mapRoomCount{font-size:9px;color:var(--muted);margin-top:3px}
+.catalogFilterTitle{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 2px 8px;padding:10px 12px;border-radius:15px;background:#f4eee7;color:#665a50}.catalogFilterTitle>div{display:flex;flex-direction:column;gap:1px}.catalogFilterTitle b{font-family:Georgia,'Times New Roman',serif;font-size:17px;color:#4e443c}.catalogFilterTitle>span{font-size:11px;color:var(--muted)}
+@media(max-width:500px){.floorPlan{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(72px,auto)}.mapRoom{min-height:72px}.catalogMapIntro{padding:10px 12px}.mapFloor{padding:8px}.mapRoomName{font-size:11px}}
 </style>
 </head>
 <body>
@@ -220,7 +231,7 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:39px;line-height:1.02;f
 <div class="tabs"><button class="tab active" data-tab="today">Heute</button><button class="tab" data-tab="week"> Bald fällig</button><button class="tab" data-tab="calendar"> Kalender</button><button class="tab" data-tab="catalog"> Aufgabenkatalog</button></div>
 <main id="main"></main><footer>Flexibel statt perfekt. Ein ausgelassener Tag wird nicht automatisch nachgeholt. </footer></div>
 <div class="detailOverlay" id="detailOverlay"><div class="sheet"><div class="sheetTop"><div><div class="small" id="detailMeta"></div><h2 id="detailTitle"></h2></div><button class="close" id="closeDetail">×</button></div><div id="detailContent"></div></div></div><div class="toast" id="toast"></div>
-<script src="app.js?v=298"></script>
+<script src="app.js?v=299"></script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").then(r=>r.update()).catch(()=>{});}</script>
 </body></html>
 

@@ -1,6 +1,6 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V298";
-const STORAGE="unser-zuhause-v296";
+const APP_BUILD="V299";
+const STORAGE="unser-zuhause-v299";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
 const LEGACY_STORAGE_OLD2="unser-zuhause-v139";
@@ -352,7 +352,7 @@ function purgeWholeHouseDoorFrameData(s){
    for(const [k,v] of Object.entries(s.postponed)) if(isInvalidLegacyTask(v)){delete s.postponed[k]}
  }
 }
-function defaultState(){return {done:{},lastDone:{},completionHistory:{},dailyDone:{},postponed:{},custom:[],catalogEdits:{},catalogDates:{},manualDates:{},catalogDeleted:{},todayExtras:[],completedDays:{},dayCelebrations:{},plannedOverrides:{},completedOpen:false,postponedOpen:false,chaos:false,sundayOptional:{},energyOffset:0,energySkipDay:"",energySeen:[],calendarYear:new Date().getFullYear(),todayPlanLock:{},todayPlanSnapshot:{},householdFreeDays:{}}}
+function defaultState(){return {done:{},lastDone:{},completionHistory:{},dailyDone:{},postponed:{},custom:[],catalogEdits:{},catalogDates:{},manualDates:{},catalogDeleted:{},todayExtras:[],completedDays:{},dayCelebrations:{},plannedOverrides:{},completedOpen:false,postponedOpen:false,chaos:false,sundayOptional:{},energyOffset:0,energySkipDay:"",energySeen:[],calendarYear:new Date().getFullYear(),catalogRoomFilter:"",todayPlanLock:{},todayPlanSnapshot:{},householdFreeDays:{}}}
 function migrateWCRoomNames(s){
  if(!s)return;
  const renameKey=k=>String(k||"").replace(/\|WC(?=\||$)/g,"|Eltern-WC");
@@ -406,7 +406,7 @@ function loadState(){
  s.catalogEdits=s.catalogEdits||{};s.catalogDates=s.catalogDates||{};s.manualDates=s.manualDates||{};s.catalogDeleted=s.catalogDeleted||{};
  purgeWholeHouseDoorFrameData(s);
   migrateTaskCatalogQuality(s);
- s.todayExtras=Array.isArray(s.todayExtras)?s.todayExtras:[];s.completedDays=s.completedDays||{};s.dayPlanHistory=s.dayPlanHistory&&typeof s.dayPlanHistory==="object"?s.dayPlanHistory:{};s.dayCelebrations=s.dayCelebrations&&typeof s.dayCelebrations==="object"?s.dayCelebrations:{};s.completedOpen=false;s.postponedOpen=false;s.todayPlanLock=s.todayPlanLock&&typeof s.todayPlanLock==="object"?s.todayPlanLock:{};s.todayPlanSnapshot=s.todayPlanSnapshot&&typeof s.todayPlanSnapshot==="object"?s.todayPlanSnapshot:{};s.energyOffset=Number.isFinite(Number(s.energyOffset))?Number(s.energyOffset):0;s.energySkipDay=s.energySkipDay||"";s.energySeen=Array.isArray(s.energySeen)?s.energySeen:[];s.roomFocus=s.roomFocus&&typeof s.roomFocus==="object"?s.roomFocus:{};s.householdFreeDays=s.householdFreeDays&&typeof s.householdFreeDays==="object"?s.householdFreeDays:{};
+ s.todayExtras=Array.isArray(s.todayExtras)?s.todayExtras:[];s.completedDays=s.completedDays||{};s.dayPlanHistory=s.dayPlanHistory&&typeof s.dayPlanHistory==="object"?s.dayPlanHistory:{};s.dayCelebrations=s.dayCelebrations&&typeof s.dayCelebrations==="object"?s.dayCelebrations:{};s.completedOpen=false;s.postponedOpen=false;s.todayPlanLock=s.todayPlanLock&&typeof s.todayPlanLock==="object"?s.todayPlanLock:{};s.todayPlanSnapshot=s.todayPlanSnapshot&&typeof s.todayPlanSnapshot==="object"?s.todayPlanSnapshot:{};s.energyOffset=Number.isFinite(Number(s.energyOffset))?Number(s.energyOffset):0;s.energySkipDay=s.energySkipDay||"";s.energySeen=Array.isArray(s.energySeen)?s.energySeen:[];s.roomFocus=s.roomFocus&&typeof s.roomFocus==="object"?s.roomFocus:{};s.catalogRoomFilter=typeof s.catalogRoomFilter==="string"?s.catalogRoomFilter:"";s.householdFreeDays=s.householdFreeDays&&typeof s.householdFreeDays==="object"?s.householdFreeDays:{};
  // Purge legacy global door-frame edits/custom tasks once, so old data cannot resurrect them.
  for(const [k,v] of Object.entries(s.catalogEdits)){if(isInvalidLegacyTask(v)){s.catalogDeleted[k]=true;delete s.catalogEdits[k]}}
  // Alte generische „Ganzes Haus“-/„Keller allgemein“-Aufgaben dürfen nicht wieder im Katalog auftauchen.
@@ -2716,25 +2716,34 @@ function pullCatalogTaskToday(x){
 
 function renderCatalog(){
  const main=document.getElementById("main");
- main.innerHTML=`<div class="card"><div class="topline"><div><h2 style="margin:0"> Aufgabenkatalog</h2><div class="small">Die vollständige Masterliste – sauber nach Räumen gruppiert.</div></div><button class="btn primary" id="new">＋ Aufgabe hinzufügen</button></div><input class="search" id="q" placeholder="Aufgabe, Raum, Bereich, Ort suchen …" style="margin-top:14px"><div id="res"></div></div>`;
- const q=main.querySelector("#q"),res=main.querySelector("#res");q.value=catalogSearchTerm||"";
+ const floorOrder=["EG","OG","Keller","EG/OG"];
+ const roomMeta={
+  "Wohnzimmer":["EG","Wohnen"],"Essbereich":["EG","Essen"],"Küche":["EG","Küche"],"Garderobe":["EG","Eingang"],"Eingangsbereich":["EG","Eingang"],"Flur":["EG","Flur"],"Büro":["EG","Arbeiten"],"Abstellraum":["EG","Nebenraum"],"Speis":["EG","Nebenraum"],"Gäste-WC":["EG","WC"],
+  "Kinderbad":["OG","Bad"],"Bad":["OG","Bad"],"Eltern-WC":["OG","Bad"],"Schlafzimmer":["OG","Schlafen"],"Ankleidezimmer":["OG","Ankleide"],"Kinderzimmer 1":["OG","Kind"],"Kinderzimmer 2":["OG","Kind"],"Flur OG":["OG","Flur"],"Saunaraum":["OG","Sauna"],
+  "Waschküche":["Keller","Wäsche"],"Musikzimmer":["Keller","Musik"],"Trainingsraum":["Keller","Training"],"Technikraum":["Keller","Technik"],"Lagerraum":["Keller","Lager"],"Flur KG":["Keller","Flur"],"Stiegenhaus":["EG/OG","Verbindung"]
+ };
+ const roomGlyph={"Wohnzimmer":"W","Essbereich":"E","Küche":"K","Garderobe":"G","Eingangsbereich":"E","Flur":"F","Büro":"B","Abstellraum":"A","Speis":"S","Gäste-WC":"WC","Kinderbad":"KB","Bad":"B","Eltern-WC":"WC","Schlafzimmer":"S","Ankleidezimmer":"A","Kinderzimmer 1":"K1","Kinderzimmer 2":"K2","Flur OG":"F","Saunaraum":"Sa","Waschküche":"W","Musikzimmer":"M","Trainingsraum":"T","Technikraum":"Te","Lagerraum":"L","Flur KG":"F","Stiegenhaus":"ST"};
+ main.innerHTML=`<div class="card catalogShell"><div class="topline"><div><h2 style="margin:0">Aufgabenkatalog</h2><div class="small">Wähle einen Raum auf der Raumkarte – dann siehst du nur die Aufgaben dieses Raumes.</div></div><button class="btn primary" id="new">＋ Aufgabe hinzufügen</button></div><div class="catalogMapIntro"><div><b>Raumkarte</b><span>Tippe auf einen Raum</span></div><button class="btn" id="allRooms">Alle Räume</button></div><div id="roomMap" class="roomMap"></div><input class="search" id="q" placeholder="Aufgabe, Raum, Bereich, Ort suchen …" style="margin-top:14px"><div id="res"></div></div>`;
+ const q=main.querySelector("#q"),res=main.querySelector("#res"),map=main.querySelector("#roomMap");
+ q.value=catalogSearchTerm||"";
  main.querySelector("#new").onclick=()=>openEditor();
  const draw=()=>{
   catalogSearchTerm=q.value;
   const term=q.value.trim().toLowerCase();
-  const arr=CATALOG.filter(x=>!isInvalidLegacyTask(x)&&(!term||[x.text,x.room,x.area,x.place,x.description].join(" ").toLowerCase().includes(term)));
+  let arr=CATALOG.filter(x=>!isInvalidLegacyTask(x)&&(!term||[x.text,x.room,x.area,x.place,x.description].join(" ").toLowerCase().includes(term)));
+  if(state.catalogRoomFilter) arr=arr.filter(x=>x.room===state.catalogRoomFilter);
   const plannedMap=new Map();
   for(const x of arr){const d=plannedDateForTask(x);plannedMap.set(taskId(x),d instanceof Date?d:null)}
   arr.sort((a,b)=>{
-   const ra=String(a.room||""),rb=String(b.room||"");
-   const roomCmp=ra.localeCompare(rb,"de");
-   if(roomCmp)return roomCmp;
    const da=plannedMap.get(taskId(a))||null,db=plannedMap.get(taskId(b))||null;
    if(da&&db&&da.getTime()!==db.getTime())return da-db;
    if(da&&!db)return -1;if(!da&&db)return 1;
    return String(displayTaskName(a)||"").localeCompare(String(displayTaskName(b)||""),"de");
   });
-  res.innerHTML=`<div class="small" style="padding:10px 4px">${arr.length} Aufgaben · nach Räumen gruppiert</div>`;
+  res.innerHTML="";
+  if(!arr.length){res.innerHTML=`<div class="empty">${state.catalogRoomFilter?`Im Raum „${esc(state.catalogRoomFilter)}“ wurden keine passenden Aufgaben gefunden.`:"Keine passenden Aufgaben gefunden."}</div>`;return}
+  const title=state.catalogRoomFilter?`<div class="catalogFilterTitle"><div><span class="small">Raum</span><b>${esc(state.catalogRoomFilter)}</b></div><span>${arr.length} ${arr.length===1?"Aufgabe":"Aufgaben"}</span></div>`:`<div class="small" style="padding:10px 4px">${arr.length} Aufgaben · nach Räumen gruppiert</div>`;
+  res.insertAdjacentHTML("beforeend",title);
   const groups=new Map();
   for(const x of arr){if(!groups.has(x.room||"Sonstiges"))groups.set(x.room||"Sonstiges",[]);groups.get(x.room||"Sonstiges").push(x)}
   for(const [room,items] of groups){
@@ -2742,12 +2751,12 @@ function renderCatalog(){
    sec.innerHTML=`<div class="catalogRoomHead"><span class="roomStripe"></span><b>${esc(room)}</b><span class="roomGroupCount">${items.length} ${items.length===1?"Aufgabe":"Aufgaben"}</span></div><div class="catalogRoomBody"></div>`;
    const body=sec.querySelector(".catalogRoomBody");
    items.forEach(x=>{
-    const r=document.createElement("div");r.className="result";
+    const r=document.createElement("div");r.className="result "+effortClass(taskWeight(x));
     const pd=plannedMap.get(taskId(x))||null,due=nextDue(x);
     const ptxt=x.source==="daily"?"täglich":(pd?pd.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}):"—");
     const diff=(x.source==="daily"||!pd||!due)?null:Math.round((pd-due)/86400000);
     const note=diff!==null&&diff!==0?` <span class="small">(${diff>0?"+":""}${diff} ${Math.abs(diff)===1?"Tag":"Tage"})</span>`:"";
-    r.className="result "+effortClass(taskWeight(x));r.innerHTML=`<div class="resultText"><div class="catalogTaskTitle"><b>${esc(displayTaskName(x))}</b></div><div class="meta">${esc(x.area||"")}${x.place?" · "+esc(x.place):""}</div><div class="meta nextDue">Fällig: <b>${esc(nextDueLabel(x))}</b></div><div class="meta plannedDate">Geplant: <b>${esc(ptxt)}</b>${note}</div></div><div class="catalogActions"><button class="iconBtn actionTextBtn edit" title="Bearbeiten" aria-label="Bearbeiten">✎</button><button class="iconBtn actionTextBtn remove" title="Löschen" aria-label="Löschen">×</button>${x.source!=="daily"?`<button class="iconBtn actionTextBtn pullToday" title="Heute vorziehen" aria-label="Heute vorziehen">↥</button>`:""}<button class="iconBtn actionTextBtn info" title="Informationen" aria-label="Informationen">i</button></div>`;
+    r.innerHTML=`<div class="resultText"><div class="catalogTaskTitle"><b>${esc(displayTaskName(x))}</b></div><div class="meta">${esc(x.area||"")}${x.place?" · "+esc(x.place):""}</div><div class="meta nextDue">Fällig: <b>${esc(nextDueLabel(x))}</b></div><div class="meta plannedDate">Geplant: <b>${esc(ptxt)}</b>${note}</div></div><div class="catalogActions"><button class="iconBtn actionTextBtn edit" title="Bearbeiten" aria-label="Bearbeiten">✎</button><button class="iconBtn actionTextBtn remove" title="Löschen" aria-label="Löschen">×</button>${x.source!=="daily"?`<button class="iconBtn actionTextBtn pullToday" title="Heute vorziehen" aria-label="Heute vorziehen">↥</button>`:""}<button class="iconBtn actionTextBtn info" title="Informationen" aria-label="Informationen">i</button></div>`;
     r.querySelector(".edit").onclick=()=>openEditor(x);
     r.querySelector(".remove").onclick=()=>{if(confirm(`„${displayTaskName(x)}“ wirklich löschen?`)){state.catalogDeleted[x.key]=true;state.custom=state.custom.filter(c=>(c.key||`custom|${c.id}`)!==x.key);save();refreshCatalog();renderCatalog();toast("Aufgabe gelöscht")}};
     const pull=r.querySelector(".pullToday");if(pull)pull.onclick=()=>pullCatalogTaskToday(x);
@@ -2757,8 +2766,32 @@ function renderCatalog(){
    res.appendChild(sec);
   }
  };
- q.oninput=draw;draw();
+ const drawMap=()=>{
+  const counts=new Map();
+  for(const x of CATALOG){if(isInvalidLegacyTask(x)||!x.room||isDailyTask(x))continue;counts.set(x.room,(counts.get(x.room)||0)+1)}
+  map.innerHTML="";
+  for(const floor of floorOrder){
+   const rooms=Object.entries(roomMeta).filter(([,v])=>v[0]===floor);
+   if(!rooms.length)continue;
+   const section=document.createElement("div");section.className="mapFloor";
+   section.innerHTML=`<div class="mapFloorHead"><span>${floor}</span><small>${rooms.length} Räume</small></div><div class="floorPlan"></div>`;
+   const grid=section.querySelector(".floorPlan");
+   rooms.forEach(([room,meta],idx)=>{
+    const b=document.createElement("button");b.className="mapRoom"+(state.catalogRoomFilter===room?" selected":"");b.type="button";
+    const count=counts.get(room)||0;
+    b.innerHTML=`<span class="mapRoomGlyph">${esc(roomGlyph[room]||"·")}</span><span class="mapRoomName">${esc(room)}</span><span class="mapRoomCount">${count} ${count===1?"Aufgabe":"Aufgaben"}</span>`;
+    b.onclick=()=>{state.catalogRoomFilter=state.catalogRoomFilter===room?"":room;save();drawMap();draw()};
+    grid.appendChild(b);
+   });
+   map.appendChild(section);
+  }
+  const active=!!state.catalogRoomFilter;
+  main.querySelector("#allRooms").textContent=active?"Alle Räume":"Alle Räume";
+  main.querySelector("#allRooms").onclick=()=>{state.catalogRoomFilter="";save();drawMap();draw()};
+ };
+ q.oninput=draw;drawMap();draw();
 }
+
 function renderWeek(){
   const main=document.getElementById("main");
   const candidates=CATALOG.filter(x=>x&&!isDone(x)&&!isPostponed(x)&&!isDailyTask(x)&&!x.window&&x.source!=="rotation")
