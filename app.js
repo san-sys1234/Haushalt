@@ -1,6 +1,6 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V292";
-const STORAGE="unser-zuhause-v274";
+const APP_BUILD="V293";
+const STORAGE="unser-zuhause-v293";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
 const LEGACY_STORAGE_OLD2="unser-zuhause-v139";
@@ -1232,6 +1232,11 @@ function buildIntelligentPlan(){
     }
     return !hasWin;
   };
+  // Rest-day state must exist before any fixed task is placed. The selected
+  // breathing days are filled later, after fixed packages are known.
+  const restDays=new Set();
+  const isRestDay=d=>restDays.has(dayKey(d));
+
   const legal=(d,arr,x,opts={})=>{
     if(!d||d<today||isFreeDay(d))return false;
     if(isRestDay(d))return false;
@@ -1367,7 +1372,6 @@ function buildIntelligentPlan(){
   // free of household work. Sundays are already blocked globally. We choose
   // the least-loaded eligible weekday after fixed routines/packages are placed,
   // then the rule is hard for all flexible tasks and all fallback passes.
-  const restDays=new Set();
   const weekBuckets=new Map();
   for(const [k,arr] of days){
     const d=fromKey(k);
@@ -1385,8 +1389,6 @@ function buildIntelligentPlan(){
     });
     if(cands[0])restDays.add(dayKey(cands[0]));
   }
-  const isRestDay=d=>restDays.has(dayKey(d));
-
   // 4. All remaining tasks: one occurrence per active task, sorted by urgency.
   // V292 package rotation: legal() prevents different work packages from the
   // same room being stacked on one day and caps the normal room workload.
