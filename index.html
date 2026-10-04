@@ -209,6 +209,10 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:39px;line-height:1.02;f
 .catalogRoomBody .result.effort-1,.catalogRoomBody .result.effort-2,.catalogRoomBody .result.effort-3,.catalogRoomBody .result.effort-4,.catalogRoomBody .result.effort-5{margin:3px 6px;border-radius:12px;border-bottom:0;padding:9px 10px}
 .catalogRoomBody .result.effort-1+.result.effort-1,.catalogRoomBody .result.effort-2+.result.effort-2,.catalogRoomBody .result.effort-3+.result.effort-3,.catalogRoomBody .result.effort-4+.result.effort-4,.catalogRoomBody .result.effort-5+.result.effort-5{margin-top:0}
 .effortColorLegend{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 12px;color:var(--muted);font-size:10px}.effortColorLegend span{display:inline-flex;align-items:center;gap:4px}.effortColorLegend i{width:9px;height:9px;border-radius:50%;display:inline-block}.effortColorLegend .e1{background:#dcebd5}.effortColorLegend .e2{background:#e6edd1}.effortColorLegend .e3{background:#f6e8b9}.effortColorLegend .e4{background:#f3d4c2}.effortColorLegend .e5{background:#f1c9c7}
+
+/* V298 – Aufwand wirklich auf jede sichtbare Aufgabenkarte anwenden, inklusive Fenster (Gewicht 8) und Kalender-Historie */
+.detailTask.effort-1{background:#f1f8ed;border-color:#dcebd5}.detailTask.effort-2{background:#f5f8e9;border-color:#e6edd1}.detailTask.effort-3{background:#fff8df;border-color:#f6e8b9}.detailTask.effort-4{background:#fff0e5;border-color:#f3d4c2}.detailTask.effort-5{background:#fde9e8;border-color:#f1c9c7}
+.result.effort-1,.result.effort-2,.result.effort-3,.result.effort-4,.result.effort-5{transition:background .18s ease,border-color .18s ease}
 </style>
 </head>
 <body>
@@ -216,7 +220,7 @@ h1{font-family:Georgia,"Times New Roman",serif;font-size:39px;line-height:1.02;f
 <div class="tabs"><button class="tab active" data-tab="today">Heute</button><button class="tab" data-tab="week"> Bald fällig</button><button class="tab" data-tab="calendar"> Kalender</button><button class="tab" data-tab="catalog"> Aufgabenkatalog</button></div>
 <main id="main"></main><footer>Flexibel statt perfekt. Ein ausgelassener Tag wird nicht automatisch nachgeholt. </footer></div>
 <div class="detailOverlay" id="detailOverlay"><div class="sheet"><div class="sheetTop"><div><div class="small" id="detailMeta"></div><h2 id="detailTitle"></h2></div><button class="close" id="closeDetail">×</button></div><div id="detailContent"></div></div></div><div class="toast" id="toast"></div>
-<script src="app.js?v=297"></script>
+<script src="app.js?v=298"></script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").then(r=>r.update()).catch(()=>{});}</script>
 </body></html>
 
