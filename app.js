@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V289";
+const APP_BUILD="V290";
 const STORAGE="unser-zuhause-v274";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
@@ -1145,7 +1145,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v289|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v290|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function planningNextDue(x,ref=today){
  // The first-due onboarding date is a catalog deadline, not permission to
@@ -1338,7 +1338,7 @@ function buildIntelligentPlan(){
   }
 
   // 3. All remaining tasks: one occurrence per active task, sorted by urgency.
-  const remaining=CATALOG.filter(x=>!isDailyTask(x)&&!isFixedTask(x)&&!isDone(x)&&!isPostponed(x)&&!wcPackage(x))
+  const remaining=CATALOG.filter(x=>!isDailyTask(x)&&!isFixedTask(x)&&!wcPackage(x))
     .map(x=>({x,due:planningNextDue(x,today)}))
     .sort((a,b)=>a.due-b.due||taskWeight(b.x)-taskWeight(a.x)||String(a.x.room).localeCompare(String(b.x.room),'de'));
 
@@ -1354,7 +1354,7 @@ function buildIntelligentPlan(){
   // 4. Any task that could not be placed above gets a second pass. This pass
   // relaxes ONLY capacity/task-count; it NEVER relaxes the room/window rules.
   for(const x of CATALOG){
-    if(isDailyTask(x)||isDone(x)||isFixedTask(x))continue;
+    if(isDailyTask(x)||isFixedTask(x))continue;
     if([...days.values()].some(a=>a.some(y=>taskId(y)===taskId(x))))continue;
     const due=planningNextDue(x,today);
     let placed=false;
@@ -1418,10 +1418,11 @@ function buildIntelligentPlan(){
   // two-room rule or window isolation. Fixed-exact tasks are the intentional
   // exception to the two-room rule and are placed on their exact due date.
   for(const x of CATALOG){
-    if(isDailyTask(x)||isDone(x)||isPostponed(x))continue;
+    if(isDailyTask(x))continue;
     const already=[...days.values()].some(a=>a.some(y=>taskId(y)===taskId(x)));
     if(already)continue;
-    const due=planningNextDue(x,today);
+    const postponedUntil=postponedEntry(x)?.postponedUntil;
+    const due=postponedUntil?fromKey(postponedUntil):planningNextDue(x,today);
     if(x.fixedExact){
       const d=due instanceof Date?due:null;
       if(d){
@@ -1547,6 +1548,18 @@ function isDailyTask(x){return !!x&&(x.source==="daily"||String(x.key||"").start
 function nextDueLabel(x){return isDailyTask(x)?"täglich":nextDue(x).toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"})}
 function plannedDateForTask(x){
  const plan=buildIntelligentPlan(),id=taskId(x),due=nextDue(x,today);
+ const postponedUntil=postponedEntry(x)?.postponedUntil;
+ if(postponedUntil && !isDailyTask(x)){
+   const pd=fromKey(postponedUntil);
+   if(pd>=today && !isHouseholdFree(pd)){
+     const pa=plan.days.get(dayKey(pd))||[];
+     if(pa.some(y=>taskId(y)===id) || !strictDayViolation(pa,x)){
+       if(!pa.some(y=>taskId(y)===id)){ pa.push(x); pa._weight=(pa._weight||0)+taskWeight(x); }
+       plan.next.set(id,pd);
+       return pd;
+     }
+   }
+ }
  const preserved=normalizeDateKey(state.plannedOverrides?.[id]);
  if(preserved){const pd=fromKey(preserved);if(pd>=today&&!isHouseholdFree(pd)&&Math.abs(Math.round((pd-due)/86400000))<=30){const pa=plan.days.get(dayKey(pd))||[];if(!strictDayViolation(pa,x))return pd;}}
  // The catalog must describe the exact same visible plan as Today. In particular,
@@ -1597,6 +1610,21 @@ function plannedDateForTask(x){
      arr._weight=(arr._weight||0)+taskWeight(x);
      plan.next.set(id,best.d);
      return best.d;
+   }
+   // Absolute invariant: an active catalog task must always have a planned date.
+   // If the +/-30-day window is completely occupied by incompatible room/window
+   // packages, use the nearest legal day in the already-created planner horizon.
+   // This fallback may relax only the +/-30-day deviation; it NEVER relaxes the
+   // two-room rule, window isolation, or fixed-exact dates.
+   for(const [k,arr] of plan.days){
+     const d=fromKey(k);
+     if(d<today || isHouseholdFree(d))continue;
+     if(strictDayViolation(arr,x))continue;
+     if(arr.some(y=>taskId(y)===id))return d;
+     arr.push(x);
+     arr._weight=(arr._weight||0)+taskWeight(x);
+     plan.next.set(id,d);
+     return d;
    }
  }
  return null;
