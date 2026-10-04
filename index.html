@@ -153,6 +153,16 @@ footer{margin-top:16px;color:#8c8178}
  .roomGroup{border-radius:15px}
 }
 
+
+/* V288 · Soft Neoclassical final visual layer */
+:root{--bg:#f6f1e9;--card:#fffdf9;--ink:#39332e;--muted:#887b70;--line:#e7ddd2;--accent:#a28d7b;--accent2:#f1e8de;--green:#e9f1e8;--greenInk:#55745b;--shadow:0 10px 28px rgba(82,62,46,.055)}
+body{background:radial-gradient(circle at 90% 0%,#fbf8f3 0,#f7f2eb 42%,#f3ece3 100%);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
+.app{max-width:760px;padding:18px 14px 80px}.brand{font-size:14px;letter-spacing:.01em;color:#8d8075;margin:4px 3px 1px}h1{font-family:Georgia,"Times New Roman",serif;font-size:38px;font-weight:500;letter-spacing:-1px;margin:0 3px 14px;color:#3a332d}
+.tabs{gap:6px;margin:0 0 13px;padding:0 2px 3px;overflow-x:auto;flex-wrap:nowrap}.tab{border:1px solid #e5d9cd;background:rgba(255,253,249,.8);padding:8px 13px;border-radius:14px;font-size:13px;font-weight:650;color:#75695f;box-shadow:none}.tab.active{background:#a28d7b;color:#fff;border-color:#a28d7b;box-shadow:0 4px 10px rgba(100,75,55,.12)}
+.card{border:1px solid #e6dbd0;border-radius:20px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow);background:rgba(255,253,249,.9)}.hero{padding:14px 15px}.hero .topline{align-items:flex-start}.hero h2{font-family:Georgia,"Times New Roman",serif;font-weight:500;font-size:25px}.badge{padding:7px 10px;border-radius:13px;background:#f0e8de;color:#66594f;font-size:12px}.progress{height:7px;margin:11px 0;background:#eee6de}.actions{gap:6px;margin-top:9px}.btn{padding:8px 10px;border-radius:12px;font-size:12px;background:#fffdf9;color:#65594f}.notice{padding:11px 12px;border-radius:15px;margin-top:10px;font-size:13px}.sectionTitle{font-family:Georgia,"Times New Roman",serif;font-size:17px;font-weight:500;margin:17px 3px 7px;color:#4a4038}
+.dailyRoutineGroup,.roomGroup,.catalogRoomGroup{border-radius:15px;box-shadow:0 5px 16px rgba(82,62,46,.035)}.dailyRoutineGroup{padding:5px 8px;margin-bottom:9px}.dailyRoutineHead{padding:5px 3px 7px;font-size:12px}.task{min-height:50px;margin:4px 0}.taskContent{min-height:50px;padding:7px 7px;gap:8px;border-radius:13px;background:#fffefa}.check{width:22px;height:22px;flex-basis:22px;border-width:1.7px}.taskName{font-size:14px;font-weight:650}.meta{font-size:10px;margin-top:2px}.taskButtons{gap:4px}.actionTextBtn{width:29px;height:29px;border-radius:9px;font-size:15px;background:#f0e8de;color:#695b50}.iconBtn{border-radius:9px;padding:6px 7px}.roomGroupHead,.catalogRoomHead{padding:8px 10px}.roomGroupCount{font-size:10px}.catalogRoomBody .result{padding:8px 10px}.search{padding:10px 12px;border-radius:13px}.catalogActions{gap:4px}.empty{padding:18px 8px}
+@media(max-width:500px){.app{padding:14px 11px 70px}h1{font-size:35px;margin-bottom:11px}.tab{padding:7px 11px;font-size:12px}.card{padding:12px}.hero{padding:12px 13px}.taskContent{padding:6px 6px}.actionTextBtn{width:28px;height:28px;font-size:14px}.taskButtons{gap:3px}}
+
 </style>
 </head>
 <body>
@@ -160,7 +170,7 @@ footer{margin-top:16px;color:#8c8178}
 <div class="tabs"><button class="tab active" data-tab="today">Heute</button><button class="tab" data-tab="week"> Bald fällig</button><button class="tab" data-tab="calendar"> Kalender</button><button class="tab" data-tab="catalog"> Aufgabenkatalog</button></div>
 <main id="main"></main><footer>Flexibel statt perfekt. Ein ausgelassener Tag wird nicht automatisch nachgeholt. </footer></div>
 <div class="detailOverlay" id="detailOverlay"><div class="sheet"><div class="sheetTop"><div><div class="small" id="detailMeta"></div><h2 id="detailTitle"></h2></div><button class="close" id="closeDetail">×</button></div><div id="detailContent"></div></div></div><div class="toast" id="toast"></div>
-<script src="app.js?v=287"></script>
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").catch(()=>{});}</script>
+<script src="app.js?v=288"></script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").then(r=>r.update()).catch(()=>{});}</script>
 </body></html>
 

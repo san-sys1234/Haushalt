@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V288";
+const APP_BUILD="V286";
 const STORAGE="unser-zuhause-v274";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
@@ -823,7 +823,7 @@ function firstDueDateForTask(x,ref=today){
  }
  return max;
 }
-function buildCatalog(){const out=[];const add=(text,room,area,meta={})=>{const key=meta.key||`seed|${room}|${text}`;if(catalogDeleted(key))return;const e=editFor(key)||{};const savedDate=state.manualDates?.[key]||state.catalogDates?.[key]||e.start||meta.start||"";const initialDue=(!savedDate&&meta.source!=="custom"&&meta.source!=="daily"&&!meta.window&&!meta.seasonal)?firstDueDateForTask({key,room,text,source:meta.source||"seed"}):null;out.push({text:e.text??text,room:e.room??room,area:e.area??area,place:e.place??meta.place??"",description:e.description??meta.description??"",start:savedDate,initialDue:initialDue?dayKey(initialDue):"",manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart||meta.manualStart),interval:Number(e.interval??meta.interval??0)||0,key,source:meta.source||"seed",editable:meta.editable!==false,window:!!meta.window,windowKey:meta.windowKey,windowGroup:meta.windowGroup,seasonal:!!meta.seasonal,seasonalKey:meta.seasonalKey,fixedExact:!!(e.fixedExact??meta.fixedExact),fixedDate:!!(e.fixedExact??meta.fixedExact)})};for(const [room,area,tasks] of catalogSeed){for(const text of tasks){if(/^(Fenster innen reinigen|Fenster außen reinigen, wenn sicher|Fensterbänke reinigen|Fensterbank reinigen|Fensterbank abwischen|Dichtungen kontrollieren|Vorhangstangen reinigen|Vorhänge nach Pflegeetikett reinigen|Raffstores nach Herstellerangabe reinigen)$/.test(text))continue;add(text,room,area,{key:`seed|${room}|${text}`})}}for(const [room,area,tasks] of EXTRA_ROOM_TASKS){for(const text of tasks){add(text,room,area,{key:`extra-seed|${room}|${text}`})}}const roomText=new Set(out.map(x=>`${x.room}|${x.text}`));for(const r of ROTATIONS){for(const room of r.rooms||[]){const rk=`${room}|${r.text}`;if(roomText.has(rk))continue;add(r.text,room,r.area,{key:`rotation|${room}|${r.text}`,editable:true,source:"rotation",interval:r.interval});roomText.add(rk)}}for(const c of state.custom){const key=c.key||`custom|${c.id}`;if(catalogDeleted(key))continue;add(c.text,c.room,c.area,{...c,key,source:"custom",editable:true,start:c.start||c.date||"",interval:Number(c.interval||c.repeat||0)||60,place:c.place,description:c.description,fixedExact:!!c.fixedExact})}for(const [group,tasks] of DAILY){for(const text of tasks){const key=`daily|${text}`;if(catalogDeleted(key))continue;const e=editFor(key)||{};out.push({text:e.text??text,room:e.room??"Alltag",area:e.area??"Haushalt",place:e.place??"",description:e.description??"",start:"",manualStart:false,interval:0,key,source:"daily",editable:true,group});}}for(const w of WINDOW_TASKS)out.push(w);return out}
+function buildCatalog(){const out=[];const add=(text,room,area,meta={})=>{const key=meta.key||`seed|${room}|${text}`;if(catalogDeleted(key))return;const e=editFor(key)||{};const savedDate=state.manualDates?.[key]||state.catalogDates?.[key]||e.start||meta.start||"";const initialDue=(!savedDate&&meta.source!=="custom"&&meta.source!=="daily"&&!meta.window&&!meta.seasonal)?firstDueDateForTask({key,room,text,source:meta.source||"seed"}):null;out.push({text:e.text??text,room:e.room??room,area:e.area??area,place:e.place??meta.place??"",description:e.description??meta.description??"",start:savedDate,initialDue:initialDue?dayKey(initialDue):"",manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart||meta.manualStart),interval:Number(e.interval??meta.interval??0)||0,key,source:meta.source||"seed",editable:meta.editable!==false,window:!!meta.window,windowKey:meta.windowKey,windowGroup:meta.windowGroup,seasonal:!!meta.seasonal,seasonalKey:meta.seasonalKey})};for(const [room,area,tasks] of catalogSeed){for(const text of tasks){if(/^(Fenster innen reinigen|Fenster außen reinigen, wenn sicher|Fensterbänke reinigen|Fensterbank reinigen|Fensterbank abwischen|Dichtungen kontrollieren|Vorhangstangen reinigen|Vorhänge nach Pflegeetikett reinigen|Raffstores nach Herstellerangabe reinigen)$/.test(text))continue;add(text,room,area,{key:`seed|${room}|${text}`})}}for(const [room,area,tasks] of EXTRA_ROOM_TASKS){for(const text of tasks){add(text,room,area,{key:`extra-seed|${room}|${text}`})}}const roomText=new Set(out.map(x=>`${x.room}|${x.text}`));for(const r of ROTATIONS){for(const room of r.rooms||[]){const rk=`${room}|${r.text}`;if(roomText.has(rk))continue;add(r.text,room,r.area,{key:`rotation|${room}|${r.text}`,editable:true,source:"rotation",interval:r.interval});roomText.add(rk)}}for(const c of state.custom){const key=c.key||`custom|${c.id}`;if(catalogDeleted(key))continue;add(c.text,c.room,c.area,{...c,key,source:"custom",editable:true,start:c.start||c.date||"",interval:Number(c.interval||c.repeat||0)||60,place:c.place,description:c.description})}for(const [group,tasks] of DAILY){for(const text of tasks){const key=`daily|${text}`;if(catalogDeleted(key))continue;const e=editFor(key)||{};out.push({text:e.text??text,room:e.room??"Alltag",area:e.area??"Haushalt",place:e.place??"",description:e.description??"",start:"",manualStart:false,interval:0,key,source:"daily",editable:true,group});}}for(const w of WINDOW_TASKS)out.push(w);return out}
 function refreshCatalog(){
  CATALOG=buildCatalog().filter(x=>!isInvalidLegacyTask(x));
  invalidatePlans();
@@ -1140,7 +1140,7 @@ function roomSpreadPenalty(arr,x){
  if(sameFloor)return 42 + rooms.size*12;
  return 85 + rooms.size*18;
 }
-function isFixedTask(x){return !!x.fixedExact||x.window||x.source==="seasonal"||isFixedRhythmRoutine(x)}
+function isFixedTask(x){return x.window||x.source==="seasonal"||isFixedRhythmRoutine(x)}
 function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
@@ -1298,13 +1298,7 @@ function buildIntelligentPlan(){
   const fixed=CATALOG.filter(isFixedTask).filter(x=>!isDone(x)&&!isPostponed(x));
   for(const x of fixed){
     const d=isFixedRhythmRoutine(x)?fixedRoutineDate(x,today):planningNextDue(x,today);
-    if(!d)continue;
-    if(x.fixedExact){
-      const k=dayKey(d),arr=days.get(k);
-      if(arr&&!arr.some(y=>taskId(y)===taskId(x))){arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);arr._fixedExact=true;}
-      continue;
-    }
-    place(x,d,{range:30,allowFixedRoutine:false});
+    if(d)place(x,d,{range:30,allowFixedRoutine:false});
   }
 
   // 2. WC packages: all subtasks belonging to ONE bathroom stay together,
@@ -1443,15 +1437,6 @@ function plannedForDate(d){
 function scheduledForDate(d){return plannedForDate(d)}
 function normalizeDateKey(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||""))?String(v):""}
 function nextDue(x,ref=today){
- if(x.fixedExact){
-   const anchor=normalizeDateKey(x.start||state.manualDates?.[x.key]||state.catalogDates?.[x.key]);
-   if(anchor){
-     const interval=Math.max(1,catalogInterval(x));
-     let d=fromKey(anchor);
-     while(d<ref)d=addDays(d,interval);
-     return d;
-   }
- }
  // The lifecycle has a strict order:
  // 1) after completion, the next due date is completion + this task's interval;
  // 2) a postponement changes planning only; it never changes due date;
@@ -2481,7 +2466,7 @@ function openEditor(x=null,opts={}){
  const rooms=[...new Set([...Object.keys(SEED_ROOMS),...state.custom.map(c=>c.room).filter(Boolean)])].sort();
  const overlay=document.createElement("div");overlay.className="catalogEditorOverlay";overlay.id="editor";
  const dailyDescription=daily?(old.description||definition(old).what):"";
- overlay.innerHTML=`<div class="catalogEditorSheet"><div class="sheetTop"><div><div class="small">${edit?"Aufgabe bearbeiten":"Neue Aufgabe"}</div><h2>${edit?" Aufgabe ändern":"＋ Aufgabe hinzufügen"}</h2></div><button class="close" id="x">×</button></div><label class="editorLabel">Aufgabe<input id="t" value="${esc(old.text||"")}"></label><label class="editorLabel">Raum<input id="r" list="rooms" value="${esc(old.room||"")} "><datalist id="rooms">${rooms.map(r=>`<option value="${esc(r)}">`).join("")}</datalist></label><label class="editorLabel">Bereich / Etage<input id="a" value="${esc(old.area||"")}"></label><label class="editorLabel">Genauer Ort<input id="p" value="${esc(old.place||"")}"></label><label class="editorLabel">Beschreibung / genaue Durchführung<textarea id="d">${esc(dailyDescription||old.description||"")}</textarea></label>${daily?`<div class="editorHint">Diese Aufgabe bleibt eine tägliche Aufgabe. Fälligkeit und Wiederholung bleiben automatisch „täglich“ und können hier nicht verändert werden.</div>`:`<div class="editorTwo"><label class="editorLabel">Erster Fälligkeitstermin<input id="s" type="date" value="${esc(state.manualDates?.[old.key]||state.catalogDates?.[old.key]||old.start||iso(nextDue(old)))}" ${preservePlan?"disabled":""}></label><label class="editorLabel">Periode (Tage)<input id="i" type="number" min="1" value="${old.interval||catalogInterval(old)||60}" ${preservePlan?"disabled":""}></label></div><label class="editorCheck"><input id="fx" type="checkbox" ${old.fixedExact?"checked":""} ${preservePlan?"disabled":""}><span><b>Fester Termin – exakt einhalten</b><small>Diese Aufgabe erscheint immer an ihrem Fälligkeitstag. Die 2-Raum-Regel und die normale Tageskapazität dürfen sie nicht verdrängen.</small></span></label><div class="editorHint">${preservePlan?"Beim Bearbeiten aus „Heute“ bleiben Fälligkeit, Intervall und der bestehende Geplant-Termin unverändert.":"Ohne diese Option darf der intelligente Planer die Aufgabe innerhalb seines zulässigen Bereichs verschieben. Mit dieser Option sind Fälligkeit und Intervall verbindlich."}</div>`}<div class="editorActions"><button class="btn" id="cancel">Abbrechen</button><button class="btn primary" id="saveTask">${edit?"Änderungen speichern":"Aufgabe speichern"}</button></div>${edit?`<button class="deleteBtn" id="del"> Aufgabe aus dem Katalog löschen</button>`:""}</div>`;
+ overlay.innerHTML=`<div class="catalogEditorSheet"><div class="sheetTop"><div><div class="small">${edit?"Aufgabe bearbeiten":"Neue Aufgabe"}</div><h2>${edit?" Aufgabe ändern":"＋ Aufgabe hinzufügen"}</h2></div><button class="close" id="x">×</button></div><label class="editorLabel">Aufgabe<input id="t" value="${esc(old.text||"")}"></label><label class="editorLabel">Raum<input id="r" list="rooms" value="${esc(old.room||"")} "><datalist id="rooms">${rooms.map(r=>`<option value="${esc(r)}">`).join("")}</datalist></label><label class="editorLabel">Bereich / Etage<input id="a" value="${esc(old.area||"")}"></label><label class="editorLabel">Genauer Ort<input id="p" value="${esc(old.place||"")}"></label><label class="editorLabel">Beschreibung / genaue Durchführung<textarea id="d">${esc(dailyDescription||old.description||"")}</textarea></label>${daily?`<div class="editorHint">Diese Aufgabe bleibt eine tägliche Aufgabe. Fälligkeit und Wiederholung bleiben automatisch „täglich“ und können hier nicht verändert werden.</div>`:`<div class="editorTwo"><label class="editorLabel">Erster Fälligkeitstermin<input id="s" type="date" value="${esc(state.manualDates?.[old.key]||state.catalogDates?.[old.key]||old.start||iso(nextDue(old)))}" ${preservePlan?"disabled":""}></label><label class="editorLabel">Periode (Tage)<input id="i" type="number" min="1" value="${old.interval||catalogInterval(old)||60}" ${preservePlan?"disabled":""}></label></div><div class="editorHint">${preservePlan?"Beim Bearbeiten aus „Heute“ bleiben Fälligkeit, Intervall und der bestehende Geplant-Termin unverändert.":"Dieser Termin ist die verbindliche Fälligkeit. Der intelligente Planer darf flexible Aufgaben nur auf einen geeigneten Tag verschieben; die Fälligkeit bleibt im Katalog sichtbar."}</div>`}<div class="editorActions"><button class="btn" id="cancel">Abbrechen</button><button class="btn primary" id="saveTask">${edit?"Änderungen speichern":"Aufgabe speichern"}</button></div>${edit?`<button class="deleteBtn" id="del"> Aufgabe aus dem Katalog löschen</button>`:""}</div>`;
  document.body.appendChild(overlay);
  const close=()=>overlay.remove();overlay.querySelector("#x").onclick=close;overlay.querySelector("#cancel").onclick=close;overlay.onclick=e=>{if(e.target===overlay)close()};
  overlay.querySelector("#saveTask").onclick=()=>{
@@ -2492,15 +2477,15 @@ function openEditor(x=null,opts={}){
      if(daily){
        state.catalogEdits[old.key]={...prior,text,room,area,place,description};
      }else{
-       const start=overlay.querySelector("#s").value,interval=Math.max(1,Number(overlay.querySelector("#i").value)||60),fixedExact=!!overlay.querySelector("#fx")?.checked;
+       const start=overlay.querySelector("#s").value,interval=Math.max(1,Number(overlay.querySelector("#i").value)||60);
        if(!start)return toast("Bitte Aufgabe, Raum, Bereich und Termin ausfüllen ");
-       state.catalogEdits[old.key]={text,room,area,place,description,start:preservePlan?(state.manualDates?.[old.key]||state.catalogDates?.[old.key]||old.start||iso(nextDue(old))):start,interval:preservePlan?(old.interval||catalogInterval(old)||60):interval,fixedExact:preservePlan?!!old.fixedExact:fixedExact,manualStart:true};
+       state.catalogEdits[old.key]={text,room,area,place,description,start:preservePlan?(state.manualDates?.[old.key]||state.catalogDates?.[old.key]||old.start||iso(nextDue(old))):start,interval:preservePlan?(old.interval||catalogInterval(old)||60):interval,manualStart:true};
        if(!preservePlan){state.manualDates=state.manualDates||{};state.catalogDates=state.catalogDates||{};state.manualDates[old.key]=start;state.catalogDates[old.key]=start;}
        if(old.source==="custom"){const c=state.custom.find(c=>(c.key||`custom|${c.id}`)===old.key);if(c)Object.assign(c,{text,room,area,place,description,...(preservePlan?{}:{start,interval})})}
      }
    }else{
-     const start=overlay.querySelector("#s")?.value,interval=Math.max(1,Number(overlay.querySelector("#i")?.value)||60),fixedExact=!!overlay.querySelector("#fx")?.checked;if(!start)return toast("Bitte Aufgabe, Raum, Bereich und Termin ausfüllen ");
-     const id=`custom|${uid()}`;state.custom.push({id,key:id,text,room,area,place,description,start,interval,fixedExact,manualStart:true});state.manualDates=state.manualDates||{};state.manualDates[id]=start;state.catalogDates=state.catalogDates||{};state.catalogDates[id]=start;
+     const start=overlay.querySelector("#s")?.value,interval=Math.max(1,Number(overlay.querySelector("#i")?.value)||60);if(!start)return toast("Bitte Aufgabe, Raum, Bereich und Termin ausfüllen ");
+     const id=`custom|${uid()}`;state.custom.push({id,key:id,text,room,area,place,description,start,interval,manualStart:true});state.manualDates=state.manualDates||{};state.manualDates[id]=start;state.catalogDates=state.catalogDates||{};state.catalogDates[id]=start;
    }
    if(edit&&preservePlan&&!daily){const currentPlan=plannedDateForTask(old);if(currentPlan){state.plannedOverrides=state.plannedOverrides||{};state.plannedOverrides[old.key]=dayKey(currentPlan)}}
    save();refreshCatalog();close();(returnTo==="today"?renderToday():returnTo==="calendar"?renderCalendar():renderCatalog());toast(edit?"Aufgabe geändert ":"Neue Aufgabe hinzugefügt ");
