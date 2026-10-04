@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V293";
+const APP_BUILD="V294";
 const STORAGE="unser-zuhause-v293";
 const LEGACY_STORAGE="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD="unser-zuhause-v148";
@@ -1150,7 +1150,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v292|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v294|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function planningNextDue(x,ref=today){
  // The first-due onboarding date is a catalog deadline, not permission to
@@ -1236,6 +1236,35 @@ function buildIntelligentPlan(){
   // breathing days are filled later, after fixed packages are known.
   const restDays=new Set();
   const isRestDay=d=>restDays.has(dayKey(d));
+
+  // HARD WEEKLY BREATHING RULE: Sunday is always household-free, and each
+  // calendar week gets one additional individual weekday without normal
+  // household work. Reserve these days BEFORE any flexible package is placed,
+  // otherwise later placement can accidentally fill a day that was meant to
+  // stay free. Tuesday is intentionally avoided because the fixed WC/sink
+  // hygiene block belongs there. Fixed-exact dates also reserve their day.
+  const fixedExactDates=new Set();
+  for(const fx of CATALOG.filter(x=>!!x.fixedExact&&!isDone(x)&&!isPostponed(x))){
+    const fd=planningNextDue(fx,today);
+    if(fd instanceof Date&&!Number.isNaN(fd.getTime())&&fd>=today&&fd.getDay()!==0&&!isHouseholdFree(fd)) fixedExactDates.add(dayKey(fd));
+  }
+  const weekBuckets=new Map();
+  for(const [k,arr] of days){
+    const d=fromKey(k);
+    if(d<today||d.getDay()===0||isHouseholdFree(d)||fixedExactDates.has(k))continue;
+    const monday=addDays(d,-((d.getDay()+6)%7));
+    const wk=dayKey(monday);
+    if(!weekBuckets.has(wk))weekBuckets.set(wk,[]);
+    weekBuckets.get(wk).push(d);
+  }
+  for(const cands of weekBuckets.values()){
+    cands.sort((a,b)=>{
+      const preferred=[3,4,1,5,6,2];
+      const pa=preferred.indexOf(a.getDay()),pb=preferred.indexOf(b.getDay());
+      return pa-pb||a.getTime()-b.getTime();
+    });
+    if(cands[0])restDays.add(dayKey(cands[0]));
+  }
 
   const legal=(d,arr,x,opts={})=>{
     if(!d||d<today||isFreeDay(d))return false;
@@ -1331,8 +1360,25 @@ function buildIntelligentPlan(){
     const d=isFixedRhythmRoutine(x)?fixedRoutineDate(x,today):planningNextDue(x,today);
     if(!d)continue;
     if(x.fixedExact){
-      const k=dayKey(d),arr=days.get(k);
-      if(arr&&!arr.some(y=>taskId(y)===taskId(x))){arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);arr._fixedExact=true;}
+      // A household task may never land on Sunday or a reserved household-free
+      // weekday. If a user-created exact date collides with such a day, keep
+      // the task protected and move it to the nearest available weekday.
+      // This household-free invariant is stronger than the old exact-date
+      // placement rule because a free Sunday must remain genuinely free.
+      const candidates=[];
+      for(let delta=0;delta<=30;delta++){
+        for(const sign of delta===0?[1]:[1,-1]){
+          const cd=addDays(d,delta*sign),ca=days.get(dayKey(cd));
+          if(!ca||cd<today||plannerBlocked(cd)||isRestDay(cd))continue;
+          if(fixedExactDates.has(dayKey(cd))&&dayKey(cd)!==dayKey(d))continue;
+          if(ca.some(y=>taskId(y)===taskId(x)))continue;
+          if(roomCountAfter(ca,x)>2&&!ca._fixedExact)continue;
+          candidates.push({cd,ca,delta:Math.abs(delta)});
+        }
+      }
+      candidates.sort((a,b)=>a.delta-b.delta||a.cd.getTime()-b.cd.getTime());
+      const c=candidates[0];
+      if(c){c.ca.push(x);c.ca._weight=(c.ca._weight||0)+taskWeight(x);c.ca._fixedExact=true;}
       continue;
     }
     place(x,d,{range:30,allowFixedRoutine:false});
@@ -1352,7 +1398,7 @@ function buildIntelligentPlan(){
     const d=planningNextDue(anchor,today), candidates=[];
     for(let delta=-30;delta<=30;delta++){
       const cd=addDays(d,delta),k=dayKey(cd),arr=days.get(k);
-      if(!arr||isFreeDay(cd)||arr._fixedRoutine)continue;
+      if(!arr||isFreeDay(cd)||isRestDay(cd)||arr._fixedRoutine)continue;
       if(arr.some(isWindowRelated))continue;
       if(roomCountAfter(arr,group[0])>2)continue;
       const total=wcPackageWeight(group),used=arr._weight||0;
@@ -1368,27 +1414,8 @@ function buildIntelligentPlan(){
     }
   }
 
-  // 3. Planned breathing days: keep one weekday per calendar week genuinely
-  // free of household work. Sundays are already blocked globally. We choose
-  // the least-loaded eligible weekday after fixed routines/packages are placed,
-  // then the rule is hard for all flexible tasks and all fallback passes.
-  const weekBuckets=new Map();
-  for(const [k,arr] of days){
-    const d=fromKey(k);
-    if(d<today || d.getDay()===0 || arr.length || isHouseholdFree(d))continue;
-    const monday=addDays(d,-((d.getDay()+6)%7));
-    const wk=dayKey(monday);
-    if(!weekBuckets.has(wk))weekBuckets.set(wk,[]);
-    weekBuckets.get(wk).push(d);
-  }
-  for(const [wk,cands] of weekBuckets){
-    cands.sort((a,b)=>{
-      const preferred=[3,4,1,5,6,2];
-      const pa=preferred.indexOf(a.getDay()),pb=preferred.indexOf(b.getDay());
-      return pa-pb || a.getTime()-b.getTime();
-    });
-    if(cands[0])restDays.add(dayKey(cands[0]));
-  }
+  // 3. Remaining tasks are now placed around the already-reserved breathing
+  // days. Because legal() rejects restDays, no fallback can refill them.
   // 4. All remaining tasks: one occurrence per active task, sorted by urgency.
   // V292 package rotation: legal() prevents different work packages from the
   // same room being stacked on one day and caps the normal room workload.
@@ -1605,7 +1632,7 @@ function plannedDateForTask(x){
  const postponedUntil=postponedEntry(x)?.postponedUntil;
  if(postponedUntil && !isDailyTask(x)){
    const pd=fromKey(postponedUntil);
-   if(pd>=today && !isHouseholdFree(pd)){
+   if(pd>=today && !plannerBlocked(pd)){
      const pa=plan.days.get(dayKey(pd))||[];
      if(pa.some(y=>taskId(y)===id) || !strictDayViolation(pa,x)){
        if(!pa.some(y=>taskId(y)===id)){ pa.push(x); pa._weight=(pa._weight||0)+taskWeight(x); }
@@ -1615,7 +1642,7 @@ function plannedDateForTask(x){
    }
  }
  const preserved=normalizeDateKey(state.plannedOverrides?.[id]);
- if(preserved){const pd=fromKey(preserved);if(pd>=today&&!isHouseholdFree(pd)&&Math.abs(Math.round((pd-due)/86400000))<=30){const pa=plan.days.get(dayKey(pd))||[];if(!strictDayViolation(pa,x))return pd;}}
+ if(preserved){const pd=fromKey(preserved);if(pd>=today&&!plannerBlocked(pd)&&Math.abs(Math.round((pd-due)/86400000))<=30){const pa=plan.days.get(dayKey(pd))||[];if(!strictDayViolation(pa,x))return pd;}}
  // The catalog must describe the exact same visible plan as Today. In particular,
  // after "Später" has been used, a task that is excluded by today's lock is NOT
  // allowed to keep showing "Geplant: heute" in the catalog.
@@ -1672,7 +1699,7 @@ function plannedDateForTask(x){
    // two-room rule, window isolation, or fixed-exact dates.
    for(const [k,arr] of plan.days){
      const d=fromKey(k);
-     if(d<today || isHouseholdFree(d))continue;
+     if(d<today || plannerBlocked(d))continue;
      if(strictDayViolation(arr,x))continue;
      if(arr.some(y=>taskId(y)===id))return d;
      arr.push(x);
