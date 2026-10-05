@@ -1,10 +1,11 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V299";
-const STORAGE="unser-zuhause-v299";
-const LEGACY_STORAGE="unser-zuhause-v165";
-const LEGACY_STORAGE_OLD="unser-zuhause-v148";
-const LEGACY_STORAGE_OLD2="unser-zuhause-v139";
-const LEGACY_STORAGE_2="unser-zuhause-v109";
+const APP_BUILD="V300";
+const STORAGE="unser-zuhause-v300";
+const LEGACY_STORAGE="unser-zuhause-v299";
+const LEGACY_STORAGE_OLD="unser-zuhause-v165";
+const LEGACY_STORAGE_OLD2="unser-zuhause-v148";
+const LEGACY_STORAGE_2="unser-zuhause-v139";
+const LEGACY_STORAGE_3="unser-zuhause-v109";
 const DAILY=[
  [" Morgenroutine",["Bett machen","Schlafzimmer kurz lüften","Kleidung wegräumen","Schmutzwäsche in den Wäschekorb","Vorhänge/Raffstores öffnen","Geschirrspüler ausräumen","Frühstücksgeschirr einräumen","Küchenarbeitsfläche abwischen","Esstisch abwischen","Hochstuhl/Essplatz sauber machen","Schuhe, Jacken & Taschen kurz ordnen"]],
  [" Nach Mahlzeiten",["Geschirr in den Geschirrspüler","Tisch abwischen","Hochstuhl/Essplatz sauber machen","Heruntergefallenes Essen vom Boden entfernen","Arbeitsfläche bei Bedarf abwischen"]],
@@ -399,6 +400,7 @@ function loadState(){
  if(!raw){try{raw=JSON.parse(localStorage.getItem(LEGACY_STORAGE_OLD)||"null")}catch{}}
  if(!raw){try{raw=JSON.parse(localStorage.getItem(LEGACY_STORAGE_OLD2)||"null")}catch{}}
  if(!raw){try{raw=JSON.parse(localStorage.getItem(LEGACY_STORAGE_2)||"null")}catch{}}
+ if(!raw){try{raw=JSON.parse(localStorage.getItem(LEGACY_STORAGE_3)||"null")}catch{}}
  const s=Object.assign(defaultState(),raw||{});
  migrateWCRoomNames(s);
  s.done=s.done||{};s.lastDone=s.lastDone||{};s.completionHistory=s.completionHistory&&typeof s.completionHistory==='object'?s.completionHistory:{};s.dailyDone=s.dailyDone&&typeof s.dailyDone==="object"?s.dailyDone:{};s.postponed=s.postponed||{};
@@ -745,6 +747,7 @@ function windowEntries(){
      place:se.place??`Fenster ${i} · Fensterbank`,
      description:se.description??"Die zu diesem Fenster gehörende Fensterbank vollständig von Staub, Krümeln und sichtbaren Spuren befreien und die zugänglichen Kanten mitreinigen. Nur diese eine Fensterbank bearbeiten; andere Fensterbänke nicht zusätzlich.",
      windowSill:true,
+     effort:Number(se.effort??1)||1,
      windowKey:wk,
      source:"windowSill",
      editable:true,
@@ -756,18 +759,18 @@ function windowEntries(){
      const we=editFor(side.editKey)||editFor(oldKey)||{};
      if(!catalogDeleted(side.key) && !catalogDeleted(oldKey)) out.push({
        key:side.key,text:we.text??side.text,room:we.room??room,area:we.area??area,place:we.place??`Fenster ${i} · ${side.side}`,
-       description:we.description??side.description,window:true,windowSide:side.side,windowKey:wk,windowGroup:map[area+"|"+room],source:"window",editable:true,
+       description:we.description??side.description,window:true,effort:Number(we.effort??5)||5,windowSide:side.side,windowKey:wk,windowGroup:map[area+"|"+room],source:"window",editable:true,
        interval:Number(we.interval??180)||180,start:we.start||""
      });
    }
    const sealKey=`window-seal|${area}|${room}|${i}`;const see=editFor(sealKey)||{};
-   if(!catalogDeleted(sealKey)) out.push({key:sealKey,text:see.text??` Fensterdichtung prüfen · ${area} · ${room}${count>1?" "+i:""}`,room:see.room??room,area:see.area??area,place:see.place??`Fenster ${i} · Dichtung`,description:see.description??"Die Dichtung dieses einen Fensters auf sichtbare Beschädigungen, Verschmutzung und offensichtliche Undichtigkeitszeichen prüfen; nur zugängliche Bereiche reinigen.",source:"windowSeal",editable:true,interval:Number(see.interval??365)||365,start:see.start||""});
+   if(!catalogDeleted(sealKey)) out.push({key:sealKey,text:see.text??` Fensterdichtung prüfen · ${area} · ${room}${count>1?" "+i:""}`,room:see.room??room,area:see.area??area,place:see.place??`Fenster ${i} · Dichtung`,description:see.description??"Die Dichtung dieses einen Fensters auf sichtbare Beschädigungen, Verschmutzung und offensichtliche Undichtigkeitszeichen prüfen; nur zugängliche Bereiche reinigen.",effort:Number(see.effort??1)||1,source:"windowSeal",editable:true,interval:Number(see.interval??365)||365,start:see.start||""});
    const drainKey=`window-drain|${area}|${room}|${i}`;const de=editFor(drainKey)||{};
-   if(!catalogDeleted(drainKey)) out.push({key:drainKey,text:de.text??` Fenster-Entwässerung prüfen · ${area} · ${room}${count>1?" "+i:""}`,room:de.room??room,area:de.area??area,place:de.place??`Fenster ${i} · Entwässerung`,description:de.description??"Die sichtbaren Entwässerungsöffnungen dieses einen Fensters auf Schmutz und Verstopfung prüfen und nur zugängliche Verschmutzungen entfernen.",source:"windowDrain",editable:true,interval:Number(de.interval??365)||365,start:de.start||""});
+   if(!catalogDeleted(drainKey)) out.push({key:drainKey,text:de.text??` Fenster-Entwässerung prüfen · ${area} · ${room}${count>1?" "+i:""}`,room:de.room??room,area:de.area??area,place:de.place??`Fenster ${i} · Entwässerung`,description:de.description??"Die sichtbaren Entwässerungsöffnungen dieses einen Fensters auf Schmutz und Verstopfung prüfen und nur zugängliche Verschmutzungen entfernen.",effort:Number(de.effort??1)||1,source:"windowDrain",editable:true,interval:Number(de.interval??365)||365,start:de.start||""});
    const screenKey=`window-screen|${area}|${room}|${i}`;const scre=editFor(screenKey)||{};
-   if(!catalogDeleted(screenKey)) out.push({key:screenKey,text:scre.text??` Insektenschutz prüfen/reinigen · ${area} · ${room}${count>1?" "+i:""}`,room:scre.room??room,area:scre.area??area,place:scre.place??`Fenster ${i} · Insektenschutz`,description:scre.description??"Nur falls an diesem Fenster ein Insektenschutz vorhanden ist: Gewebe, Rahmen und Befestigungen sichtbar prüfen und den Insektenschutz materialgerecht reinigen.",source:"windowScreen",editable:true,interval:Number(scre.interval??180)||180,start:scre.start||""});
+   if(!catalogDeleted(screenKey)) out.push({key:screenKey,text:scre.text??` Insektenschutz prüfen/reinigen · ${area} · ${room}${count>1?" "+i:""}`,room:scre.room??room,area:scre.area??area,place:scre.place??`Fenster ${i} · Insektenschutz`,description:scre.description??"Nur falls an diesem Fenster ein Insektenschutz vorhanden ist: Gewebe, Rahmen und Befestigungen sichtbar prüfen und den Insektenschutz materialgerecht reinigen.",effort:Number(scre.effort??2)||2,source:"windowScreen",editable:true,interval:Number(scre.interval??180)||180,start:scre.start||""});
    const raffKey=`raffstore|${area}|${room}|${i}`;const re=editFor(raffKey)||{};
-   if(!catalogDeleted(raffKey))out.push({key:raffKey,text:re.text??` Raffstore ${area} · ${room}${count>1?" "+i:""}`,room:re.room??room,area:re.area??area,place:re.place??`Raffstore ${i}`,description:re.description??"Nur den zum jeweiligen Fenster gehörenden Raffstore/Sonnenschutz reinigen und nach Herstellerangabe pflegen. Lamellen vorsichtig behandeln; bei empfindlichen Oberflächen keine ungeeigneten Reiniger verwenden.",raffstore:true,raffstoreWindowKey:wk,source:"raffstore",editable:true,interval:Number(re.interval??365)||365,start:re.start||""});
+   if(!catalogDeleted(raffKey))out.push({key:raffKey,text:re.text??` Raffstore ${area} · ${room}${count>1?" "+i:""}`,room:re.room??room,area:re.area??area,place:re.place??`Raffstore ${i}`,description:re.description??"Nur den zum jeweiligen Fenster gehörenden Raffstore/Sonnenschutz reinigen und nach Herstellerangabe pflegen. Lamellen vorsichtig behandeln; bei empfindlichen Oberflächen keine ungeeigneten Reiniger verwenden.",effort:Number(re.effort??5)||5,raffstore:true,raffstoreWindowKey:wk,source:"raffstore",editable:true,interval:Number(re.interval??365)||365,start:re.start||""});
  }
  return out
 }
@@ -1027,9 +1030,9 @@ function fixedRoutineDate(x,ref=today){
 }
 function fixedWeeklyDate(x,ref=today){return fixedRoutineDate(x,ref)}
 function taskWeight(x){const t=(x.text||"").toLowerCase();
- if(x.window)return 8;
  const manual=Number(x?.effort);
  if(Number.isFinite(manual)&&manual>=1&&manual<=5)return Math.round(manual);
+ if(x.window)return 8;
  if(isWCSubtask(x))return 1;
  if(x.windowSill)return 1;
  if(/fensterbank/.test(t))return 1;
