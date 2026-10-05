@@ -1,6 +1,6 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V300";
-const STORAGE="unser-zuhause-v300";
+const APP_BUILD="V302";
+const STORAGE="unser-zuhause-v302";
 const LEGACY_STORAGE="unser-zuhause-v299";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD2="unser-zuhause-v148";
@@ -826,7 +826,7 @@ function firstDueDateForTask(x,ref=today){
  }
  return max;
 }
-function buildCatalog(){const out=[];const add=(text,room,area,meta={})=>{const key=meta.key||`seed|${room}|${text}`;if(catalogDeleted(key))return;const e=editFor(key)||{};const savedDate=state.manualDates?.[key]||state.catalogDates?.[key]||e.start||meta.start||"";const initialDue=(!savedDate&&meta.source!=="custom"&&meta.source!=="daily"&&!meta.window&&!meta.seasonal)?firstDueDateForTask({key,room,text,source:meta.source||"seed"}):null;out.push({text:e.text??text,room:e.room??room,area:e.area??area,place:e.place??meta.place??"",description:e.description??meta.description??"",start:savedDate,initialDue:initialDue?dayKey(initialDue):"",manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart||meta.manualStart),interval:Number(e.interval??meta.interval??0)||0,effort:Number(e.effort??meta.effort??0)||0,key,source:meta.source||"seed",editable:meta.editable!==false,window:!!meta.window,windowKey:meta.windowKey,windowGroup:meta.windowGroup,seasonal:!!meta.seasonal,seasonalKey:meta.seasonalKey,fixedExact:!!(e.fixedExact??meta.fixedExact),fixedDate:!!(e.fixedExact??meta.fixedExact)})};for(const [room,area,tasks] of catalogSeed){for(const text of tasks){if(/^(Fenster innen reinigen|Fenster außen reinigen, wenn sicher|Fensterbänke reinigen|Fensterbank reinigen|Fensterbank abwischen|Dichtungen kontrollieren|Vorhangstangen reinigen|Vorhänge nach Pflegeetikett reinigen|Raffstores nach Herstellerangabe reinigen)$/.test(text))continue;add(text,room,area,{key:`seed|${room}|${text}`})}}for(const [room,area,tasks] of EXTRA_ROOM_TASKS){for(const text of tasks){add(text,room,area,{key:`extra-seed|${room}|${text}`})}}const roomText=new Set(out.map(x=>`${x.room}|${x.text}`));for(const r of ROTATIONS){for(const room of r.rooms||[]){const rk=`${room}|${r.text}`;if(roomText.has(rk))continue;add(r.text,room,r.area,{key:`rotation|${room}|${r.text}`,editable:true,source:"rotation",interval:r.interval});roomText.add(rk)}}for(const c of state.custom){const key=c.key||`custom|${c.id}`;if(catalogDeleted(key))continue;add(c.text,c.room,c.area,{...c,key,source:"custom",editable:true,start:c.start||c.date||"",interval:Number(c.interval||c.repeat||0)||60,place:c.place,description:c.description,fixedExact:!!c.fixedExact})}for(const [group,tasks] of DAILY){for(const text of tasks){const key=`daily|${text}`;if(catalogDeleted(key))continue;const e=editFor(key)||{};out.push({text:e.text??text,room:e.room??"Alltag",area:e.area??"Haushalt",place:e.place??"",description:e.description??"",start:"",manualStart:false,interval:0,effort:Number(e.effort??0)||0,key,source:"daily",editable:true,group});}}for(const w of WINDOW_TASKS)out.push(w);return out}
+function buildCatalog(){const out=[];const add=(text,room,area,meta={})=>{const key=meta.key||`seed|${room}|${text}`;if(catalogDeleted(key))return;const e=editFor(key)||{};const savedDate=state.manualDates?.[key]||state.catalogDates?.[key]||e.start||meta.start||"";const initialDue=(!savedDate&&meta.source!=="custom"&&meta.source!=="daily"&&!meta.window&&!meta.seasonal)?firstDueDateForTask({key,room,text,source:meta.source||"seed"}):null;out.push({text:e.text??text,room:e.room??room,area:e.area??area,place:e.place??meta.place??"",description:e.description??meta.description??"",start:savedDate,initialDue:initialDue?dayKey(initialDue):"",manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart||meta.manualStart),interval:Number(e.interval??meta.interval??0)||0,effort:Number(e.effort??meta.effort??0)||0,key,source:meta.source||"seed",editable:meta.editable!==false,window:!!meta.window,windowKey:meta.windowKey,windowGroup:meta.windowGroup,seasonal:!!meta.seasonal,seasonalKey:meta.seasonalKey,fixedExact:!!(e.fixedExact??meta.fixedExact),fixedDate:!!(e.fixedExact??meta.fixedExact)})};for(const [room,area,tasks] of catalogSeed){for(const text of tasks){if(/^(Fenster innen reinigen|Fenster außen reinigen, wenn sicher|Fensterbänke reinigen|Fensterbank reinigen|Fensterbank abwischen|Dichtungen kontrollieren|Vorhangstangen reinigen|Vorhänge nach Pflegeetikett reinigen|Raffstores nach Herstellerangabe reinigen)$/.test(text))continue;add(text,room,area,{key:`seed|${room}|${text}`})}}for(const [room,area,tasks] of EXTRA_ROOM_TASKS){for(const text of tasks){add(text,room,area,{key:`extra-seed|${room}|${text}`})}}const roomText=new Set(out.map(x=>`${x.room}|${x.text}`));for(const r of ROTATIONS){for(const room of r.rooms||[]){const rk=`${room}|${r.text}`;if(roomText.has(rk))continue;add(r.text,room,r.area,{key:`rotation|${room}|${r.text}`,editable:true,source:"rotation",interval:r.interval});roomText.add(rk)}}for(const c of state.custom){const key=c.key||`custom|${c.id}`;if(catalogDeleted(key))continue;add(c.text,c.room,c.area,{...c,key,source:"custom",editable:true,start:c.start||c.date||"",interval:Number(c.interval||c.repeat||0)||60,place:c.place,description:c.description,fixedExact:!!c.fixedExact})}for(const [group,tasks] of DAILY){for(const text of tasks){const key=`daily|${text}`;if(catalogDeleted(key))continue;const e=editFor(key)||{};out.push({text:e.text??text,room:e.room??"Alltag",area:e.area??"Haushalt",place:e.place??"",description:e.description??"",start:"",manualStart:false,interval:0,effort:Number(e.effort??0)||0,key,source:"daily",editable:true,group});}}for(const w of WINDOW_TASKS){const e=editFor(w.key)||{};out.push({...w,text:e.text??w.text,room:e.room??w.room,area:e.area??w.area,place:e.place??w.place,description:e.description??w.description,effort:Number(e.effort??w.effort??1)||1,start:e.start??w.start,interval:Number(e.interval??w.interval??0)||0,fixedExact:!!(e.fixedExact??w.fixedExact)});}return out}
 function refreshCatalog(){
  CATALOG=buildCatalog().filter(x=>!isInvalidLegacyTask(x));
  invalidatePlans();
@@ -2344,22 +2344,66 @@ function definition(x){
 }
 function openDetail(x){const d=definition(x),hist=completionHistoryFor(x);document.getElementById("detailMeta").textContent=[x.room,x.area].filter(Boolean).join(" · ")+" · "+(isDailyTask(x)?"Fälligkeit: täglich":"nächster Termin: "+nextDueLabel(x));document.getElementById("detailTitle").textContent=x.text;document.getElementById("detailContent").innerHTML=`<div class="detailBox"><b>Planungsaufwand</b><div><strong>${esc(effortLabel(taskWeight(x)))}</strong> · ${esc(effortDescription(taskWeight(x)))}</div><div class="small" style="margin-top:5px">Dieser Wert beeinflusst, wie viel der intelligente Tagesplaner an einem Tag zusammenfasst.</div></div><div class="detailBox"><b>Zuletzt erledigt</b><div>${hist.length?hist.map((v,i)=>`<div style="margin-top:6px"><b>${i===0?"Letztes Mal":"Davor"}:</b> ${esc(formatDateKey(v))}</div>`).join(""):"Noch keine Erledigung gespeichert."}</div><div class="detailBox"><b>Was mache ich?</b><div>${esc(d.what)}</div></div><div class="detailBox"><b>Was gehört dazu?</b><ul>${d.belongs.map(v=>`<li>${esc(v)}</li>`).join("")}</ul></div><div class="detailBox"><b>Was gehört nicht dazu?</b><ul>${d.not.map(v=>`<li>${esc(v)}</li>`).join("")}</ul></div><div class="detailBox"><b>Worauf achten?</b><ul>${d.care.map(v=>`<li>${esc(v)}</li>`).join("")}</ul></div>`;document.getElementById("detailOverlay").classList.add("open")}
 function swipeRow(el,x){
-  let sx=0,sy=0,dx=0,drag=false,moved=false;
-  const c=el.querySelector(".taskContent"),bg=el.querySelector(".swipeBg");
-  const reset=()=>{dx=0;drag=false;moved=false;c.style.transition="transform .18s";c.style.transform="translateX(0)";bg.style.opacity="0";bg.classList.remove("green","red")};
-  const upd=()=>{c.style.transform=`translateX(${dx}px)`;bg.classList.toggle("green",dx>0);bg.classList.toggle("red",dx<0);bg.style.opacity=Math.min(1,Math.abs(dx)/70);bg.querySelector(".swipeLabel").textContent=dx<0?"↩ Später":" Erledigt"};
-  const start=(clientX,clientY)=>{sx=clientX;sy=clientY;dx=0;drag=true;moved=false;c.style.transition="none"};
-  const move=(clientX,clientY,e)=>{if(!drag)return;const rawX=clientX-sx,rawY=clientY-sy;if(!moved && Math.abs(rawY)>Math.abs(rawX)+6){drag=false;return}dx=Math.max(-150,Math.min(150,rawX));if(Math.abs(dx)>6)moved=true;if(moved){if(e&&e.cancelable)e.preventDefault();upd()}};
-  const end=()=>{if(!drag)return;drag=false;c.style.transition="transform .18s";if(dx>75){c.style.transform="translateX(105%)";bg.classList.add("green");bg.style.opacity="1";setTimeout(()=>toggleTask(x),120)}else if(dx<-75){c.style.transform="translateX(-105%)";bg.classList.add("red");bg.style.opacity="1";setTimeout(()=>postponeTask(x),120)}else reset()};
-  el.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;start(e.clientX,e.clientY);el.setPointerCapture?.(e.pointerId)},{passive:true});
-  el.addEventListener("pointermove",e=>move(e.clientX,e.clientY,e),{passive:false});
+  // iOS/modern browsers expose touch gestures through Pointer Events. The old
+  // implementation registered BOTH pointer and touch handlers, so one swipe
+  // could be processed twice and compete with native scrolling. Keep a single
+  // lightweight pointer pipeline and paint movement on animation frames.
+  let sx=0,sy=0,dx=0,drag=false,moved=false,raf=0;
+  const c=el.querySelector(".taskContent"),bg=el.querySelector(".swipeBg"),label=bg?.querySelector(".swipeLabel");
+  const reset=()=>{
+    if(raf)cancelAnimationFrame(raf); raf=0;
+    dx=0;drag=false;moved=false;
+    c.style.transition="transform .18s";
+    c.style.transform="translate3d(0,0,0)";
+    bg.style.opacity="0";
+    bg.classList.remove("green","red");
+  };
+  const paint=()=>{
+    raf=0;
+    c.style.transform=`translate3d(${dx}px,0,0)`;
+    const positive=dx>0, negative=dx<0;
+    bg.classList.toggle("green",positive);
+    bg.classList.toggle("red",negative);
+    bg.style.opacity=String(Math.min(1,Math.abs(dx)/70));
+    if(label)label.textContent=negative?"↩ Später":" Erledigt";
+  };
+  const schedulePaint=()=>{if(!raf)raf=requestAnimationFrame(paint)};
+  const start=(e)=>{
+    if(e.pointerType==="mouse"&&e.button!==0)return;
+    sx=e.clientX;sy=e.clientY;dx=0;drag=true;moved=false;
+    c.style.transition="none";
+    el.setPointerCapture?.(e.pointerId);
+  };
+  const move=(e)=>{
+    if(!drag)return;
+    const rawX=e.clientX-sx,rawY=e.clientY-sy;
+    if(!moved && Math.abs(rawY)>Math.abs(rawX)+6){drag=false;return;}
+    dx=Math.max(-150,Math.min(150,rawX));
+    if(Math.abs(dx)>6)moved=true;
+    if(moved){
+      if(e.cancelable)e.preventDefault();
+      schedulePaint();
+    }
+  };
+  const end=()=>{
+    if(!drag)return;
+    drag=false;
+    if(raf){cancelAnimationFrame(raf);raf=0;paint();}
+    c.style.transition="transform .18s";
+    if(dx>75){
+      c.style.transform="translate3d(105%,0,0)";bg.classList.add("green");bg.style.opacity="1";
+      setTimeout(()=>toggleTask(x),120);
+    }else if(dx<-75){
+      c.style.transform="translate3d(-105%,0,0)";bg.classList.add("red");bg.style.opacity="1";
+      setTimeout(()=>postponeTask(x),120);
+    }else reset();
+  };
+  el.addEventListener("pointerdown",start,{passive:true});
+  el.addEventListener("pointermove",move,{passive:false});
   el.addEventListener("pointerup",end,{passive:true});
   el.addEventListener("pointercancel",reset,{passive:true});
-  el.addEventListener("touchstart",e=>start(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
-  el.addEventListener("touchmove",e=>move(e.touches[0].clientX,e.touches[0].clientY,e),{passive:false});
-  el.addEventListener("touchend",end,{passive:true});
-  el.addEventListener("touchcancel",reset,{passive:true});
 }
+
 function taskRow(x,opts={}){const el=document.createElement("div");el.className="task "+effortClass(taskWeight(x))+(isDone(x)?" done":"");const showDue=!!opts.showDue,hideRoom=!!opts.hideRoom,showPullToday=!!opts.showPullToday,returnTo=opts.returnTo||"today";const showManage=opts.showManage!==false&&x.source!=="extra";const due=nextDueLabel(x),planned=plannedDateForTask(x);const plannedText=planned?planned.toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"}):"—";const plannedDiff=planned?Math.round((planned-nextDue(x))/86400000):null;const shiftNote=plannedDiff!==null&&plannedDiff!==0?` <span class="small">(${plannedDiff>0?"+":""}${plannedDiff} ${Math.abs(plannedDiff)===1?"Tag":"Tage"})</span>`:"";el.innerHTML=`<div class="swipeBg"><span class="swipeLabel"> Erledigt</span></div><div class="taskContent"><button class="check">${isDone(x)?"":""}</button><div class="taskMain"><div class="taskName"><span>${esc(displayTaskName(x))}</span></div>${!hideRoom?`<div class="meta">${esc(x.room)}${x.area?" · "+esc(x.area):""}</div>`:""}${showDue&&!isDone(x)?`<div class="meta nextDue">Fällig: <b>${esc(due)}</b></div><div class="meta plannedDate">Geplant: <b>${esc(plannedText)}</b>${shiftNote}</div>`:""}${isDone(x)?`<div class="meta nextDue">${isDailyTask(x)?"Fälligkeit: <b>täglich</b>":`Nächster Termin: <b>${esc(due)}</b>`}</div>`:""}</div><div class="taskButtons">${showPullToday&&!isDone(x)?`<button class="iconBtn actionTextBtn pullToday" title="Aufgabe vorziehen" aria-label="Aufgabe vorziehen">↥</button>`:""}${showManage?`<button class="iconBtn actionTextBtn todayEdit" title="Aufgabe bearbeiten" aria-label="Aufgabe bearbeiten">✎</button><button class="iconBtn actionTextBtn todayDelete" title="Aufgabe löschen" aria-label="Aufgabe löschen">×</button>`:""}<button class="iconBtn actionTextBtn info" title="Informationen" aria-label="Informationen">i</button></div></div>`;el.querySelector(".check").onclick=()=>toggleTask(x);el.querySelector(".info").onclick=()=>openDetail(x);const pull=el.querySelector(".pullToday");if(pull)pull.onclick=()=>{pullCatalogTaskToday(x);render()};const edit=el.querySelector(".todayEdit");if(edit)edit.onclick=e=>{e.stopPropagation();openEditor(x,{preservePlan:true,returnTo})};const del=el.querySelector(".todayDelete");if(del)del.onclick=e=>{e.stopPropagation();if(!confirm(`„${x.text}“ wirklich aus dem Aufgabenkatalog löschen?`))return;state.catalogDeleted=state.catalogDeleted||{};state.catalogDeleted[x.key]=true;state.custom=state.custom.filter(c=>(c.key||`custom|${c.id}`)!==x.key);delete state.catalogEdits?.[x.key];save();refreshCatalog();render();toast("Aufgabe gelöscht")};swipeRow(el,x);return el}
 
 function focusRoomMatches(x,room){
