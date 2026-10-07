@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V315";
+const APP_BUILD="V316";
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -463,7 +463,22 @@ function invalidatePlanner(){plannerCache={key:null,days:new Map(),next:new Map(
 // itself is keyed by the state that actually affects scheduling, so it will
 // automatically rebuild when a scheduling input changes.
 function invalidatePlans(){calendarCache={year:null,days:new Map()};invalidatePlanner()}
-function save(opts={}){state.__planRevision=(state.__planRevision||0)+1;localStorage.setItem(STORAGE,JSON.stringify(state));if(opts.invalidate!==false)invalidatePlans();queueMicrotask(()=>window.syncWidgetSnapshot?.())}
+let plannerRebuildTimer=0;
+function schedulePlannerRefresh(){
+  if(plannerRebuildTimer)clearTimeout(plannerRebuildTimer);
+  plannerRebuildTimer=setTimeout(()=>{
+    plannerRebuildTimer=0;
+    invalidatePlans();
+    const run=()=>{try{buildIntelligentPlan()}catch(e){}};
+    if(window.requestIdleCallback) requestIdleCallback(run,{timeout:1200}); else setTimeout(run,50);
+  },350);
+}
+function save(opts={}){
+  state.__planRevision=(state.__planRevision||0)+1;
+  localStorage.setItem(STORAGE,JSON.stringify(state));
+  if(opts.invalidate===false) schedulePlannerRefresh(); else invalidatePlans();
+  queueMicrotask(()=>window.syncWidgetSnapshot?.());
+}
 function taskId(x){return x.key||x.id||((x.source||"task")+"|"+x.room+"|"+x.text)}
 function doneKey(x){return "done|"+taskId(x)}
 function lastKey(x){return "last|"+taskId(x)}
@@ -624,7 +639,9 @@ function postponeTask(x){
  }
  delete state.done[doneKey(x)];
  state.postponed[id]={...x,key:x.key||id,from:day,postponedUntil:until,actionDate:day,planningOnly:true};
- save();render();toast(`Für später geplant · ${formatDateKey(until)} `)
+ save({invalidate:false});
+  if(selectedTab==='today') renderToday(); else render();
+  toast(`Für später geplant · ${formatDateKey(until)} `)
 }
 function restorePostponed(id){delete state.postponed[id];save();render()}
 function purgePostponed(){const k=dayKey();for(const [id,v] of Object.entries(state.postponed||{}))if(v.from&&v.from<k&&!v.postponedUntil)delete state.postponed[id]}
@@ -695,31 +712,44 @@ function celebrateCompletedDay(){
 }
 
 function toggleTask(x){
+  // Fast path for Today: completion must feel instantaneous. The current plan
+  // is already cached, so do not synchronously rebuild the multi-month planner
+  // or rerender the complete catalog after a swipe. The planner is refreshed
+  // during idle time by save({invalidate:false}).
   const beforePlan=plannedToday();
   rememberDayPlan(today,beforePlan);
-  const wasComplete=beforePlan.length>0 && beforePlan.every(isDone);
-  // Daily routines are independent calendar-day occurrences.
+  const wasDone=isDone(x);
   if(isDailyTask(x)){
     const k=dayKey();
-    state.dailyDone=state.dailyDone&&typeof state.dailyDone==="object"?state.dailyDone:{};
-    state.dailyDone[k]=state.dailyDone[k]&&typeof state.dailyDone[k]==="object"?state.dailyDone[k]:{};
+    state.dailyDone=state.dailyDone&&typeof state.dailyDone==='object'?state.dailyDone:{};
+    state.dailyDone[k]=state.dailyDone[k]&&typeof state.dailyDone[k]==='object'?state.dailyDone[k]:{};
     if(state.dailyDone[k][taskId(x)]) delete state.dailyDone[k][taskId(x)];
     else state.dailyDone[k][taskId(x)]=true;
   }else{
-    const base=x.source==="extra"?canonicalTaskFor(x):null;
+    const base=x.source==='extra'?canonicalTaskFor(x):null;
     const target=base||x;
-    if(isDone(x)){
+    if(wasDone){
       unmarkDone(target);delete state.lastDone[lastKey(target)];
       if(target!==x){unmarkDone(x);delete state.lastDone[lastKey(x)];}
-    }else { markDone(x); delete state.plannedOverrides?.[target.key]; }
+    }else{
+      markDone(x);
+      delete state.plannedOverrides?.[target.key];
+    }
   }
   syncCompletedDay(today);
-  const nowComplete=plannedToday().length>0 && plannedToday().every(isDone);
-  save();render();
-window.syncWidgetSnapshot?.();
-  if(!wasComplete && nowComplete) celebrateCompletedDay();
+  // Persist immediately, but keep the existing planner cache for this render.
+  // isDone()/isPostponed() already make the changed row disappear/update.
+  save({invalidate:false});
+  if(selectedTab==='today'){
+    renderToday();
+  }else{
+    render();
+  }
+  window.syncWidgetSnapshot?.();
+  const afterPlan=beforePlan.filter(y=>!isDone(y)&&!isPostponed(y));
+  const nowComplete=beforePlan.length>0 && afterPlan.length===0;
+  if(!wasDone && nowComplete) setTimeout(()=>celebrateCompletedDay(),0);
 }
-
 function catalogDeleted(key){return !!state.catalogDeleted?.[key]}
 function editFor(key){return state.catalogEdits?.[key]||null}
 function catalogInterval(x){
@@ -1242,7 +1272,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v315|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v316|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -2595,10 +2625,10 @@ function swipeRow(el,x){
     c.style.transition="transform .18s";
     if(dx>75){
       c.style.transform="translate3d(105%,0,0)";bg.classList.add("green");bg.style.opacity="1";
-      setTimeout(()=>toggleTask(x),120);
+      setTimeout(()=>toggleTask(x),80);
     }else if(dx<-75){
       c.style.transform="translate3d(-105%,0,0)";bg.classList.add("red");bg.style.opacity="1";
-      setTimeout(()=>postponeTask(x),120);
+      setTimeout(()=>postponeTask(x),80);
     }else reset();
   };
   el.addEventListener("pointerdown",start,{passive:true});
