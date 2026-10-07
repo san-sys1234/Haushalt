@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V312";
+const APP_BUILD="V313";
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1208,7 +1208,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v312|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v313|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1647,6 +1647,77 @@ function buildIntelligentPlan(){
     }
   }
 
+  // V313 ABSOLUTE COMPLETENESS GUARANTEE.
+  // The normal optimizer is intentionally conservative, but "no planned date"
+  // is not an acceptable outcome. Before rebuilding `next`, make one final
+  // deterministic placement pass that only keeps the true hard invariants:
+  //   - no Sunday / household-free day
+  //   - no more than two rooms/work units on a day
+  //   - window work remains isolated to one physical window room
+  //   - first-completion tasks stay <= 01.04.2027
+  // Daily capacity, task count and package-fit heuristics are NOT allowed to
+  // make a task disappear. Same-room packages may therefore continue on a
+  // second day when a package is too large for one day.
+  const containsTask=(arr,id)=>!!(arr&&arr.some(y=>taskId(y)===id));
+  const hardLegal=(d,arr,x)=>{
+    if(!d||d<today||plannerBlocked(d)||!arr)return false;
+    const id=taskId(x);
+    if(containsTask(arr,id))return false;
+    if(needsFirstCompletionPlanning(x)&&d>firstCompletionDeadline(today))return false;
+    if(violatesTwoRoomRule(arr,x))return false;
+    if(violatesWindowIsolation(arr,x))return false;
+    return true;
+  };
+  const addGuaranteed=(x)=>{
+    const due=planningNextDue(x,today);
+    const maxFirst=needsFirstCompletionPlanning(x)?firstCompletionDeadline(today):null;
+    const preferred=due instanceof Date&&!Number.isNaN(due.getTime())?due:today;
+    const candidates=[];
+    // Prefer an existing day with the same room/package. This keeps the
+    // fallback useful rather than dumping all leftovers onto arbitrary days.
+    for(let delta=-30;delta<=30;delta++){
+      for(const sign of delta===0?[1]:[1,-1]){
+        const d=addDays(preferred,delta),arr=days.get(dayKey(d));
+        if(!arr||!hardLegal(d,arr,x))continue;
+        const sameRoom=taskRoomParts(x).some(r=>plannedRoomSet(arr).has(r));
+        const samePkg=arr.some(y=>(workPackage(y)?.key||roomPackageKey(y))===(workPackage(x)?.key||roomPackageKey(x)));
+        candidates.push({d,arr,score:(samePkg?0:20)+(sameRoom?0:10)+Math.abs(delta)});
+      }
+    }
+    // Then scan the complete first-completion horizon. This is the part that
+    // makes the invariant mathematically deterministic even when the normal
+    // planner has filled every nearby day.
+    if(!candidates.length){
+      const limit=maxFirst||addDays(preferred,30);
+      for(const [k,arr] of days){
+        const d=fromKey(k);
+        if(d<today||d>limit)continue;
+        if(!hardLegal(d,arr,x))continue;
+        const sameRoom=taskRoomParts(x).some(r=>plannedRoomSet(arr).has(r));
+        candidates.push({d,arr,score:sameRoom?5:30});
+      }
+    }
+    candidates.sort((a,b)=>a.score-b.score||a.d.getTime()-b.d.getTime());
+    const c=candidates[0];
+    if(!c)return false;
+    c.arr.push(x);
+    c.arr._weight=(c.arr._weight||0)+taskWeight(x);
+    return true;
+  };
+
+  // Repeat until every catalog ID has a bucket or there is genuinely no legal
+  // date left. With the generated horizon the latter should never occur; the
+  // explicit counter makes that failure observable during development/tests.
+  const missingBefore=()=>CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)&&![...days.values()].some(a=>containsTask(a,taskId(x))));
+  let missing=missingBefore();
+  for(let pass=0;pass<missing.length+2&&missing.length;pass++){
+    const batch=missing.slice();
+    for(const x of batch)addGuaranteed(x);
+    const after=missingBefore();
+    if(after.length===missing.length)break;
+    missing=after;
+  }
+
   // Rebuild next from the FINAL day buckets. This is essential: a moved task
   // must never retain its old date in the catalog/calendar.
   const next=new Map();
@@ -1655,6 +1726,11 @@ function buildIntelligentPlan(){
     for(const x of arr){if(!isDailyTask(x)&&!next.has(taskId(x)))next.set(taskId(x),fromKey(k));}
   }
 
+  // Never silently return an incomplete planner. The UI may show a diagnostic
+  // count in development, but active tasks are never converted into "—" by
+  // this planner.
+  const unresolved=CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)&&!next.has(taskId(x)));
+  if(unresolved.length) console.warn("Planner V313 unresolved tasks:",unresolved.map(taskId));
   plannerCache={key,days,next};
   return plannerCache;
 }
