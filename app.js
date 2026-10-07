@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V310";
+const APP_BUILD="V312";
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -418,15 +418,18 @@ function loadState(){
  return s
 }
 let state=loadState();
-// V309: rebuild only today's generated snapshot once, because V308 could have
-// frozen an overly fragmented plan. Completion/postponement history remains.
-(function migrateV309Planner(){
+// V312: repair stale/current-day snapshots. A snapshot may never be allowed to
+// make a task lose its authoritative planned date. Older builds could freeze a
+// partial/fragmented snapshot and then plannedDateForTask() hid the task when
+// the planner subsequently placed it on TODAY. Rebuild today's snapshot once
+// from the canonical planner, then keep it stable for the rest of the day.
+(function migrateV312Planner(){
   try{
     const marker=Number(state.__plannerSchema||0);
-    if(marker<310){
+    if(marker<312){
       const k=dayKey(today);
       if(state.todayPlanSnapshot&&Object.prototype.hasOwnProperty.call(state.todayPlanSnapshot,k))delete state.todayPlanSnapshot[k];
-      state.__plannerSchema=310;
+      state.__plannerSchema=312;
       localStorage.setItem(STORAGE,JSON.stringify(state));
     }
   }catch{}
@@ -1205,7 +1208,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v311|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v312|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1778,6 +1781,15 @@ function plannedDateForTask(x){
  // today's frozen set, never expose that task as today's planned date. Find its
  // next actual placement after today instead.
  if(d instanceof Date && !Number.isNaN(d.getTime()) && dayKey(d)===todayKey){
+   // The canonical planner says TODAY. Never turn that into "—" merely
+   // because an old snapshot omitted the task. Repair the snapshot instead.
+   if(today.getDay()!==0 && !isDone(x)){
+     state.todayPlanSnapshot=state.todayPlanSnapshot||{};
+     const arr=Array.isArray(state.todayPlanSnapshot[todayKey])?state.todayPlanSnapshot[todayKey]:[];
+     if(!arr.includes(id)) arr.push(id);
+     state.todayPlanSnapshot[todayKey]=[...new Set(arr.map(String))];
+     return new Date(today);
+   }
    d=null;
    for(const [k,arr] of plan.days){
      if(k<=todayKey)continue;
