@@ -601,6 +601,11 @@ function postponeTask(x){
       candidate.getDay()!==0 && !isHouseholdFree(candidate)){planned=candidate;break;}
  }
  const until=dayKey(planned);const id=taskId(x);
+ // The user's explicit "Später" action removes only this task from today's
+ // frozen set. No replacement task is allowed to enter the freed slot.
+ if(hasTodayPlanSnapshot()){
+   state.todayPlanSnapshot[dayKey(today)]=state.todayPlanSnapshot[dayKey(today)].filter(v=>String(v)!==String(id));
+ }
  delete state.done[doneKey(x)];
  state.postponed[id]={...x,key:x.key||id,from:day,postponedUntil:until,actionDate:day,planningOnly:true};
  save();render();toast(`Für später geplant · ${formatDateKey(until)} `)
@@ -1161,7 +1166,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v307|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v308|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function planningNextDue(x,ref=today){
  // The first-due onboarding date is a catalog deadline, not permission to
@@ -1560,19 +1565,48 @@ function buildIntelligentPlan(){
   return plannerCache;
 }
 
+function persistTodayPlanSnapshot(ids){
+ const k=dayKey(today);
+ state.todayPlanSnapshot=state.todayPlanSnapshot||{};
+ state.todayPlanSnapshot[k]=[...new Set((ids||[]).map(String).filter(Boolean))];
+ try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
+}
+function hasTodayPlanSnapshot(){
+ return !!(state.todayPlanSnapshot && Object.prototype.hasOwnProperty.call(state.todayPlanSnapshot,dayKey(today)) && Array.isArray(state.todayPlanSnapshot[dayKey(today)]));
+}
+function todaySnapshotIds(){return hasTodayPlanSnapshot() ? new Set(state.todayPlanSnapshot[dayKey(today)]) : null}
+function tasksFromIds(ids){
+ const wanted=new Set(ids||[]),out=[];
+ for(const x of CATALOG){if(isDailyTask(x)||isDone(x))continue;const id=taskId(x);if(wanted.has(id))out.push(x)}
+ return out;
+}
+function ensureTodayPlanSnapshotIds(){
+ if(hasTodayPlanSnapshot())return state.todayPlanSnapshot[dayKey(today)];
+ // IMPORTANT: create the snapshot exactly once for the current calendar day.
+ // Opening another tab must never cause the current-day plan to be recalculated.
+ const plan=buildIntelligentPlan();
+ const ids=[];
+ for(const [k,arr] of plan.days){
+   if(k!==dayKey(today))continue;
+   for(const x of arr||[]){if(!isDailyTask(x)&&!isDone(x))ids.push(taskId(x))}
+ }
+ persistTodayPlanSnapshot(ids);
+ return state.todayPlanSnapshot[dayKey(today)];
+}
 function plannedForDate(d){
  const k=dayKey(d);
+ if(k===dayKey(today)){
+   // TODAY IS IMMUTABLE FOR THE DAY: all views read the same persisted set.
+   // Completion/postponement can hide an item, but merely opening a tab cannot
+   // replace it with another planner result.
+   return tasksFromIds(ensureTodayPlanSnapshotIds());
+ }
  const plan=buildIntelligentPlan();
- // SINGLE SOURCE OF TRUTH: the calendar/today/week views must contain exactly
- // the tasks whose canonical planned date is this day. Never use the planner's
- // transient bucket alone, because legacy/override/fallback placement can leave
- // an item in a bucket that differs from the date shown in the catalog.
  const arr=[];
- const seen=new Set();
  for(const x of CATALOG){
    if(isDailyTask(x)||isDone(x))continue;
-   const pd=plannedDateForTask(x);
-   if(pd && dayKey(pd)===k){arr.push(x);seen.add(taskId(x));}
+   const pd=plan.next.get(taskId(x));
+   if(pd instanceof Date && !Number.isNaN(pd.getTime()) && dayKey(pd)===k)arr.push(x);
  }
  return arr;
 }
@@ -1639,14 +1673,26 @@ function calendarTasksForDate(d){
 function isDailyTask(x){return !!x&&(x.source==="daily"||String(x.key||"").startsWith("daily|")||String(x.id||"").startsWith("daily|"))}
 function nextDueLabel(x){return isDailyTask(x)?"täglich":nextDue(x).toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"})}
 function plannedDateForTask(x){
- // V307: READ-ONLY canonical plan lookup.
- // Rendering the catalog must never modify plannerCache. Earlier fallback logic
- // could push tasks into plannerCache.days / plannerCache.next while the catalog
- // was being rendered. That made the visible plan depend on which tab had been
- // opened and could make an overdue task suddenly appear as planned for today.
- const plan=buildIntelligentPlan();
+ // V308: canonical date lookup. The current day's plan is persisted once and
+ // is therefore independent of tab navigation, catalog filters and cache resets.
  const id=taskId(x);
- const d=plan.next.get(id);
+ const todayKey=dayKey(today);
+ if(today.getDay()!==0 && hasTodayPlanSnapshot() && !isDone(x)){
+   const snap=todaySnapshotIds();
+   if(snap.has(id))return new Date(today);
+ }
+ const plan=buildIntelligentPlan();
+ let d=plan.next.get(id);
+ // If the dynamic planner still proposes TODAY for a task that is not part of
+ // today's frozen set, never expose that task as today's planned date. Find its
+ // next actual placement after today instead.
+ if(d instanceof Date && !Number.isNaN(d.getTime()) && dayKey(d)===todayKey){
+   d=null;
+   for(const [k,arr] of plan.days){
+     if(k<=todayKey)continue;
+     if((arr||[]).some(y=>taskId(y)===id)){d=fromKey(k);break}
+   }
+ }
  if(!(d instanceof Date) || Number.isNaN(d.getTime()) || d<today)return null;
  return d;
 }
@@ -1721,9 +1767,8 @@ function taskCategory(x){const t=(x.text||"").toLowerCase();
 }
 function weeklyCandidates(d){return plannedForDate(d).filter(x=>!x.window&&x.source!=="rotation").map(x=>({...x,group:taskCategory(x)}))}
 function ensureTodayPlanSnapshot(d=today){
- // Legacy compatibility only. Today is intentionally NOT snapshot-based anymore.
- // Keep the helper for old data, but always derive the visible plan live.
- return plannedForDate(d).map(taskId);
+ if(dayKey(d)!==dayKey(today))return plannedForDate(d).map(taskId);
+ return [...ensureTodayPlanSnapshotIds()];
 }
 function plannedToday(){
  const d=today;
@@ -2691,6 +2736,9 @@ function pullCatalogTaskToday(x){
     if(same)delete state.postponed[id];
   }
 
+  if(hasTodayPlanSnapshot() && !state.todayPlanSnapshot[day].includes(tid)){
+    state.todayPlanSnapshot[day].push(tid);
+  }
   if(existing){
     existing.sourceKey=tid;existing.canonical=tid;
     existing.text=canonical.text;existing.room=canonical.room;existing.area=canonical.area;
