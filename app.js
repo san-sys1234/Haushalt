@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V314";
+const APP_BUILD="V315";
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -463,7 +463,7 @@ function invalidatePlanner(){plannerCache={key:null,days:new Map(),next:new Map(
 // itself is keyed by the state that actually affects scheduling, so it will
 // automatically rebuild when a scheduling input changes.
 function invalidatePlans(){calendarCache={year:null,days:new Map()};invalidatePlanner()}
-function save(){state.__planRevision=(state.__planRevision||0)+1;localStorage.setItem(STORAGE,JSON.stringify(state));invalidatePlans();queueMicrotask(()=>window.syncWidgetSnapshot?.())}
+function save(opts={}){state.__planRevision=(state.__planRevision||0)+1;localStorage.setItem(STORAGE,JSON.stringify(state));if(opts.invalidate!==false)invalidatePlans();queueMicrotask(()=>window.syncWidgetSnapshot?.())}
 function taskId(x){return x.key||x.id||((x.source||"task")+"|"+x.room+"|"+x.text)}
 function doneKey(x){return "done|"+taskId(x)}
 function lastKey(x){return "last|"+taskId(x)}
@@ -1242,7 +1242,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v314|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v315|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1467,22 +1467,24 @@ function buildIntelligentPlan(){
 
   const place=(x,preferred,opts={})=>{
     if(!preferred)preferred=planningNextDue(x,today);
-    const candidates=[];
     const range=opts.range??30;
+    let best=null;
+    const todayLockKey=dayKey(today);
+    const tid=taskId(x);
     for(let delta=-range;delta<=range;delta++){
       const d=addDays(preferred,delta),k=dayKey(d),arr=days.get(k);
       if(!arr)continue;
       if(needsFirstCompletionPlanning(x) && d>firstCompletionDeadline(today))continue;
-      if(k===dayKey(today) && Array.isArray(state.todayPlanLock?.[k])){
+      if(k===todayLockKey && Array.isArray(state.todayPlanLock?.[k])){
         const lock=state.todayPlanLock[k];
-        if(!lock.includes(taskId(x)) && !opts.allowUnlockedToday)continue;
+        if(!lock.includes(tid) && !opts.allowUnlockedToday)continue;
       }
       if(!legal(d,arr,x,opts))continue;
-      candidates.push({k,d,score:score(d,arr,x,preferred),delta});
+      const sc=score(d,arr,x,preferred);
+      if(!best || sc<best.score || (sc===best.score && Math.abs(delta)<Math.abs(best.delta))) best={k,d,score:sc,delta};
     }
-    candidates.sort((a,b)=>a.score-b.score||Math.abs(a.delta)-Math.abs(b.delta));
-    if(!candidates.length)return false;
-    const c=candidates[0],arr=days.get(c.k);
+    if(!best)return false;
+    const arr=days.get(best.k);
     arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);
     return true;
   };
@@ -1598,17 +1600,19 @@ function buildIntelligentPlan(){
   // A failed move leaves the task where it was only if no legal date exists;
   // with the available horizon there should always be another legal weekday.
   const findPlacement=(x)=>{
-    const due=planningNextDue(x,today),c=[];
+    const due=planningNextDue(x,today);
+    let best=null;
     for(let delta=-30;delta<=30;delta++){
       for(const sign of delta===0?[1]:[1,-1]){
         const d=addDays(due,delta*sign),arr=days.get(dayKey(d));
         if(!arr||isFreeDay(d))continue;
         if(needsFirstCompletionPlanning(x) && d>firstCompletionDeadline(today))continue;
         if(!legal(d,arr,x,{ignoreCount:true}))continue;
-        c.push({d,arr,score:score(d,arr,x,due)+Math.abs(delta)*.1});
+        const sc=score(d,arr,x,due)+Math.abs(delta)*.1;
+        if(!best||sc<best.score)best={d,arr,score:sc};
       }
     }
-    c.sort((a,b)=>a.score-b.score);return c[0]||null;
+    return best;
   };
 
   for(let pass=0;pass<1000;pass++){
@@ -1714,33 +1718,34 @@ function buildIntelligentPlan(){
     const due=planningNextDue(x,today);
     const maxFirst=needsFirstCompletionPlanning(x)?firstCompletionDeadline(today):null;
     const preferred=due instanceof Date&&!Number.isNaN(due.getTime())?due:today;
-    const candidates=[];
-    // Prefer an existing day with the same room/package. This keeps the
-    // fallback useful rather than dumping all leftovers onto arbitrary days.
+    let best=null;
+    const pkgKey=workPackage(x)?.key||roomPackageKey(x);
+    // Prefer an existing day with the same room/package. Keep only the best
+    // candidate instead of allocating/sorting a temporary array for every task.
     for(let delta=-30;delta<=30;delta++){
       for(const sign of delta===0?[1]:[1,-1]){
         const d=addDays(preferred,delta),arr=days.get(dayKey(d));
         if(!arr||!hardLegal(d,arr,x))continue;
         const sameRoom=taskRoomParts(x).some(r=>plannedRoomSet(arr).has(r));
-        const samePkg=arr.some(y=>(workPackage(y)?.key||roomPackageKey(y))===(workPackage(x)?.key||roomPackageKey(x)));
-        candidates.push({d,arr,score:(samePkg?0:20)+(sameRoom?0:10)+Math.abs(delta)});
+        const samePkg=arr.some(y=>(workPackage(y)?.key||roomPackageKey(y))===pkgKey);
+        const sc=(samePkg?0:20)+(sameRoom?0:10)+Math.abs(delta);
+        if(!best||sc<best.score)best={d,arr,score:sc};
       }
     }
-    // Then scan the complete first-completion horizon. This is the part that
-    // makes the invariant mathematically deterministic even when the normal
-    // planner has filled every nearby day.
-    if(!candidates.length){
+    // Then scan the complete first-completion horizon only when the local
+    // window has no legal slot.
+    if(!best){
       const limit=maxFirst||addDays(preferred,30);
       for(const [k,arr] of days){
         const d=fromKey(k);
         if(d<today||d>limit)continue;
         if(!hardLegal(d,arr,x))continue;
         const sameRoom=taskRoomParts(x).some(r=>plannedRoomSet(arr).has(r));
-        candidates.push({d,arr,score:sameRoom?5:30});
+        const sc=sameRoom?5:30;
+        if(!best||sc<best.score)best={d,arr,score:sc};
       }
     }
-    candidates.sort((a,b)=>a.score-b.score||a.d.getTime()-b.d.getTime());
-    const c=candidates[0];
+    const c=best;
     if(!c)return false;
     c.arr.push(x);
     c.arr._weight=(c.arr._weight||0)+taskWeight(x);
@@ -2850,7 +2855,7 @@ function renderToday(){
   // Its stored planned date is never changed by the midnight reset.
   main.querySelector("#energy").onclick=showEnergy;
   main.querySelector("#free").onclick=openHouseholdFreeDialog;
-  main.querySelector("#chaos").onclick=()=>{state.chaos=!state.chaos;save();render()};
+  main.querySelector("#chaos").onclick=()=>{state.chaos=!state.chaos;save({invalidate:false});render()};
 }
 function showEnergy(){
   const main=document.getElementById("main");
@@ -3045,16 +3050,16 @@ function renderCatalog(){
     const b=document.createElement("button");b.className="mapRoom"+(state.catalogRoomFilter===room?" selected":"");b.type="button";
     const count=counts.get(room)||0;
     b.innerHTML=`<span class="mapRoomGlyph">${esc(roomGlyph[room]||"·")}</span><span class="mapRoomName">${esc(room)}</span><span class="mapRoomCount">${count} ${count===1?"Aufgabe":"Aufgaben"}</span>`;
-    b.onclick=()=>{state.catalogRoomFilter=state.catalogRoomFilter===room?"":room;save();drawMap();draw()};
+    b.onclick=()=>{state.catalogRoomFilter=state.catalogRoomFilter===room?"":room;save({invalidate:false});drawMap();draw()};
     grid.appendChild(b);
    });
    map.appendChild(section);
   }
   const active=!!state.catalogRoomFilter;
   main.querySelector("#allRooms").textContent=active?"Alle Räume":"Alle Räume";
-  main.querySelector("#allRooms").onclick=()=>{state.catalogRoomFilter="";save();drawMap();draw()};
+  main.querySelector("#allRooms").onclick=()=>{state.catalogRoomFilter="";save({invalidate:false});drawMap();draw()};
  };
- q.oninput=draw;drawMap();draw();
+ let drawTimer=0; q.oninput=()=>{catalogSearchTerm=q.value;clearTimeout(drawTimer);drawTimer=setTimeout(draw,120)};drawMap();draw();
 }
 
 function renderWeek(){
@@ -3069,7 +3074,7 @@ function renderWeek(){
   if(!candidates.length){list.innerHTML=`<div class="empty">Gerade ist nichts offen, das bald ansteht. </div>`;return;}
   appendRoomGroups(list,roomGroupTasksSorted(candidates),{showDue:true});
 }
-function renderCalendar(){const main=document.getElementById("main"),year=state.calendarYear||today.getFullYear(),months=["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];main.innerHTML=`<div class="card"><div class="yearIntro"><div><div class="small">Jahresvorschau</div><div class="yearTitle"> ${year}</div></div><div class="yearNav"><button id="prev">‹</button><button id="cur">Dieses Jahr</button><button id="next">›</button></div></div><div class="calendarLegend"><span> erledigt</span><span> Sonntag frei</span><span> Ausflug/Urlaub</span><span>Die Zahl = sinnvoll eingeplante Aufgaben ·  = Tag geschafft</span></div><div class="monthGrid" id="mg"></div><div id="detailDay"></div></div>`;const mg=main.querySelector("#mg");for(let m=0;m<12;m++){const card=document.createElement("div");card.className="monthCard";card.innerHTML=`<div class="monthName">${months[m]}</div><div class="weekdays">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<span>${x}</span>`).join("")}</div><div class="monthDays"></div>`;const grid=card.querySelector(".monthDays"),first=new Date(year,m,1,12),offset=(first.getDay()+6)%7;for(let z=0;z<offset;z++)grid.appendChild(document.createElement("span"));const count=new Date(year,m+1,0).getDate();for(let n=1;n<=count;n++){const d=new Date(year,m,n,12),tasks=calendarTasksForDate(d),el=document.createElement("button");const completed=calendarDayCompleted(d,tasks);el.className="yearDay"+(d.getDay()===0||isHouseholdFree(d)?" free":"")+(sameDay(d,today)?" today":"")+(completed?" completed":"");el.innerHTML=`<span class="dayNum">${n}</span>${tasks.length?`<span class="dayMark">${tasks.length}</span>`:""}${completed?`<span class="dayComplete" title="Tag geschafft"></span>`:""}`;el.onclick=()=>showCalendarDay(d,tasks);grid.appendChild(el)}mg.appendChild(card)}main.querySelector("#prev").onclick=()=>{state.calendarYear=year-1;save();renderCalendar()};main.querySelector("#next").onclick=()=>{state.calendarYear=year+1;save();renderCalendar()};main.querySelector("#cur").onclick=()=>{state.calendarYear=today.getFullYear();save();renderCalendar()}}
+function renderCalendar(){const main=document.getElementById("main"),year=state.calendarYear||today.getFullYear(),months=["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];main.innerHTML=`<div class="card"><div class="yearIntro"><div><div class="small">Jahresvorschau</div><div class="yearTitle"> ${year}</div></div><div class="yearNav"><button id="prev">‹</button><button id="cur">Dieses Jahr</button><button id="next">›</button></div></div><div class="calendarLegend"><span> erledigt</span><span> Sonntag frei</span><span> Ausflug/Urlaub</span><span>Die Zahl = sinnvoll eingeplante Aufgaben ·  = Tag geschafft</span></div><div class="monthGrid" id="mg"></div><div id="detailDay"></div></div>`;const mg=main.querySelector("#mg");for(let m=0;m<12;m++){const card=document.createElement("div");card.className="monthCard";card.innerHTML=`<div class="monthName">${months[m]}</div><div class="weekdays">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<span>${x}</span>`).join("")}</div><div class="monthDays"></div>`;const grid=card.querySelector(".monthDays"),first=new Date(year,m,1,12),offset=(first.getDay()+6)%7;for(let z=0;z<offset;z++)grid.appendChild(document.createElement("span"));const count=new Date(year,m+1,0).getDate();for(let n=1;n<=count;n++){const d=new Date(year,m,n,12),tasks=calendarTasksForDate(d),el=document.createElement("button");const completed=calendarDayCompleted(d,tasks);el.className="yearDay"+(d.getDay()===0||isHouseholdFree(d)?" free":"")+(sameDay(d,today)?" today":"")+(completed?" completed":"");el.innerHTML=`<span class="dayNum">${n}</span>${tasks.length?`<span class="dayMark">${tasks.length}</span>`:""}${completed?`<span class="dayComplete" title="Tag geschafft"></span>`:""}`;el.onclick=()=>showCalendarDay(d,tasks);grid.appendChild(el)}mg.appendChild(card)}main.querySelector("#prev").onclick=()=>{state.calendarYear=year-1;save({invalidate:false});renderCalendar()};main.querySelector("#next").onclick=()=>{state.calendarYear=year+1;save({invalidate:false});renderCalendar()};main.querySelector("#cur").onclick=()=>{state.calendarYear=today.getFullYear();save({invalidate:false});renderCalendar()}}
 function showCalendarDay(d,tasks){
  const box=document.getElementById("detailDay");
  // Calendar day details always come from the same canonical plan as Today and
