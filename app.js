@@ -1,7 +1,7 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V307";
-const STORAGE="unser-zuhause-v303";
-const LEGACY_STORAGE="unser-zuhause-v302";
+const APP_BUILD="V309";
+const STORAGE="unser-zuhause-v309";
+const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD2="unser-zuhause-v148";
 const LEGACY_STORAGE_2="unser-zuhause-v139";
@@ -418,6 +418,19 @@ function loadState(){
  return s
 }
 let state=loadState();
+// V309: rebuild only today's generated snapshot once, because V308 could have
+// frozen an overly fragmented plan. Completion/postponement history remains.
+(function migrateV309Planner(){
+  try{
+    const marker=Number(state.__plannerSchema||0);
+    if(marker<309){
+      const k=dayKey(today);
+      if(state.todayPlanSnapshot&&Object.prototype.hasOwnProperty.call(state.todayPlanSnapshot,k))delete state.todayPlanSnapshot[k];
+      state.__plannerSchema=309;
+      localStorage.setItem(STORAGE,JSON.stringify(state));
+    }
+  }catch{}
+})();
 // V235 safety backup: keep one untouched snapshot of the currently loaded data
 // before any new repair/normalization logic runs. The existing storage key is
 // unchanged, so the Home-screen bookmark continues to use the same data.
@@ -1086,26 +1099,45 @@ function workPackage(x){
 }
 function roomCap(x){if(x.window)return 1;if(x.raffstore)return 2;if(/boden|kamin|bad|dusche|wanne|wc|toilette/i.test(x.text||""))return 2;return 6}
 function roomPackageKey(x){return workPackage(x)?.key||`roomwork|${x?.room||""}|${roomWorkflow(x)}`}
+// One normal day may contain at most TWO meaningful work units. A unit is a
+// compatible room/work-package combination; several tasks in the same package
+// count as one unit. This prevents fragmentation while preserving the hard
+// maximum of two rooms/work packages. Fixed routines are handled separately.
+function workUnitKey(x){
+ if(isWindowRelated(x))return `window|${windowRoom(x)}`;
+ const parts=taskRoomParts(x);
+ const pkg=workPackage(x)?.key||roomPackageKey(x);
+ return `${pkg}|${parts.join("+")}`;
+}
+function plannedWorkUnits(arr){
+ const units=new Set();
+ for(const x of (arr||[])){
+   if(isDailyTask(x)||isFixedTask(x))continue;
+   units.add(workUnitKey(x));
+ }
+ return units;
+}
+function workUnitCountAfter(arr,x){
+ const units=plannedWorkUnits(arr);
+ if(!isDailyTask(x)&&!isFixedTask(x))units.add(workUnitKey(x));
+ return units.size;
+}
 function roomPackageLoad(arr,room){
  const tasks=(arr||[]).filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&taskRoomParts(y).includes(room));
  return {tasks,weight:tasks.reduce((n,y)=>n+taskWeight(y),0),packages:new Set(tasks.map(roomPackageKey))};
 }
 function dayBudget(d){
  if(d.getDay()===0)return 0;
- // Household work should feel light, not like a second full-time job.
- // Keep the room/work-package logic, but deliberately portion each room into
- // smaller, manageable chunks. Fixed Tuesday hygiene remains protected below.
- if(d.getDay()===6)return 1;
- if(d.getDay()===3)return 2;
- if(d.getDay()===5)return 2;
- return 3;
+ // V309: roughly 90–120 minutes on a normal baby-day. V308 used only 1–3
+ // effort points, which scattered the catalog across far too many days.
+ if(d.getDay()===6)return 5;
+ if(d.getDay()===2)return 8;
+ return 7;
 }
 function dayTaskLimit(d){
- // Keep the visible list small as well as the weighted capacity. The weekly
- // hygiene block is the one deliberate exception: its fixed routine may contain
- // more individual checklist items, but no unrelated flexible work may be added.
  if(d.getDay()===0)return 0;
- return d.getDay()===2 ? 10 : 6;
+ // Keep lists compact without artificially splitting compatible package work.
+ return d.getDay()===2 ? 12 : 8;
 }
 function canAddByTaskCount(d,arr,x,allowFixedRoutine=false){
  const limit=dayTaskLimit(d);
@@ -1288,7 +1320,9 @@ function buildIntelligentPlan(){
     if(!arr)return false;
     if(arr.some(y=>taskId(y)===taskId(x)))return false;
     if(!windowCompatible(arr,x))return false;
-    if(roomCountAfter(arr,x)>2)return false;
+    // Normal work is limited by TWO work units. Fixed/exact routines remain an
+    // intentional exception (e.g. the Tuesday sanitation block).
+    if(!isFixedTask(x)&&!isWindowRelated(x)&&workUnitCountAfter(arr,x)>2)return false;
     if(!opts.ignoreCount && !canAddByTaskCount(d,arr,x,!!opts.allowFixedRoutine))return false;
     if(arr._fixedRoutine && !opts.allowFixedRoutine)return false;
 
@@ -1302,9 +1336,14 @@ function buildIntelligentPlan(){
         if(!sameRoom.length)continue;
         const pkg=workPackage(x)?.key||`roomwork|${room}|${roomWorkflow(x)}`;
         const existing=new Set(sameRoom.map(y=>workPackage(y)?.key||`roomwork|${room}|${roomWorkflow(y)}`));
-        if(!existing.has(pkg))return false;
         const roomWeight=sameRoom.reduce((n,y)=>n+taskWeight(y),0);
-        if(roomWeight+weight>2 || sameRoom.length>=3 || isHeavyTask(x))return false;
+        // Same package: keep filling it up to the normal daily budget.
+        // Different package: allowed only as the second work unit of the day.
+        if(existing.has(pkg)){
+          if(roomWeight+weight>7 || sameRoom.length>=6)return false;
+        }else if(isHeavyTask(x) || roomWeight+weight>7){
+          return false;
+        }
       }
     }
     const hasMighty=arr.some(y=>y.window||taskWeight(y)>=8);
@@ -1333,15 +1372,17 @@ function buildIntelligentPlan(){
 
   const score=(d,arr,x,preferred)=>{
     const rooms=roomSet(arr),sameRoom=taskRoomParts(x).some(r=>rooms.has(r));
-    const samePkg=arr.some(y=>workPackage(y).key===workPackage(x).key);
+    const sameUnit=plannedWorkUnits(arr).has(workUnitKey(x));
+    const samePkg=arr.some(y=>(workPackage(y)?.key||roomPackageKey(y))===(workPackage(x)?.key||roomPackageKey(x)));
     const dist=Math.abs(Math.round((d-preferred)/86400000));
     let s=dayBreathingScore(d,arr)+roomSpreadPenalty(arr,x)+adjacentLoadPenalty(days,d)+dist*0.7;
     if(sameRoom)s-=90;
-    if(samePkg)s-=150;
+    if(sameUnit)s-=180;
+    if(samePkg)s-=40;
     if(sameRoom){
-      const pkg=workPackage(x)?.key;
+      const pkg=workPackage(x)?.key||roomPackageKey(x);
       const sameRoomTasks=arr.filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&taskRoomParts(y).includes(x.room));
-      if(sameRoomTasks.length && !sameRoomTasks.some(y=>workPackage(y)?.key===pkg))s+=180;
+      if(sameRoomTasks.length && !sameRoomTasks.some(y=>(workPackage(y)?.key||roomPackageKey(y))===pkg))s+=45;
       else if(sameRoomTasks.length)s-=35;
     }
     if(!arr.length)s-=20;
