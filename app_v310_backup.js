@@ -840,17 +840,14 @@ function firstDueDateForTask(x,ref=today){
  if(!x||isDailyTask(x)||isDone(x))return null;
  const explicit=state.manualDates?.[x.key]||state.catalogDates?.[x.key]||x.start||"";
  if(/^\\d{4}-\\d{2}-\\d{2}$/.test(explicit))return fromKey(explicit);
- // FIRST-COMPLETION BOOTSTRAP: do not scatter never-completed tasks randomly
- // across the whole six-month window. The actual planner packs them forward
- // into the available working days and only uses this date as a soft anchor.
- // This keeps the initial household inventory compact while still respecting
- // the hard 01.04.2027 completion ceiling.
- for(let i=0;i<=FIRST_DUE_WINDOW_DAYS;i++){
-   const d=addDays(ref,i);
+ const max=addDays(ref,FIRST_DUE_WINDOW_DAYS);
+ let d=addDays(ref,stableBootstrapHash(taskId(x))%(FIRST_DUE_WINDOW_DAYS+1));
+ for(let i=0;i<=FIRST_DUE_WINDOW_DAYS;i++,d=addDays(d,1)){
+   if(d>max)break;
    if(d.getDay()===0||isHouseholdFree(d))continue;
    return d;
  }
- return addDays(ref,FIRST_DUE_WINDOW_DAYS);
+ return max;
 }
 function buildCatalog(){const out=[];const add=(text,room,area,meta={})=>{const key=meta.key||`seed|${room}|${text}`;if(catalogDeleted(key))return;const e=editFor(key)||{};const savedDate=state.manualDates?.[key]||state.catalogDates?.[key]||e.start||meta.start||"";const initialDue=(!savedDate&&meta.source!=="custom"&&meta.source!=="daily"&&!meta.window&&!meta.seasonal)?firstDueDateForTask({key,room,text,source:meta.source||"seed"}):null;out.push({text:e.text??text,room:e.room??room,area:e.area??area,place:e.place??meta.place??"",description:e.description??meta.description??"",start:savedDate,initialDue:initialDue?dayKey(initialDue):"",manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart||meta.manualStart),interval:Number(e.interval??meta.interval??0)||0,effort:savedEffort(key,Number(e.effort??meta.effort??0)||0),key,source:meta.source||"seed",editable:meta.editable!==false,window:!!meta.window,windowKey:meta.windowKey,windowGroup:meta.windowGroup,seasonal:!!meta.seasonal,seasonalKey:meta.seasonalKey,fixedExact:!!(e.fixedExact??meta.fixedExact),fixedDate:!!(e.fixedExact??meta.fixedExact)})};for(const [room,area,tasks] of catalogSeed){for(const text of tasks){if(/^(Fenster innen reinigen|Fenster außen reinigen, wenn sicher|Fensterbänke reinigen|Fensterbank reinigen|Fensterbank abwischen|Dichtungen kontrollieren|Vorhangstangen reinigen|Vorhänge nach Pflegeetikett reinigen|Raffstores nach Herstellerangabe reinigen)$/.test(text))continue;add(text,room,area,{key:`seed|${room}|${text}`})}}for(const [room,area,tasks] of EXTRA_ROOM_TASKS){for(const text of tasks){add(text,room,area,{key:`extra-seed|${room}|${text}`})}}const roomText=new Set(out.map(x=>`${x.room}|${x.text}`));for(const r of ROTATIONS){for(const room of r.rooms||[]){const rk=`${room}|${r.text}`;if(roomText.has(rk))continue;add(r.text,room,r.area,{key:`rotation|${room}|${r.text}`,editable:true,source:"rotation",interval:r.interval});roomText.add(rk)}}for(const c of state.custom){const key=c.key||`custom|${c.id}`;if(catalogDeleted(key))continue;add(c.text,c.room,c.area,{...c,key,source:"custom",editable:true,start:c.start||c.date||"",interval:Number(c.interval||c.repeat||0)||60,place:c.place,description:c.description,fixedExact:!!c.fixedExact})}for(const [group,tasks] of DAILY){for(const text of tasks){const key=`daily|${text}`;if(catalogDeleted(key))continue;const e=editFor(key)||{};out.push({text:e.text??text,room:e.room??"Alltag",area:e.area??"Haushalt",place:e.place??"",description:e.description??"",start:"",manualStart:false,interval:0,effort:savedEffort(key,Number(e.effort??0)||0),key,source:"daily",editable:true,group});}}for(const w of WINDOW_TASKS){const e=editFor(w.key)||{};out.push({...w,text:e.text??w.text,room:e.room??w.room,area:e.area??w.area,place:e.place??w.place,description:e.description??w.description,effort:savedEffort(w.key,Number(e.effort??w.effort??1)||1),start:e.start??w.start,interval:Number(e.interval??w.interval??0)||0,fixedExact:!!(e.fixedExact??w.fixedExact)});}return out}
 function refreshCatalog(){
@@ -1205,7 +1202,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v311|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v310|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1508,34 +1505,23 @@ function buildIntelligentPlan(){
 
   // 3. Remaining tasks are now placed around the already-reserved breathing
   // days. Because legal() rejects restDays, no fallback can refill them.
-  // 4. FIRST-COMPLETION BOOTSTRAP: tasks that have never been completed are
-  // the onboarding backlog. They must be worked through densely from today
-  // forward, not sprinkled randomly over six months. We fill the earliest
-  // legal package slots first, while the normal two-work-unit, room and
-  // workload rules remain absolute. This is what makes the 1st household
-  // pass finish by 31.03.2027 instead of drifting into autumn/winter.
-  const bootstrap=CATALOG.filter(x=>!isDailyTask(x)&&!isFixedTask(x)&&!wcPackage(x)&&needsFirstCompletionPlanning(x))
-    .sort((a,b)=>taskWeight(b)-taskWeight(a)||String(a.room).localeCompare(String(b.room),'de')||String(a.text).localeCompare(String(b.text),'de'));
-  for(const x of bootstrap){
-    const preferred=planningNextDue(x,today);
-    place(x,preferred,{range:Math.max(0,Math.ceil((firstCompletionDeadline(today)-preferred)/86400000))});
-  }
-
-  // 5. Remaining recurring tasks: one current occurrence per active task,
-  // using their real cadence/fälligkeitslogik after the first-completion
-  // backlog has been placed.
-  const remaining=CATALOG.filter(x=>!isDailyTask(x)&&!isFixedTask(x)&&!wcPackage(x)&&!needsFirstCompletionPlanning(x))
+  // 4. All remaining tasks: one occurrence per active task, sorted by urgency.
+  // V292 package rotation: legal() prevents different work packages from the
+  // same room being stacked on one day and caps the normal room workload.
+  const remaining=CATALOG.filter(x=>!isDailyTask(x)&&!isFixedTask(x)&&!wcPackage(x))
     .map(x=>({x,due:planningNextDue(x,today)}))
     .sort((a,b)=>a.due-b.due||taskWeight(b.x)-taskWeight(a.x)||String(a.x.room).localeCompare(String(b.x.room),'de'));
 
   for(const o of remaining){
     const x=o.x;
+    // A postponed date is a preferred target, never permission to violate the
+    // two-room/window invariant.
     const postponed=postponedEntry(x)?.postponedUntil;
     const preferred=postponed?fromKey(postponed):o.due;
     place(x,preferred,{range:30});
   }
 
-  // 6. Any task that could not be placed above gets a second pass. This pass
+  // 5. Any task that could not be placed above gets a second pass. This pass
   // relaxes ONLY capacity/task-count; it NEVER relaxes the room/window rules.
   for(const x of CATALOG){
     if(isDailyTask(x)||isFixedTask(x))continue;
@@ -1553,7 +1539,7 @@ function buildIntelligentPlan(){
     }
   }
 
-  // 7. Canonical invariant pass. Move violations until the whole plan is clean.
+  // 6. Canonical invariant pass. Move violations until the whole plan is clean.
   // A failed move leaves the task where it was only if no legal date exists;
   // with the available horizon there should always be another legal weekday.
   const findPlacement=(x)=>{
@@ -1598,7 +1584,7 @@ function buildIntelligentPlan(){
     }
   }
 
-  // 8. FINAL DATE GUARANTEE: every active non-daily catalog task must have one
+  // 7. FINAL DATE GUARANTEE: every active non-daily catalog task must have one
   // concrete planned date. Never allow the catalog to display "Geplant: —".
   // This pass may relax only workload/task-count limits; it never relaxes the
   // two-room rule or window isolation. Fixed-exact tasks are the intentional
