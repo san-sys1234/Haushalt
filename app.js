@@ -1,6 +1,6 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V309";
-const STORAGE="unser-zuhause-v309";
+const APP_BUILD="V310";
+const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
 const LEGACY_STORAGE_OLD2="unser-zuhause-v148";
@@ -423,10 +423,10 @@ let state=loadState();
 (function migrateV309Planner(){
   try{
     const marker=Number(state.__plannerSchema||0);
-    if(marker<309){
+    if(marker<310){
       const k=dayKey(today);
       if(state.todayPlanSnapshot&&Object.prototype.hasOwnProperty.call(state.todayPlanSnapshot,k))delete state.todayPlanSnapshot[k];
-      state.__plannerSchema=309;
+      state.__plannerSchema=310;
       localStorage.setItem(STORAGE,JSON.stringify(state));
     }
   }catch{}
@@ -826,7 +826,11 @@ function windowDate(x,ref=today){
  if(afterLast.length)return afterLast[0];
  return candidates[0] ? addDays(candidates[0],180) : ref;
 }
-const FIRST_DUE_WINDOW_DAYS=90;
+const FIRST_DUE_WINDOW_DAYS=180;
+// Every active task that has never been completed gets a first-occurrence
+// planning deadline in the first half-year of the current onboarding period.
+// For this household plan the requested hard ceiling is 01.04.2027.
+const FIRST_COMPLETION_DEADLINE_KEY="2027-04-01";
 function stableBootstrapHash(v){
  const str=String(v||"");let h=2166136261;
  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
@@ -1198,17 +1202,42 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v308|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v310|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+}
+function firstCompletionDeadline(ref=today){
+  const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
+  // If this build is ever reused after the configured onboarding period,
+  // keep the rule meaningful by using a rolling six-month ceiling instead.
+  // During the current household onboarding period the requested 01.04.2027
+  // ceiling is authoritative.
+  if(configured>=ref)return configured;
+  return addDays(ref,180);
+}
+function hasFirstCompletion(x){return !!lastDone(x);}
+function needsFirstCompletionPlanning(x){
+  if(!x||isDailyTask(x)||isDone(x)||isPostponed(x))return false;
+  return !hasFirstCompletion(x);
 }
 function planningNextDue(x,ref=today){
- // The first-due onboarding date is a catalog deadline, not permission to
- // overload the short-term planner. Planning continues to use the existing
- // cadence/room logic until the task is actually due.
  const explicit=state.manualDates?.[x.key]||state.catalogDates?.[x.key];
  if(explicit||x.start||x.manualStart)return nextDue(x,ref);
  const savedLast=lastDone(x);
  if(savedLast)return nextDue(x,ref);
- return rawNextDue(x,ref);
+ // FIRST-OCCURRENCE RULE: tasks with no first completion are not allowed to
+ // remain on a long room-rotation horizon. They must receive their first
+ // planned occurrence no later than the requested first-half-year deadline.
+ // Keep an existing deterministic initialDue when it is earlier; otherwise
+ // cap the planning target at the deadline. The normal planner still decides
+ // the actual day, respecting the two-work-unit rule, free days and workload.
+ const initial=normalizeDateKey(x.initialDue);
+ const deadline=firstCompletionDeadline(ref);
+ if(initial){
+   const id=fromKey(initial);
+   return id<=deadline?id:deadline;
+ }
+ const raw=rawNextDue(x,ref);
+ if(raw instanceof Date&&!Number.isNaN(raw.getTime()))return raw<=deadline?raw:deadline;
+ return deadline;
 }
 function plannerHorizon(){
  const start=new Date(today.getFullYear(),today.getMonth(),today.getDate(),12);
@@ -1216,7 +1245,9 @@ function plannerHorizon(){
  // calendar end can leave long-interval tasks (e.g. annual tasks) without a
  // plan. Extend the horizon far enough beyond the furthest current due date
  // to guarantee a legal +/-30-day planning window.
- let end=addDays(fromKey(dayKey(today)), 150);
+ let end=addDays(fromKey(dayKey(today)), 180);
+ const onboardingDeadline=firstCompletionDeadline(today);
+ if(onboardingDeadline>end)end=onboardingDeadline;
  for(const x of CATALOG){
    if(isDailyTask(x)||isInvalidLegacyTask(x))continue;
    const due=planningNextDue(x,today);
@@ -1397,6 +1428,7 @@ function buildIntelligentPlan(){
     for(let delta=-range;delta<=range;delta++){
       const d=addDays(preferred,delta),k=dayKey(d),arr=days.get(k);
       if(!arr)continue;
+      if(needsFirstCompletionPlanning(x) && d>firstCompletionDeadline(today))continue;
       if(k===dayKey(today) && Array.isArray(state.todayPlanLock?.[k])){
         const lock=state.todayPlanLock[k];
         if(!lock.includes(taskId(x)) && !opts.allowUnlockedToday)continue;
@@ -1500,6 +1532,7 @@ function buildIntelligentPlan(){
       for(const sign of radius===0?[1]:[1,-1]){
         const d=addDays(due,radius*sign),arr=days.get(dayKey(d));
         if(!arr||isFreeDay(d))continue;
+        if(needsFirstCompletionPlanning(x) && d>firstCompletionDeadline(today))continue;
         if(!legal(d,arr,x,{ignoreCount:true}))continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
       }
@@ -1515,6 +1548,7 @@ function buildIntelligentPlan(){
       for(const sign of delta===0?[1]:[1,-1]){
         const d=addDays(due,delta*sign),arr=days.get(dayKey(d));
         if(!arr||isFreeDay(d))continue;
+        if(needsFirstCompletionPlanning(x) && d>firstCompletionDeadline(today))continue;
         if(!legal(d,arr,x,{ignoreCount:true}))continue;
         c.push({d,arr,score:score(d,arr,x,due)+Math.abs(delta)*.1});
       }
@@ -1576,6 +1610,7 @@ function buildIntelligentPlan(){
       for(const sign of radius===0?[1]:[1,-1]){
         const d=addDays(due,radius*sign),arr=days.get(dayKey(d));
         if(!arr||isFreeDay(d))continue;
+        if(needsFirstCompletionPlanning(x) && d>firstCompletionDeadline(today))continue;
         if(!legal(d,arr,x,{ignoreCount:true}))continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
       }
@@ -1587,6 +1622,7 @@ function buildIntelligentPlan(){
       for(const [k,arr] of days){
         const d=fromKey(k);
         if(d<today||isFreeDay(d)||arr.length)continue;
+        if(needsFirstCompletionPlanning(x) && d>firstCompletionDeadline(today))continue;
         if(legal(d,arr,x,{ignoreCount:true})){
           arr.push(x);arr._weight=taskWeight(x);placed=true;break;
         }
