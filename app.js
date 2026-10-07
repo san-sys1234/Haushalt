@@ -2721,9 +2721,9 @@ function swipeRow(el,x){
     if(!moved&&Math.abs(rawY)>Math.abs(rawX)+6){drag=false;return;}
     dx=Math.max(-150,Math.min(150,rawX));
     if(Math.abs(dx)>6)moved=true;
-    if(moved){if(e.cancelable)e.preventDefault();if(!raf)raf=requestAnimationFrame(paint);if(dx>75){commit(1);return;}if(dx<-75){commit(-1);return;}}
+    if(moved){if(e.cancelable)e.preventDefault();if(!raf)raf=requestAnimationFrame(paint);}
   };
-  const end=()=>{if(!drag||committed)return;drag=false;if(Math.abs(dx)>75)commit(dx>0?1:-1);else reset();};
+  const end=()=>{if(!drag||committed)return;drag=false;const threshold=105;if(Math.abs(dx)>threshold)commit(dx>0?1:-1);else reset();};
   el.addEventListener('pointerdown',start,{passive:true});
   el.addEventListener('pointermove',move,{passive:false});
   el.addEventListener('pointerup',end,{passive:true});
