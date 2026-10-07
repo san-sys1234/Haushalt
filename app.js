@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V318";
+const APP_BUILD="V320";
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -464,19 +464,33 @@ function invalidatePlanner(){plannerCache={key:null,days:new Map(),next:new Map(
 // automatically rebuild when a scheduling input changes.
 function invalidatePlans(){calendarCache={year:null,days:new Map()};invalidatePlanner()}
 let plannerRebuildTimer=0;
-function schedulePlannerRefresh(){
-  if(plannerRebuildTimer)clearTimeout(plannerRebuildTimer);
-  plannerRebuildTimer=setTimeout(()=>{
-    plannerRebuildTimer=0;
+let fastPersistTimer=0;
+let fastPlannerTimer=0;
+let fastSwipeBusyUntil=0;
+function schedulePlannerRefresh(delay=1800){
+  if(fastPlannerTimer)clearTimeout(fastPlannerTimer);
+  fastPlannerTimer=setTimeout(()=>{
+    fastPlannerTimer=0;
+    if(Date.now()<fastSwipeBusyUntil){schedulePlannerRefresh(1200);return;}
     invalidatePlans();
     const run=()=>{try{buildIntelligentPlan()}catch(e){}};
-    if(window.requestIdleCallback) requestIdleCallback(run,{timeout:1200}); else setTimeout(run,50);
-  },350);
+    if(window.requestIdleCallback) requestIdleCallback(run,{timeout:2500}); else setTimeout(run,250);
+  },delay);
 }
 function save(opts={}){
   state.__planRevision=(state.__planRevision||0)+1;
-  localStorage.setItem(STORAGE,JSON.stringify(state));
-  if(opts.invalidate===false) schedulePlannerRefresh(); else invalidatePlans();
+  if(opts.fast){
+    if(fastPersistTimer)clearTimeout(fastPersistTimer);
+    fastPersistTimer=setTimeout(()=>{
+      fastPersistTimer=0;
+      try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
+      try{window.syncWidgetSnapshot?.()}catch{}
+    },900);
+    if(opts.refresh!==false)schedulePlannerRefresh();
+    return;
+  }
+  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
+  if(opts.invalidate===false)schedulePlannerRefresh(); else invalidatePlans();
   queueMicrotask(()=>window.syncWidgetSnapshot?.());
 }
 function taskId(x){return x.key||x.id||((x.source||"task")+"|"+x.room+"|"+x.text)}
@@ -712,84 +726,59 @@ function celebrateCompletedDay(){
 }
 
 function persistStateFast(){
-  // Swipe actions must never wait for JSON.stringify(localStorage) or planner work.
-  // The in-memory state is authoritative immediately; persistence is flushed shortly
-  // afterwards, and the latest queued write wins.
-  if(window.__fastSaveTimer)clearTimeout(window.__fastSaveTimer);
-  window.__fastSaveTimer=setTimeout(()=>{
-    window.__fastSaveTimer=0;
-    try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
-    try{window.syncWidgetSnapshot?.()}catch{}
-    schedulePlannerRefresh();
-  },180);
+  // Swipe fast path: persistence is deliberately deferred. Never stringify the
+  // complete application state while the user is interacting with a card.
+  fastSwipeBusyUntil=Date.now()+1800;
+  save({fast:true,refresh:false});
 }
-function fastRemoveTodayRow(x,completed=false){
-  const id=String(taskId(x));
-  const row=document.querySelector(`#main .task[data-task-id="${CSS.escape(id)}"]`)
-    ||[...document.querySelectorAll('#main .task[data-task-id]')].find(r=>String(r.dataset.taskId)===id);
-  if(row){
-    // The logical action has already happened. Remove the card immediately;
-    // do not make the user wait for a second animation or a DOM scan.
-    row.style.pointerEvents='none';
-    row.style.transform='translate3d(0,0,0)';
-    row.style.opacity='0';
-    row.style.maxHeight='0px';
-    row.style.marginTop='0';
-    row.style.marginBottom='0';
-    row.style.overflow='hidden';
-    row.style.transition='opacity .06s, max-height .08s, margin .08s';
-    requestAnimationFrame(()=>row.remove());
-  }
-  // Keep the progress indicator responsive without rebuilding Today.
-  const active=[...document.querySelectorAll('#main .task[data-task-id]')].filter(r=>r.style.maxHeight!=='0px').length;
-  const all=document.querySelector('#main .hero .progress i');
-  const count=document.querySelector('#main .hero .small');
-  if(all&&count){
-    const total=Math.max(0,active);
-    const doneText=count.textContent.match(/(\d+) von (\d+) Aufgaben/);
-    const oldDone=doneText?Number(doneText[1]):0;
-    const oldTotal=doneText?Number(doneText[2]):total+1;
-    const nextDone=completed?oldDone+1:oldDone;
-    const nextTotal=Math.max(total+nextDone,nextDone,1);
-    all.style.width=(nextTotal?Math.round(nextDone/nextTotal*100):0)+'%';
-    count.textContent=`${nextDone} von ${nextTotal} Aufgaben erledigt`;
-  }
+function fastRemoveTodayRow(rowEl){
+  if(!rowEl)return;
+  rowEl.style.pointerEvents='none';
+  rowEl.style.willChange='transform,opacity';
+  // The visual commit is synchronous: no requestAnimationFrame/setTimeout is
+  // needed before the card leaves the active list.
+  rowEl.remove();
 }
-function fastTodayComplete(x){
+function fastTodayComplete(x,rowEl){
+  const k=dayKey(),id=taskId(x);
+  // Only mutate the tiny completion ledger. No planner, catalog lookup or render.
   if(isDailyTask(x)){
-    const k=dayKey();
     state.dailyDone=state.dailyDone&&typeof state.dailyDone==='object'?state.dailyDone:{};
     state.dailyDone[k]=state.dailyDone[k]&&typeof state.dailyDone[k]==='object'?state.dailyDone[k]:{};
-    state.dailyDone[k][taskId(x)]=true;
-    recordCompletion(x,k);
+    state.dailyDone[k][id]=true;
   }else{
-    markDone(x);
-    const target=x.source==='extra'?canonicalTaskFor(x):x;
-    if(target?.key)delete state.plannedOverrides?.[target.key];
+    state.done=state.done&&typeof state.done==='object'?state.done:{};
+    state.lastDone=state.lastDone&&typeof state.lastDone==='object'?state.lastDone:{};
+    state.done[doneKey(x)]=true;
+    state.lastDone[lastKey(x)]=k;
+    recordCompletion(x,k);
+    if(state.postponed)delete state.postponed[id];
+    if(state.plannedOverrides)delete state.plannedOverrides[id];
   }
-  fastRemoveTodayRow(x,true);
-  syncCompletedDayFast(x);
+  fastRemoveTodayRow(rowEl);
   persistStateFast();
 }
-function fastTodayPostpone(x){
-  const day=dayKey();
-  const id=taskId(x);
-  const currentIds=[...document.querySelectorAll('#main .task[data-task-id]')].map(r=>String(r.dataset.taskId));
-  state.todayPlanLock=state.todayPlanLock||{};
-  state.todayPlanLock[day]=currentIds.filter(v=>v!==String(id));
-  const due=nextDue(x,today);
-  let planned=addDays(today,1);
-  // Use the already visible current planned date if available; NEVER rebuild the planner here.
-  const cached=plannerCache.next.get(id);
+function fastTodayPostpone(x,rowEl){
+  const day=dayKey(),id=taskId(x);
+  state.todayPlanLock=state.todayPlanLock&&typeof state.todayPlanLock==='object'?state.todayPlanLock:{};
+  const locked=Array.isArray(state.todayPlanLock[day])?state.todayPlanLock[day]:[];
+  state.todayPlanLock[day]=locked.filter(v=>String(v)!==String(id));
+
+  // Use only the already calculated visible date. NEVER invoke nextDue() or
+  // buildIntelligentPlan() during a swipe. If the cache is unavailable,
+  // tomorrow is a safe immediate fallback; the deferred planner will reconcile
+  // it later without blocking the gesture.
+  let planned=null;
+  const cached=plannerCache.next?.get(id);
   if(cached instanceof Date && cached>=today)planned=addDays(cached,1);
-  for(let i=0;i<=30;i++){
-    const candidate=addDays(planned,i);
-    if(candidate>=today && Math.abs(Math.round((candidate-due)/86400000))<=30 && candidate.getDay()!==0 && !isHouseholdFree(candidate)){planned=candidate;break;}
-  }
+  if(!(planned instanceof Date))planned=addDays(today,1);
+  while(planned.getDay()===0 || isHouseholdFree(planned))planned=addDays(planned,1);
+
+  state.done=state.done&&typeof state.done==='object'?state.done:{};
   delete state.done[doneKey(x)];
-  state.postponed=state.postponed||{};
+  state.postponed=state.postponed&&typeof state.postponed==='object'?state.postponed:{};
   state.postponed[id]={...x,key:x.key||id,from:day,postponedUntil:dayKey(planned),actionDate:day,planningOnly:true};
-  fastRemoveTodayRow(x,false);
+  fastRemoveTodayRow(rowEl);
   persistStateFast();
 }
 function syncCompletedDayFast(x){
@@ -1360,7 +1349,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v318|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v320|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -2665,59 +2654,43 @@ function definition(x){
 }
 function openDetail(x){const d=definition(x),hist=completionHistoryFor(x);document.getElementById("detailMeta").textContent=[x.room,x.area].filter(Boolean).join(" · ")+" · "+(isDailyTask(x)?"Fälligkeit: täglich":"nächster Termin: "+nextDueLabel(x));document.getElementById("detailTitle").textContent=x.text;document.getElementById("detailContent").innerHTML=`<div class="detailBox"><b>Planungsaufwand</b><div><strong>${esc(effortLabel(taskWeight(x)))}</strong> · ${esc(effortDescription(taskWeight(x)))}</div><div class="small" style="margin-top:5px">Dieser Wert beeinflusst, wie viel der intelligente Tagesplaner an einem Tag zusammenfasst.</div></div><div class="detailBox"><b>Zuletzt erledigt</b><div>${hist.length?hist.map((v,i)=>`<div style="margin-top:6px"><b>${i===0?"Letztes Mal":"Davor"}:</b> ${esc(formatDateKey(v))}</div>`).join(""):"Noch keine Erledigung gespeichert."}</div><div class="detailBox"><b>Was mache ich?</b><div>${esc(d.what)}</div></div><div class="detailBox"><b>Was gehört dazu?</b><ul>${d.belongs.map(v=>`<li>${esc(v)}</li>`).join("")}</ul></div><div class="detailBox"><b>Was gehört nicht dazu?</b><ul>${d.not.map(v=>`<li>${esc(v)}</li>`).join("")}</ul></div><div class="detailBox"><b>Worauf achten?</b><ul>${d.care.map(v=>`<li>${esc(v)}</li>`).join("")}</ul></div>`;document.getElementById("detailOverlay").classList.add("open")}
 function swipeRow(el,x){
-  // V318: the swipe itself is a strict UI fast path. Once the threshold is
-  // crossed, commit exactly once and never wait for a render/planner cycle.
+  // Ultra-fast iPhone path: the gesture only moves one composited layer and,
+  // once committed, removes exactly that DOM node. No render, planner,
+  // catalog scan, nextDue(), querySelectorAll() or storage work is allowed in
+  // the critical gesture path.
   let sx=0,sy=0,dx=0,drag=false,moved=false,raf=0,committed=false;
   const c=el.querySelector('.taskContent'),bg=el.querySelector('.swipeBg'),label=bg?.querySelector('.swipeLabel');
   const paint=()=>{
-    raf=0;
-    if(committed)return;
+    raf=0;if(committed)return;
     c.style.transform=`translate3d(${dx}px,0,0)`;
-    const positive=dx>0,negative=dx<0;
-    bg.classList.toggle('green',positive);bg.classList.toggle('red',negative);
-    bg.style.opacity=String(Math.min(1,Math.abs(dx)/70));
-    if(label)label.textContent=negative?'↩ Später':'✓ Erledigt';
+    if(bg){bg.style.opacity=String(Math.min(1,Math.abs(dx)/70));bg.classList.toggle('green',dx>0);bg.classList.toggle('red',dx<0)}
+    if(label)label.textContent=dx<0?'↩ Später':'✓ Erledigt';
   };
-  const schedulePaint=()=>{if(!raf)raf=requestAnimationFrame(paint)};
-  const commit=(direction)=>{
-    if(committed)return;
-    committed=true;drag=false;
+  const commit=dir=>{
+    if(committed)return; committed=true; drag=false;
     if(raf){cancelAnimationFrame(raf);raf=0;}
-    c.style.transition='transform .06s linear, opacity .06s linear';
-    c.style.transform=`translate3d(${direction*110}%,0,0)`;
-    bg.style.opacity='1';
-    bg.classList.toggle('green',direction>0);bg.classList.toggle('red',direction<0);
-    // Do not wait 80ms. The data action starts immediately after the gesture.
-    if(direction>0) fastTodayComplete(x); else fastTodayPostpone(x);
+    // Commit the visual state immediately; the card is removed synchronously.
+    c.style.transition='none'; c.style.transform=`translate3d(${dir*110}%,0,0)`;
+    if(dir>0)fastTodayComplete(x,el); else fastTodayPostpone(x,el);
   };
   const reset=()=>{
-    if(committed)return;
-    if(raf){cancelAnimationFrame(raf);raf=0;}
-    dx=0;drag=false;moved=false;
-    c.style.transition='transform .12s';c.style.transform='translate3d(0,0,0)';
-    bg.style.opacity='0';bg.classList.remove('green','red');
+    if(committed)return;if(raf){cancelAnimationFrame(raf);raf=0;}
+    dx=0;drag=false;moved=false;c.style.transition='transform .08s';c.style.transform='translate3d(0,0,0)';
+    if(bg){bg.style.opacity='0';bg.classList.remove('green','red');}
   };
-  const start=(e)=>{
+  const start=e=>{
     if(e.pointerType==='mouse'&&e.button!==0)return;
-    sx=e.clientX;sy=e.clientY;dx=0;drag=true;moved=false;committed=false;
-    c.style.transition='none';el.setPointerCapture?.(e.pointerId);
+    sx=e.clientX;sy=e.clientY;dx=0;drag=true;moved=false;committed=false;c.style.transition='none';
   };
-  const move=(e)=>{
+  const move=e=>{
     if(!drag||committed)return;
     const rawX=e.clientX-sx,rawY=e.clientY-sy;
     if(!moved&&Math.abs(rawY)>Math.abs(rawX)+6){drag=false;return;}
     dx=Math.max(-150,Math.min(150,rawX));
     if(Math.abs(dx)>6)moved=true;
-    if(moved){if(e.cancelable)e.preventDefault();schedulePaint();
-      if(dx>75){commit(1);return;}
-      if(dx<-75){commit(-1);return;}
-    }
+    if(moved){if(e.cancelable)e.preventDefault();if(!raf)raf=requestAnimationFrame(paint);if(dx>75){commit(1);return;}if(dx<-75){commit(-1);return;}}
   };
-  const end=()=>{
-    if(!drag||committed)return;
-    drag=false;
-    if(Math.abs(dx)>75)commit(dx>0?1:-1);else reset();
-  };
+  const end=()=>{if(!drag||committed)return;drag=false;if(Math.abs(dx)>75)commit(dx>0?1:-1);else reset();};
   el.addEventListener('pointerdown',start,{passive:true});
   el.addEventListener('pointermove',move,{passive:false});
   el.addEventListener('pointerup',end,{passive:true});
