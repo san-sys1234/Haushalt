@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V313";
+const APP_BUILD="V314";
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1089,23 +1089,46 @@ function roomWorkflow(x){
 }
 function workPackage(x){
  const t=(x.text||"").toLowerCase(),room=x.room||"";
- if(x.window||x.windowSill||x.raffstore||/fensterbank|raffstore|sonnenschutz/.test(t))return {key:`fenster|${room}`,label:`Fenster & Sonnenschutz · ${room}`,heavy:isHeavyTask(x)};
- // Bed-care tasks belong to one physical workflow. Mattress care is less
- // frequent than changing bed linen, but when it is due it should join the
- // next sensible bed/linen day instead of becoming a standalone heavy task.
+ if(x.window||x.windowSill||x.raffstore||/fensterbank|raffstore|sonnenschutz|insektenschutz/.test(t))return {key:`fenster|${room}`,label:`Fenster & Sonnenschutz · ${room}`,heavy:isHeavyTask(x)};
+
+ // Room packages are deliberately broad enough to create pleasant, coherent
+ // mini-sessions. We do NOT split a room into a separate package for every
+ // tiny workflow (e.g. door handles vs. light switches vs. surfaces).
+ // The goal is: one sensible theme per room/day, a few compatible tasks,
+ // then rotate to another theme on the next occurrence.
  const bedRooms=["Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2","Ankleidezimmer"];
- const isBedTask=/bettwäsche|bettlaken|kissenbezug|deckenbezug|matratze|bettpflege|bettbezug/.test(t);
- if(bedRooms.includes(room)&&isBedTask)return {key:`bett|${room}`,label:`Bett & Matratze · ${room}`,heavy:/matratze/.test(t)};
+ if(bedRooms.includes(room) && /bettwäsche|bettlaken|kissenbezug|deckenbezug|bettbezug|matratze|bettpflege/.test(t))
+   return {key:`textilien|${room}`,label:`Textilien & Bett · ${room}`,heavy:/matratze/.test(t)};
+
  const bathrooms=["Gäste-WC","Kinderbad","Bad","Eltern-WC"];
  if(bathrooms.includes(room)){
-   if(isWCSubtask(x))return {key:`wc-komplett|${room}`,label:`WC komplett · ${room}`,heavy:false};
-   if(/armatur|waschbecken/.test(t))return {key:`armatur|${room}`,label:`Armaturen & Waschbecken · ${room}`,heavy:isHeavyTask(x)};
-   if(/dusche|duschglas|duschrinne|badewanne|badewannenarmatur|fuge|silikon/.test(t))return {key:`nassbereich|${room}`,label:`Dusche & Wanne · ${room}`,heavy:isHeavyTask(x)};
-   return {key:`bad|${room}`,label:`Bad · ${room}`,heavy:isHeavyTask(x)};
+   if(isWCSubtask(x)) return {key:`hygiene|${room}`,label:`Hygiene · ${room}`,heavy:false};
+   if(/dusche|duschglas|duschrinne|badewanne|badewannenarmatur|fuge|silikon/.test(t))
+     return {key:`nassbereich|${room}`,label:`Dusche & Wanne · ${room}`,heavy:isHeavyTask(x)};
+   if(/boden|sockelleiste|ecken|stufen/.test(t))
+     return {key:`boden|${room}`,label:`Boden & Sockelleisten · ${room}`,heavy:isHeavyTask(x)};
+   // Mirror, basin, taps, door handles, switches and other small bathroom
+   // details are one coherent "surfaces & details" session.
+   return {key:`oberflaechen|${room}`,label:`Oberflächen & Details · ${room}`,heavy:isHeavyTask(x)};
  }
- if(/alle .*fronten|fronten .*küche|küchenfronten|küchenfront/.test(t))return {key:`kuechenfronten|${room}`,label:`Küchenfronten · ${room}`,heavy:true};
- if(/kleidung.*aussort|aussort.*kleidung|kleiderschrank.*aussort|kleidung.*sortieren|kleidung.*ausmisten/.test(t))return {key:`kleidung|${room}`,label:`Kleidung · ${room}`,heavy:true};
- return {key:`roomwork|${room}|${roomWorkflow(x)}`,label:`${room} · ${roomWorkflow(x)}`,heavy:isHeavyTask(x)};
+
+ if(/alle .*fronten|fronten .*küche|küchenfronten|küchenfront/.test(t))
+   return {key:`kuechenfronten|${room}`,label:`Küchenfronten · ${room}`,heavy:true};
+ if(/kleidung.*aussort|aussort.*kleidung|kleiderschrank.*aussort|kleidung.*sortieren|kleidung.*ausmisten/.test(t))
+   return {key:`ordnung-gross|${room}`,label:`Ordnung & Ausmisten · ${room}`,heavy:true};
+ if(/schrank|regal|schublade|sortieren|ordnen|aussort|vorräte|organisation/.test(t))
+   return {key:`ordnung|${room}`,label:`Ordnung & Organisation · ${room}`,heavy:isHeavyTask(x)};
+ if(/boden|sockelleiste|stufen|ecken|unter .*möbel|unter.*bett/.test(t))
+   return {key:`boden|${room}`,label:`Boden & Sockelleisten · ${room}`,heavy:isHeavyTask(x)};
+ if(/bettwäsche|bettlaken|kissenbezug|deckenbezug|vorhang|gardine|textil|teppich/.test(t))
+   return {key:`textilien|${room}`,label:`Textilien · ${room}`,heavy:isHeavyTask(x)};
+ if(/kamin|ofen|backofen|dunstabzug|müll|vorrat|kühlschrank|gefrier/.test(t))
+   return {key:`pflege|${room}`,label:`Pflege & Geräte · ${room}`,heavy:isHeavyTask(x)};
+
+ // Default room package: all small surface/detail work belongs together.
+ // This intentionally combines compatible little jobs instead of producing
+ // separate packages for every micro-workflow.
+ return {key:`oberflaechen|${room}`,label:`Oberflächen & Details · ${room}`,heavy:isHeavyTask(x)};
 }
 function roomCap(x){if(x.window)return 1;if(x.raffstore)return 2;if(/boden|kamin|bad|dusche|wanne|wc|toilette/i.test(x.text||""))return 2;return 6}
 function roomPackageKey(x){return workPackage(x)?.key||`roomwork|${x?.room||""}|${roomWorkflow(x)}`}
@@ -1135,6 +1158,17 @@ function workUnitCountAfter(arr,x){
 function roomPackageLoad(arr,room){
  const tasks=(arr||[]).filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&taskRoomParts(y).includes(room));
  return {tasks,weight:tasks.reduce((n,y)=>n+taskWeight(y),0),packages:new Set(tasks.map(roomPackageKey))};
+}
+function packageTaskLimit(arr,x){
+ const pkg=workPackage(x)?.key||roomPackageKey(x);
+ const same=(arr||[]).filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&((workPackage(y)?.key||roomPackageKey(y))===pkg));
+ const weight=same.reduce((n,y)=>n+taskWeight(y),0);
+ const minis=same.filter(y=>taskWeight(y)<=2).length;
+ return minis>=3 && taskWeight(x)<=2 ? 5 : 4;
+}
+function packageLoad(arr,x){
+ const pkg=workPackage(x)?.key||roomPackageKey(x);
+ return (arr||[]).filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&((workPackage(y)?.key||roomPackageKey(y))===pkg));
 }
 function dayBudget(d){
  if(d.getDay()===0)return 0;
@@ -1208,7 +1242,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v313|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v314|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1374,10 +1408,14 @@ function buildIntelligentPlan(){
         const pkg=workPackage(x)?.key||`roomwork|${room}|${roomWorkflow(x)}`;
         const existing=new Set(sameRoom.map(y=>workPackage(y)?.key||`roomwork|${room}|${roomWorkflow(y)}`));
         const roomWeight=sameRoom.reduce((n,y)=>n+taskWeight(y),0);
-        // Same package: keep filling it up to the normal daily budget.
-        // Different package: allowed only as the second work unit of the day.
+        // Same package: allow a small, pleasant session. A normal room package
+        // tops out at four tasks; if the package consists almost entirely of
+        // tiny handgriffe, one additional mini is okay. This prevents a room
+        // from becoming a giant list while still allowing useful combinations.
         if(existing.has(pkg)){
-          if(roomWeight+weight>7 || sameRoom.length>=6)return false;
+          const miniCount=sameRoom.filter(y=>taskWeight(y)<=2).length;
+          const maxTasks=miniCount>=3 && weight<=2 ? 5 : 4;
+          if(roomWeight+weight>7 || sameRoom.length>=maxTasks)return false;
         }else if(isHeavyTask(x) || roomWeight+weight>7){
           return false;
         }
@@ -1666,6 +1704,10 @@ function buildIntelligentPlan(){
     if(needsFirstCompletionPlanning(x)&&d>firstCompletionDeadline(today))return false;
     if(violatesTwoRoomRule(arr,x))return false;
     if(violatesWindowIsolation(arr,x))return false;
+    if(!isFixedTask(x)&&!isWindowRelated(x)){
+      const samePkg=packageLoad(arr,x);
+      if(samePkg.length>=packageTaskLimit(arr,x))return false;
+    }
     return true;
   };
   const addGuaranteed=(x)=>{
