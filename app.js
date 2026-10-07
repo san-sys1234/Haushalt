@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V305";
+const APP_BUILD="V307";
 const STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE="unser-zuhause-v302";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -447,7 +447,7 @@ function invalidatePlanner(){plannerCache={key:null,days:new Map(),next:new Map(
 // itself is keyed by the state that actually affects scheduling, so it will
 // automatically rebuild when a scheduling input changes.
 function invalidatePlans(){calendarCache={year:null,days:new Map()};invalidatePlanner()}
-function save(){state.__planRevision=(state.__planRevision||0)+1;localStorage.setItem(STORAGE,JSON.stringify(state));invalidatePlans()}
+function save(){state.__planRevision=(state.__planRevision||0)+1;localStorage.setItem(STORAGE,JSON.stringify(state));invalidatePlans();queueMicrotask(()=>window.syncWidgetSnapshot?.())}
 function taskId(x){return x.key||x.id||((x.source||"task")+"|"+x.room+"|"+x.text)}
 function doneKey(x){return "done|"+taskId(x)}
 function lastKey(x){return "last|"+taskId(x)}
@@ -695,6 +695,7 @@ function toggleTask(x){
   syncCompletedDay(today);
   const nowComplete=plannedToday().length>0 && plannedToday().every(isDone);
   save();render();
+window.syncWidgetSnapshot?.();
   if(!wasComplete && nowComplete) celebrateCompletedDay();
 }
 
@@ -1160,7 +1161,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v304|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v307|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function planningNextDue(x,ref=today){
  // The first-due onboarding date is a catalog deadline, not permission to
@@ -1638,87 +1639,16 @@ function calendarTasksForDate(d){
 function isDailyTask(x){return !!x&&(x.source==="daily"||String(x.key||"").startsWith("daily|")||String(x.id||"").startsWith("daily|"))}
 function nextDueLabel(x){return isDailyTask(x)?"täglich":nextDue(x).toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"})}
 function plannedDateForTask(x){
- const plan=buildIntelligentPlan(),id=taskId(x),due=nextDue(x,today);
- const postponedUntil=postponedEntry(x)?.postponedUntil;
- if(postponedUntil && !isDailyTask(x)){
-   const pd=fromKey(postponedUntil);
-   if(pd>=today && !plannerBlocked(pd)){
-     const pa=plan.days.get(dayKey(pd))||[];
-     if(pa.some(y=>taskId(y)===id) || !strictDayViolation(pa,x)){
-       if(!pa.some(y=>taskId(y)===id)){ pa.push(x); pa._weight=(pa._weight||0)+taskWeight(x); }
-       plan.next.set(id,pd);
-       return pd;
-     }
-   }
- }
- const preserved=normalizeDateKey(state.plannedOverrides?.[id]);
- if(preserved){const pd=fromKey(preserved);if(pd>=today&&!plannerBlocked(pd)&&Math.abs(Math.round((pd-due)/86400000))<=30){const pa=plan.days.get(dayKey(pd))||[];if(!strictDayViolation(pa,x))return pd;}}
- // The catalog must describe the exact same visible plan as Today. In particular,
- // after "Später" has been used, a task that is excluded by today's lock is NOT
- // allowed to keep showing "Geplant: heute" in the catalog.
- const lockKey=dayKey(today);
- const locked=Array.isArray(state.todayPlanLock?.[lockKey])?new Set(state.todayPlanLock[lockKey]):null;
- const allowedToday=!locked || locked.has(id) || x.source==="daily" || x.source==="extra";
+ // V307: READ-ONLY canonical plan lookup.
+ // Rendering the catalog must never modify plannerCache. Earlier fallback logic
+ // could push tasks into plannerCache.days / plannerCache.next while the catalog
+ // was being rendered. That made the visible plan depend on which tab had been
+ // opened and could make an overdue task suddenly appear as planned for today.
+ const plan=buildIntelligentPlan();
+ const id=taskId(x);
  const d=plan.next.get(id);
- if(d instanceof Date && d>=today){
-   const dk=dayKey(d);
-   if(dk!==lockKey || allowedToday){
-     if(Math.abs(Math.round((d-due)/86400000))<=30)return d;
-   }
- }
- // Search the actual planner days, not a separately calculated fallback.
- for(const [k,arr] of plan.days){
-   if(!arr.some(y=>taskId(y)===id))continue;
-   if(k===lockKey && !allowedToday)continue;
-   const dd=fromKey(k);
-   if(dd>=today && Math.abs(Math.round((dd-due)/86400000))<=30)return dd;
- }
- // Absolute display invariant: an active task may NEVER be shown without a
- // concrete plan. If an older/overloaded planner state somehow failed to expose
- // a date, allocate one directly into the same planner cache. This is a final
- // safety net, not a second planning system: Today, calendar and catalog all
- // read the same mutated plan object afterwards.
- if(!isDailyTask(x)){
-   let fallbackDue=due instanceof Date && !Number.isNaN(due.getTime())?due:new Date(today);
-   let best=null;
-   for(let delta=0;delta<=30;delta++){
-     for(const sign of delta===0?[1]:[1,-1]){
-       const d=addDays(fallbackDue,delta*sign),k=dayKey(d);
-       if(d<today||!plan.days.has(k)||Math.abs(Math.round((d-fallbackDue)/86400000))>30)continue;
-       if(plannerBlocked(d))continue;
-       if(k===lockKey&&locked&&!locked.has(id))continue;
-       const arr=plan.days.get(k);
-       if(arr.some(y=>taskId(y)===id))continue;
-       if(strictDayViolation(arr,x))continue;
-       const used=arr._weight||0, sameTheme=arr.some(y=>taskCategory(y)===taskCategory(x));
-       const score=used*10+(sameTheme?0:20)+roomSpreadPenalty(arr,x)+Math.abs(delta);
-       if(!best||score<best.score)best={k,d,score};
-     }
-   }
-   if(best){
-     const arr=plan.days.get(best.k);
-     arr.push(x);
-     arr._weight=(arr._weight||0)+taskWeight(x);
-     plan.next.set(id,best.d);
-     return best.d;
-   }
-   // Absolute invariant: an active catalog task must always have a planned date.
-   // If the +/-30-day window is completely occupied by incompatible room/window
-   // packages, use the nearest legal day in the already-created planner horizon.
-   // This fallback may relax only the +/-30-day deviation; it NEVER relaxes the
-   // two-room rule, window isolation, or fixed-exact dates.
-   for(const [k,arr] of plan.days){
-     const d=fromKey(k);
-     if(d<today || plannerBlocked(d))continue;
-     if(strictDayViolation(arr,x))continue;
-     if(arr.some(y=>taskId(y)===id))return d;
-     arr.push(x);
-     arr._weight=(arr._weight||0)+taskWeight(x);
-     plan.next.set(id,d);
-     return d;
-   }
- }
- return null;
+ if(!(d instanceof Date) || Number.isNaN(d.getTime()) || d<today)return null;
+ return d;
 }
 function plannedDateLabel(x){
  const d=plannedDateForTask(x);
@@ -2911,3 +2841,41 @@ function render(){syncCurrentDay();document.querySelectorAll(".tab").forEach(b=>
 setInterval(()=>{const before=dayKey(today);syncCurrentDay();if(before!==dayKey(today))render()},60000);
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{selectedTab=b.dataset.tab;state.completedOpen=false;state.postponedOpen=false;render()});document.getElementById("closeDetail").onclick=()=>document.getElementById("detailOverlay").classList.remove("open");document.getElementById("detailOverlay").onclick=e=>{if(e.target.id==="detailOverlay")e.currentTarget.classList.remove("open")};
 render();
+
+
+/* Optional native iOS Widget bridge. No-op in normal Safari/PWA mode. */
+(function(){
+  function nativeCall(name,payload){
+    try{
+      const h=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers[name];
+      if(h) h.postMessage(payload);
+    }catch(e){}
+  }
+  window.syncWidgetSnapshot=function(){
+    try{
+      if(!window.webkit?.messageHandlers?.widgetBridge || typeof plannedToday!=='function') return;
+      const d=today||new Date();
+      const tasks=(plannedToday()||[]).map(x=>({
+        id:String(taskId(x)), text:String(displayTaskName(x)||x.text||''), room:String(x.room||''),
+        interval:String(intervalLabel(x)||''), effort:Number(taskWeight(x)||1),
+        done:!!isDone(x), daily:!!isDailyTask(x)
+      }));
+      nativeCall('widgetBridge',{type:'todaySnapshot',date:dayKey(d),tasks:tasks.filter(x=>!x.done)});
+    }catch(e){}
+  };
+  window.__applyWidgetActions=function(actions){
+    try{
+      for(const a of (actions||[])){
+        if(!a||!a.id) continue;
+        const x=CATALOG.find(t=>String(taskId(t))===String(a.id));
+        if(!x) continue;
+        if(a.action==='done' && !isDone(x)) markDone(x);
+        if(a.action==='undone' && isDone(x)) unmarkDone(x);
+      }
+      if(actions?.length){ save(); render(); }
+      window.syncWidgetSnapshot?.();
+    }catch(e){console.warn('Widget action failed',e)}
+  };
+  nativeCall('widgetBridgeReady',{type:'ready'});
+})();
+
