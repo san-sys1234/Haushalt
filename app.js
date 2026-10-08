@@ -1933,17 +1933,33 @@ function tasksFromIds(ids){
  return out;
 }
 function ensureTodayPlanSnapshotIds(){
- if(hasTodayPlanSnapshot())return state.todayPlanSnapshot[dayKey(today)];
- // IMPORTANT: create the snapshot exactly once for the current calendar day.
- // Opening another tab must never cause the current-day plan to be recalculated.
+ const k=dayKey(today);
+ // The snapshot is only the fast display cache. Once per app session/day we
+ // reconcile it against the canonical planner so EVERY task whose authoritative
+ // planned date is today is guaranteed to appear in Heute. This fixes older
+ // partial snapshots without bringing the expensive catalog scan back into
+ // every render.
+ const marker=`${k}|v325`;
+ if(hasTodayPlanSnapshot() && state.__todayPlanReconciled===marker) return state.todayPlanSnapshot[k];
  const plan=buildIntelligentPlan();
- const ids=[];
- for(const [k,arr] of plan.days){
-   if(k!==dayKey(today))continue;
-   for(const x of arr||[]){if(!isDailyTask(x)&&!isDone(x))ids.push(taskId(x))}
+ const ids=new Set(hasTodayPlanSnapshot()?state.todayPlanSnapshot[k]:[]);
+ const todayBucket=plan.days.get(k)||[];
+ for(const x of todayBucket){
+   if(!isDailyTask(x)&&!isDone(x)&&!isPostponed(x))ids.add(taskId(x));
  }
- persistTodayPlanSnapshot(ids);
- return state.todayPlanSnapshot[dayKey(today)];
+ // Also trust the planner's final next-map. This is the authoritative source
+ // for planned dates and catches tasks that are present in next but were lost
+ // from a legacy/partial day bucket.
+ for(const x of CATALOG){
+   if(isDailyTask(x)||isDone(x)||isPostponed(x))continue;
+   const pd=plan.next.get(taskId(x));
+   if(pd instanceof Date && !Number.isNaN(pd.getTime()) && dayKey(pd)===k)ids.add(taskId(x));
+ }
+ const arr=[...ids];
+ persistTodayPlanSnapshot(arr);
+ state.__todayPlanReconciled=marker;
+ try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
+ return arr;
 }
 function plannedForDate(d){
  const k=dayKey(d);
@@ -2138,29 +2154,20 @@ function plannedToday(){
  if(d.getDay()===0)return [];
  if(state.chaos)return dailyTasks().filter(x=>/Geschirrspüler|Küchenarbeitsfläche|Esstisch|Hochstuhl|Heruntergefallenes|Müll/.test(x.text));
  const out=dailyTasks();
- const plan=plannedForDate(d);
- // Once "Später" is used today, the non-daily plan for today is a fixed set.
- // Never let the planner refill a freed slot with another task. The planner
- // already respects this lock when calculating dates; this second guard keeps
- // the Today view stable even if an older cached/legacy plan contains extras.
- const lockKey=dayKey(d);
- const locked=Array.isArray(state.todayPlanLock?.[lockKey]) ? new Set(state.todayPlanLock[lockKey]) : null;
- for(const x of plan){
-   if(locked && x.source!=="daily" && x.source!=="extra" && !locked.has(taskId(x))) continue;
-   out.push({...x,group:groupFor(x)});
- }
- // V324: the frozen Today snapshot is canonical for the current day. Do not
- // run a full plannedDateForTask() scan over the catalog on every render;
- // that scan was a major source of iPhone lag.
+ // ensureTodayPlanSnapshotIds() reconciles the fast cache ONCE per day/session
+ // with the canonical planner. Afterwards this path is just an indexed lookup.
+ const ids=ensureTodayPlanSnapshotIds();
+ const planTasks=tasksFromIds(ids);
+ for(const x of planTasks)out.push({...x,group:groupFor(x)});
  for(const e of state.todayExtras.filter(e=>e.date===dayKey(d)))out.push({...e,key:e.id,source:"extra",group:"Heute zusätzlich"});
  const seen=new Set();return out.filter(x=>{
    const id=taskId(x);
    if(seen.has(id))return false;
    seen.add(id);
    const p=postponedEntry(x);
-   // A pulled-forward catalog task is an explicit TODAY action. An older
-   // postponement must never hide it. For normal planned tasks, a postponement
-   // remains authoritative until its stored date.
+   // A task that has been postponed beyond today is not a Today task, even if
+   // an old snapshot still contains it. Everything else with planned date today
+   // remains visible.
    if(x.source!=="extra" && p&&p.postponedUntil&&p.postponedUntil>dayKey(d))return false;
    return true;
  })
