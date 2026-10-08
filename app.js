@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V321";
+const APP_BUILD="V327";
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1939,7 +1939,7 @@ function ensureTodayPlanSnapshotIds(){
  // planned date is today is guaranteed to appear in Heute. This fixes older
  // partial snapshots without bringing the expensive catalog scan back into
  // every render.
- const marker=`${k}|v325`;
+ const marker=`${k}|v327`;
  if(hasTodayPlanSnapshot() && state.__todayPlanReconciled===marker) return state.todayPlanSnapshot[k];
  const plan=buildIntelligentPlan();
  const ids=new Set(hasTodayPlanSnapshot()?state.todayPlanSnapshot[k]:[]);
@@ -2051,23 +2051,21 @@ function plannedDateForTask(x){
  }
  const plan=buildIntelligentPlan();
  let d=plan.next.get(id);
- // If the dynamic planner still proposes TODAY for a task that is not part of
- // today's frozen set, never expose that task as today's planned date. Find its
- // next actual placement after today instead.
+ // TODAY is frozen for the entire day. If a task is not in the persisted
+ // snapshot, opening Calendar/catalog must NEVER add it to Today merely because
+ // the dynamic planner now finds a free slot. The snapshot is authoritative
+ // until the day changes.
  if(d instanceof Date && !Number.isNaN(d.getTime()) && dayKey(d)===todayKey){
-   // The canonical planner says TODAY. Never turn that into "—" merely
-   // because an old snapshot omitted the task. Repair the snapshot instead.
-   if(today.getDay()!==0 && !isDone(x)){
-     state.todayPlanSnapshot=state.todayPlanSnapshot||{};
-     const arr=Array.isArray(state.todayPlanSnapshot[todayKey])?state.todayPlanSnapshot[todayKey]:[];
-     if(!arr.includes(id)) arr.push(id);
-     state.todayPlanSnapshot[todayKey]=[...new Set(arr.map(String))];
-     return new Date(today);
-   }
-   d=null;
-   for(const [k,arr] of plan.days){
-     if(k<=todayKey)continue;
-     if((arr||[]).some(y=>taskId(y)===id)){d=fromKey(k);break}
+   if(today.getDay()!==0 && hasTodayPlanSnapshot()){
+     const snap=todaySnapshotIds();
+     if(snap.has(id) && !isDone(x))return new Date(today);
+     d=null;
+     for(const [k,arr] of plan.days){
+       if(k<=todayKey)continue;
+       if((arr||[]).some(y=>taskId(y)===id)){d=fromKey(k);break}
+     }
+   } else {
+     d=null;
    }
  }
  if(!(d instanceof Date) || Number.isNaN(d.getTime()) || d<today)return null;
