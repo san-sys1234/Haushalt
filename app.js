@@ -426,10 +426,10 @@ let state=loadState();
 (function migrateV312Planner(){
   try{
     const marker=Number(state.__plannerSchema||0);
-    if(marker<312){
+    if(marker<324){
       const k=dayKey(today);
       if(state.todayPlanSnapshot&&Object.prototype.hasOwnProperty.call(state.todayPlanSnapshot,k))delete state.todayPlanSnapshot[k];
-      state.__plannerSchema=312;
+      state.__plannerSchema=324;
       localStorage.setItem(STORAGE,JSON.stringify(state));
     }
   }catch{}
@@ -487,6 +487,11 @@ function schedulePlannerRefresh(delay=1800){
   },delay);
 }
 function save(opts={}){
+  // UI-only state must never invalidate the expensive household planner.
+  if(opts.uiOnly){
+    try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
+    return;
+  }
   state.__planRevision=(state.__planRevision||0)+1;
   if(opts.fast){
     if(fastPersistTimer)clearTimeout(fastPersistTimer);
@@ -738,7 +743,7 @@ function persistStateFast(){
   // Swipe fast path: persistence is deliberately deferred. Never stringify the
   // complete application state while the user is interacting with a card.
   fastSwipeBusyUntil=Date.now()+2600;
-  save({fast:true,refresh:false});
+  save({uiOnly:true});
 }
 function fastRemoveTodayRow(rowEl){
   if(!rowEl)return;
@@ -2144,18 +2149,9 @@ function plannedToday(){
    if(locked && x.source!=="daily" && x.source!=="extra" && !locked.has(taskId(x))) continue;
    out.push({...x,group:groupFor(x)});
  }
- // Final display invariant: every non-daily catalog task whose authoritative
- // planned date is today must be present in Today. This is intentionally a
- // second guard against any stale/legacy planner entry becoming visible only
- // in the catalog. The today lock remains authoritative and can still exclude
- // tasks that were not part of the frozen plan.
- const visibleIds=new Set(out.map(taskId));
- for(const x of CATALOG){
-   if(x.area==="Alltag"||isDone(x)||isPostponed(x)||visibleIds.has(taskId(x)))continue;
-   if(locked && !locked.has(taskId(x)))continue;
-   const pd=plannedDateForTask(x);
-   if(pd && sameDay(pd,d)){out.push({...x,group:groupFor(x)});visibleIds.add(taskId(x));}
- }
+ // V324: the frozen Today snapshot is canonical for the current day. Do not
+ // run a full plannedDateForTask() scan over the catalog on every render;
+ // that scan was a major source of iPhone lag.
  for(const e of state.todayExtras.filter(e=>e.date===dayKey(d)))out.push({...e,key:e.id,source:"extra",group:"Heute zusätzlich"});
  const seen=new Set();return out.filter(x=>{
    const id=taskId(x);
