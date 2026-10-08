@@ -2809,7 +2809,11 @@ function renderRoomFocus(main, tasks){
   select.onchange=()=>{
     state.roomFocus=state.roomFocus||{};
     state.roomFocus[day]=select.value||"";
-    save();
+    // UI-only state: selecting/folding the optional room-focus view must NEVER
+    // invalidate or rebuild the household planner. The previous save() call
+    // cleared plannerCache, which could make the current Today plan disappear
+    // when the room view was opened and then hidden.
+    save({fast:true,refresh:false});
     renderSelected();
   };
   if(selected)renderSelected();
@@ -2909,7 +2913,7 @@ function renderToday(){
     ? (state.todayExtras||[]).filter(e=>e.date===dayKey(today)).map(e=>({...e,key:e.id,source:"extra",group:"Heute zusätzlich"}))
     : plannedToday();
   const done=tasks.filter(x=>isDone(x)).length;
-  main.innerHTML=`<div class="card hero"><div class="topline"><div><b>${esc(dateLabel())}</b><div class="small">${esc(themeFor(today))}</div></div><span class="badge">${freeToday?" Haushaltsfrei":(state.chaos?"Heute leicht":(sunday?"Haushaltsfrei":"Normal"))}</span></div><div class="progress"><i style="width:${tasks.length?Math.round(done/tasks.length*100):0}%"></i></div><div class="small">${done} von ${tasks.length} Aufgaben erledigt</div><div class="actions"><button class="btn" id="energy"> Ich habe Energie</button><button class="btn" id="chaos"> Heute leicht</button><button class="btn" id="free"> Ausflug / Urlaub</button></div></div>`;
+  main.innerHTML=`<div class="card hero"><div class="topline"><div><b>${esc(dateLabel())}</b><div class="small">${esc(themeFor(today))}</div></div><span class="badge">${freeToday?" Haushaltsfrei":(state.chaos?"Heute leicht":(sunday?"Haushaltsfrei":"Normal"))}</span></div><div class="progress"><i style="width:${tasks.length?Math.round(done/tasks.length*100):0}%"></i></div><div class="small">${done} von ${tasks.length} Aufgaben erledigt</div><div class="actions"><button class="btn" id="energy"> Ich habe Energie</button><button class="btn" id="chaos"> ${state.chaos?"Heute leicht · aus":"Heute leicht"}</button><button class="btn" id="free"> Ausflug / Urlaub</button></div></div>`;
   if(freeToday){const note=document.createElement("div");note.className="card";note.innerHTML=`<div class="celebrate"> Heute bleibt der Haushalt liegen.</div><div class="small">${esc(state.householdFreeDays?.[dayKey(today)]||"Ausflug / Urlaub")} · Deine gespeicherten Erledigungen und Fälligkeiten bleiben erhalten.</div>`;main.appendChild(note);} else if(sunday){
     const note=document.createElement("div");note.className="card sundayCard";note.innerHTML=`<div class="sundayQuiet"><span>Sonntag</span><b>haushaltsfrei</b></div><div class="small">Heute gibt es keinen festen Haushaltsplan. Dein Zuhause darf einfach Pause machen.</div>`;main.appendChild(note);
   }
@@ -2992,7 +2996,16 @@ function renderToday(){
   // Its stored planned date is never changed by the midnight reset.
   main.querySelector("#energy").onclick=showEnergy;
   main.querySelector("#free").onclick=openHouseholdFreeDialog;
-  main.querySelector("#chaos").onclick=()=>{state.chaos=!state.chaos;save({invalidate:false});render()};
+  main.querySelector("#chaos").onclick=()=>{
+    if(!state.chaos){
+      if(!confirm("Heute leicht aktivieren? Die regulär geplanten Aufgaben werden nur vorübergehend ausgeblendet und sind danach wieder da."))return;
+      state.chaos=true;
+    }else{
+      state.chaos=false;
+    }
+    save({invalidate:false});
+    render();
+  };
 }
 function showEnergy(){
   const main=document.getElementById("main");
