@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V327";
+const APP_BUILD="V328";
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1934,22 +1934,20 @@ function tasksFromIds(ids){
 }
 function ensureTodayPlanSnapshotIds(){
  const k=dayKey(today);
- // The snapshot is only the fast display cache. Once per app session/day we
- // reconcile it against the canonical planner so EVERY task whose authoritative
- // planned date is today is guaranteed to appear in Heute. This fixes older
- // partial snapshots without bringing the expensive catalog scan back into
- // every render.
- const marker=`${k}|v327`;
- if(hasTodayPlanSnapshot() && state.__todayPlanReconciled===marker) return state.todayPlanSnapshot[k];
+ // HARD TODAY LOCK: once today's task set exists, it is immutable for the
+ // entire day. Completing/postponing tasks may only remove/hide them. Opening
+ // Calendar, Catalog, Room Focus or any other view must NEVER cause the
+ // planner to refill a freed slot with another task/room.
+ if(hasTodayPlanSnapshot()) return state.todayPlanSnapshot[k];
+ // Only the very first creation of today's snapshot consults the planner.
+ // Afterwards the persisted snapshot is the sole source of truth until the
+ // calendar day changes.
  const plan=buildIntelligentPlan();
- const ids=new Set(hasTodayPlanSnapshot()?state.todayPlanSnapshot[k]:[]);
+ const ids=new Set();
  const todayBucket=plan.days.get(k)||[];
  for(const x of todayBucket){
    if(!isDailyTask(x)&&!isDone(x)&&!isPostponed(x))ids.add(taskId(x));
  }
- // Also trust the planner's final next-map. This is the authoritative source
- // for planned dates and catches tasks that are present in next but were lost
- // from a legacy/partial day bucket.
  for(const x of CATALOG){
    if(isDailyTask(x)||isDone(x)||isPostponed(x))continue;
    const pd=plan.next.get(taskId(x));
@@ -1957,7 +1955,7 @@ function ensureTodayPlanSnapshotIds(){
  }
  const arr=[...ids];
  persistTodayPlanSnapshot(arr);
- state.__todayPlanReconciled=marker;
+ state.__todayPlanReconciled=`${k}|v328`;
  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
  return arr;
 }
