@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V329";
+const APP_BUILD="V330";
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1955,7 +1955,7 @@ function ensureTodayPlanSnapshotIds(){
  }
  const arr=[...ids];
  persistTodayPlanSnapshot(arr);
- state.__todayPlanReconciled=`${k}|v329`;
+ state.__todayPlanReconciled=`${k}|v330`;
  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
  return arr;
 }
@@ -2049,6 +2049,15 @@ function plannedDateForTask(x){
  }
  const plan=buildIntelligentPlan();
  let d=plan.next.get(id);
+ // Fixed-date tasks must always have an explicit planned date immediately,
+ // even when the planner cannot place them in its normal capacity pass.
+ // Their next valid due date is the deterministic fallback.
+ if((!(d instanceof Date)||Number.isNaN(d.getTime()))&&x.fixedExact){
+   let fallback=nextDue(x);
+   let guard=0;
+   while(fallback instanceof Date && (fallback.getDay()===0||isHouseholdFree(fallback)) && guard++<370){fallback=addDays(fallback,Math.max(1,catalogInterval(x)));}
+   if(fallback instanceof Date&&!Number.isNaN(fallback.getTime()))d=fallback;
+ }
  // TODAY is frozen for the entire day. If a task is not in the persisted
  // snapshot, opening Calendar/catalog must NEVER add it to Today merely because
  // the dynamic planner now finds a free slot. The snapshot is authoritative
