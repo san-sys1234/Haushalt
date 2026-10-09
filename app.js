@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V334"
+const APP_BUILD="V335"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1956,16 +1956,22 @@ function plannedForDate(d){
  const k=dayKey(d);
  if(k===dayKey(today)){
    // TODAY IS IMMUTABLE FOR THE DAY: all views read the same persisted set.
-   // Completion/postponement can hide an item, but merely opening a tab cannot
-   // replace it with another planner result.
+   // Completion/postponement can hide an item, but tab navigation cannot refill it.
    return tasksFromIds(ensureTodayPlanSnapshotIds());
  }
  const plan=buildIntelligentPlan();
  const arr=[];
  for(const x of CATALOG){
-   if(isDailyTask(x)||isDone(x))continue;
-   const pd=plan.next.get(taskId(x));
-   if(pd instanceof Date && !Number.isNaN(pd.getTime()) && dayKey(pd)===k)arr.push(x);
+   if(isDailyTask(x))continue;
+   // Completed today still has a future recurrence when the task is fixed-exact.
+   if(isDone(x)&&!x.fixedExact)continue;
+   let planned=null;
+   if(x.fixedExact){
+     const postponed=postponedEntry(x);
+     if(postponed?.postponedUntil && postponed.postponedUntil>=k)planned=fromKey(postponed.postponedUntil);
+     else planned=nextDue(x,d);
+   }else planned=plan.next.get(taskId(x));
+   if(planned instanceof Date&&!Number.isNaN(planned.getTime())&&dayKey(planned)===k&&!arr.some(y=>taskId(y)===taskId(x)))arr.push(x);
  }
  return arr;
 }
@@ -2009,25 +2015,24 @@ function populateCalendarYear(year){
     const count=new Date(year,m+1,0).getDate();
     for(let n=1;n<=count;n++)days.set(iso(new Date(year,m,n,12)),[]);
   }
-  // Build the canonical plan only once for the whole calendar year.
-  // The old implementation recalculated the full catalog for every single day,
-  // which could freeze the iPhone while opening the Calendar view.
+  // Fixed-exact recurrences must remain visible after today's completion.
   for(const x of CATALOG){
-    if(isDailyTask(x)||isDone(x))continue;
+    if(isDailyTask(x)||(isDone(x)&&!x.fixedExact))continue;
     const pd=plannedDateForTask(x);
-    if(pd && pd.getFullYear()===year){
+    if(pd&&pd.getFullYear()===year){
       const k=dayKey(pd),arr=days.get(k);
-      if(arr && !arr.some(y=>taskId(y)===taskId(x)))arr.push(x);
+      if(arr&&!arr.some(y=>taskId(y)===taskId(x)))arr.push(x);
     }
   }
-  for(const arr of days.values())arr.sort((a,b)=>taskWeight(b)-taskWeight(a)||roomLabel(a.room).localeCompare(roomLabel(b.room),'de')||a.text.localeCompare(b.text,'de'));
+  for(const arr of days.values())arr.sort((a,b)=>taskWeight(b)-taskWeight(a)||roomLabel(a.room).localeCompare(roomLabel(b),'de')||a.text.localeCompare(b.text,'de'));
   calendarCache={year,days};
 }
 function calendarTasksForDate(d){
   const year=d.getFullYear();
   populateCalendarYear(year);
   const k=iso(d),cached=calendarCache.days.get(k)||[];
-  return isHouseholdFree(d)?[]:cached;
+  // Household-free days hide flexible work, never explicitly fixed dates.
+  return isHouseholdFree(d)?cached.filter(x=>!!x.fixedExact):cached;
 }
 function isDailyTask(x){return !!x&&(x.source==="daily"||String(x.key||"").startsWith("daily|")||String(x.id||"").startsWith("daily|"))}
 function nextDueLabel(x){return isDailyTask(x)?"täglich":nextDue(x).toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"})}
@@ -2036,6 +2041,20 @@ function plannedDateForTask(x){
  // is therefore independent of tab navigation, catalog filters and cache resets.
  const id=taskId(x);
  const todayKey=dayKey(today);
+ // Fixed-exact tasks bypass flexible planner placement. After completion the
+ // next occurrence is exactly completion date + interval, and must show in Calendar.
+ if(x.fixedExact){
+   const postponed=postponedEntry(x);
+   let fixedDate=null;
+   if(postponed?.postponedUntil&&postponed.postponedUntil>=todayKey)fixedDate=fromKey(postponed.postponedUntil);
+   else fixedDate=nextDue(x,today);
+   if(!(fixedDate instanceof Date)||Number.isNaN(fixedDate.getTime()))return null;
+   if(dayKey(fixedDate)===todayKey){
+     if(isDone(x))return null;
+     if(hasTodayPlanSnapshot()&&!todaySnapshotIds().has(id))return null;
+   }
+   return fixedDate>=today?fixedDate:null;
+ }
  if(today.getDay()!==0 && hasTodayPlanSnapshot() && !isDone(x)){
    const snap=todaySnapshotIds();
    if(snap.has(id))return new Date(today);
