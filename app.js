@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V332"
+const APP_BUILD="V333"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1948,7 +1948,7 @@ function ensureTodayPlanSnapshotIds(){
  }
  const arr=[...ids];
  persistTodayPlanSnapshot(arr);
- state.__todayPlanReconciled=`${k}|v332`;
+ state.__todayPlanReconciled=`${k}|v333`;
  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
  return arr;
 }
@@ -2032,10 +2032,23 @@ function calendarTasksForDate(d){
 function isDailyTask(x){return !!x&&(x.source==="daily"||String(x.key||"").startsWith("daily|")||String(x.id||"").startsWith("daily|"))}
 function nextDueLabel(x){return isDailyTask(x)?"täglich":nextDue(x).toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"})}
 function plannedDateForTask(x){
- // V308: canonical date lookup. The current day's plan is persisted once and
- // is therefore independent of tab navigation, catalog filters and cache resets.
+ // V333: fixed-exact tasks use their exact due date as their planned date.
+ // They are not shifted by workload limits, Sundays, household-free days,
+ // the frozen Today snapshot, or planner capacity. A postponement is the sole
+ // exception for the currently planned occurrence: it appears tomorrow while
+ // its actual due date and recurrence anchor remain unchanged.
  const id=taskId(x);
  const todayKey=dayKey(today);
+ if(x.fixedExact){
+   const postponed=postponedEntry(x);
+   if(postponed?.postponedUntil){
+     const pd=fromKey(postponed.postponedUntil);
+     if(pd instanceof Date && !Number.isNaN(pd.getTime()))return pd;
+   }
+   const exactDue=nextDue(x);
+   if(exactDue instanceof Date && !Number.isNaN(exactDue.getTime()))return exactDue;
+ }
+
  if(today.getDay()!==0 && hasTodayPlanSnapshot() && !isDone(x)){
    const snap=todaySnapshotIds();
    if(snap.has(id))return new Date(today);
