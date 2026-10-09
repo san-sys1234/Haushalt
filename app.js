@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V330";
+const APP_BUILD="V332"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -651,13 +651,15 @@ function postponeTask(x){
  // Read the exact date currently shown by the planner before changing state.
  const currentPlan=plannerCache.key===plannerKey()?plannerCache.next.get(taskId(x)):buildIntelligentPlan().next.get(taskId(x));
  const currentBase=currentPlan instanceof Date && currentPlan>=today?currentPlan:due;
- // Move at least one day into the future, but never more than 30 days away from
- // the actual due date. This user choice becomes authoritative until completion.
+ // Exact-interval tasks return tomorrow, even on Sundays/free days.
+ // Other tasks retain the normal household-free-day rules.
  let planned=addDays(currentBase,1);
- for(let i=0;i<=30;i++){
-   const candidate=addDays(currentBase,1+i);
-   if(candidate>=today && Math.abs(Math.round((candidate-due)/86400000))<=30 &&
-      candidate.getDay()!==0 && !isHouseholdFree(candidate)){planned=candidate;break;}
+ if(!x.fixedExact){
+   for(let i=0;i<=30;i++){
+     const candidate=addDays(currentBase,1+i);
+     if(candidate>=today && Math.abs(Math.round((candidate-due)/86400000))<=30 &&
+        candidate.getDay()!==0 && !isHouseholdFree(candidate)){planned=candidate;break;}
+   }
  }
  const until=dayKey(planned);const id=taskId(x);
  // The user's explicit "Später" action removes only this task from today's
@@ -783,10 +785,14 @@ function fastTodayPostpone(x,rowEl){
   // tomorrow is a safe immediate fallback; the deferred planner will reconcile
   // it later without blocking the gesture.
   let planned=null;
-  const cached=plannerCache.next?.get(id);
-  if(cached instanceof Date && cached>=today)planned=addDays(cached,1);
-  if(!(planned instanceof Date))planned=addDays(today,1);
-  while(planned.getDay()===0 || isHouseholdFree(planned))planned=addDays(planned,1);
+  if(x.fixedExact){
+    planned=addDays(today,1);
+  }else{
+    const cached=plannerCache.next?.get(id);
+    if(cached instanceof Date && cached>=today)planned=addDays(cached,1);
+    if(!(planned instanceof Date))planned=addDays(today,1);
+    while(planned.getDay()===0 || isHouseholdFree(planned))planned=addDays(planned,1);
+  }
 
   state.done=state.done&&typeof state.done==='object'?state.done:{};
   delete state.done[doneKey(x)];
@@ -1618,25 +1624,12 @@ function buildIntelligentPlan(){
     const d=isFixedRhythmRoutine(x)?fixedRoutineDate(x,today):planningNextDue(x,today);
     if(!d)continue;
     if(x.fixedExact){
-      // A household task may never land on Sunday or a reserved household-free
-      // weekday. If a user-created exact date collides with such a day, keep
-      // the task protected and move it to the nearest available weekday.
-      // This household-free invariant is stronger than the old exact-date
-      // placement rule because a free Sunday must remain genuinely free.
-      const candidates=[];
-      for(let delta=0;delta<=30;delta++){
-        for(const sign of delta===0?[1]:[1,-1]){
-          const cd=addDays(d,delta*sign),ca=days.get(dayKey(cd));
-          if(!ca||cd<today||plannerBlocked(cd)||isRestDay(cd))continue;
-          if(fixedExactDates.has(dayKey(cd))&&dayKey(cd)!==dayKey(d))continue;
-          if(ca.some(y=>taskId(y)===taskId(x)))continue;
-          if(roomCountAfter(ca,x)>2&&!ca._fixedExact)continue;
-          candidates.push({cd,ca,delta:Math.abs(delta)});
-        }
+      // Fixed-exact tasks must stay on their exact due date, regardless of
+      // room limits or household-free-day settings.
+      const ca=days.get(dayKey(d));
+      if(ca&&!ca.some(y=>taskId(y)===taskId(x))){
+        ca.push(x);ca._weight=(ca._weight||0)+taskWeight(x);ca._fixedExact=true;
       }
-      candidates.sort((a,b)=>a.delta-b.delta||a.cd.getTime()-b.cd.getTime());
-      const c=candidates[0];
-      if(c){c.ca.push(x);c.ca._weight=(c.ca._weight||0)+taskWeight(x);c.ca._fixedExact=true;}
       continue;
     }
     place(x,d,{range:30,allowFixedRoutine:false});
@@ -1955,7 +1948,7 @@ function ensureTodayPlanSnapshotIds(){
  }
  const arr=[...ids];
  persistTodayPlanSnapshot(arr);
- state.__todayPlanReconciled=`${k}|v330`;
+ state.__todayPlanReconciled=`${k}|v332`;
  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
  return arr;
 }
@@ -1980,13 +1973,13 @@ function scheduledForDate(d){return plannedForDate(d)}
 function normalizeDateKey(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||""))?String(v):""}
 function nextDue(x,ref=today){
  if(x.fixedExact){
+   // First occurrence is the entered date verbatim. After completion,
+   // recurrence is measured from the actual completion date.
+   const last=lastDone(x);
+   const interval=Math.max(1,catalogInterval(x));
+   if(last)return addDays(fromKey(last),interval);
    const anchor=normalizeDateKey(x.start||state.manualDates?.[x.key]||state.catalogDates?.[x.key]);
-   if(anchor){
-     const interval=Math.max(1,catalogInterval(x));
-     let d=fromKey(anchor);
-     while(d<ref)d=addDays(d,interval);
-     return d;
-   }
+   if(anchor)return fromKey(anchor);
  }
  // The lifecycle has a strict order:
  // 1) after completion, the next due date is completion + this task's interval;
@@ -2049,13 +2042,17 @@ function plannedDateForTask(x){
  }
  const plan=buildIntelligentPlan();
  let d=plan.next.get(id);
- // Fixed-date tasks must always have an explicit planned date immediately,
- // even when the planner cannot place them in its normal capacity pass.
- // Their next valid due date is the deterministic fallback.
- if((!(d instanceof Date)||Number.isNaN(d.getTime()))&&x.fixedExact){
+ // V331: A newly added/custom task must never display a dash in "Geplant".
+ // If the planner cannot place it because the normal daily capacity is full,
+ // assign its next due date (or the next valid household day) immediately.
+ // This fallback does not add anything to today's frozen snapshot.
+ if((!(d instanceof Date)||Number.isNaN(d.getTime()))&&(x.fixedExact||x.source==="custom")){
    let fallback=nextDue(x);
+   if(!(fallback instanceof Date)||Number.isNaN(fallback.getTime()))fallback=fromKey(normalizeDateKey(x.start)||todayKey);
    let guard=0;
-   while(fallback instanceof Date && (fallback.getDay()===0||isHouseholdFree(fallback)) && guard++<370){fallback=addDays(fallback,Math.max(1,catalogInterval(x)));}
+   while(fallback instanceof Date && (fallback<today||fallback.getDay()===0||isHouseholdFree(fallback)||(dayKey(fallback)===todayKey&&hasTodayPlanSnapshot()&&!todaySnapshotIds().has(id))) && guard++<740){
+     fallback=addDays(fallback,1);
+   }
    if(fallback instanceof Date&&!Number.isNaN(fallback.getTime()))d=fallback;
  }
  // TODAY is frozen for the entire day. If a task is not in the persisted
