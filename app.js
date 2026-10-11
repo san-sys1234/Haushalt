@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V337"
+const APP_BUILD="V338"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1269,7 +1269,7 @@ function workUnitKey(x){
  if(isWindowRelated(x))return `window|${windowRoom(x)}`;
  const parts=taskRoomParts(x);
  const pkg=workPackage(x)?.key||roomPackageKey(x);
- return `${pkg}|${parts.join("+")}`;
+ return `room|${parts.join("+")}`;
 }
 function plannedWorkUnits(arr){
  const units=new Set();
@@ -1293,7 +1293,7 @@ function packageTaskLimit(arr,x){
  const same=(arr||[]).filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&((workPackage(y)?.key||roomPackageKey(y))===pkg));
  const weight=same.reduce((n,y)=>n+taskWeight(y),0);
  const minis=same.filter(y=>taskWeight(y)<=2).length;
- return minis>=3 && taskWeight(x)<=2 ? 5 : 4;
+ return minis>=3 && taskWeight(x)<=2 ? 6 : 5;
 }
 function packageLoad(arr,x){
  const pkg=workPackage(x)?.key||roomPackageKey(x);
@@ -1304,13 +1304,13 @@ function dayBudget(d){
  // V309: roughly 90–120 minutes on a normal baby-day. V308 used only 1–3
  // effort points, which scattered the catalog across far too many days.
  if(d.getDay()===6)return 5;
- if(d.getDay()===2)return 8;
- return 7;
+ if(d.getDay()===2)return 9;
+ return 8;
 }
 function dayTaskLimit(d){
  if(d.getDay()===0)return 0;
  // Keep lists compact without artificially splitting compatible package work.
- return d.getDay()===2 ? 12 : 8;
+ return d.getDay()===2 ? 12 : 10;
 }
 function canAddByTaskCount(d,arr,x,allowFixedRoutine=false){
  const limit=dayTaskLimit(d);
@@ -1371,7 +1371,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v320|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v338|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1543,9 +1543,9 @@ function buildIntelligentPlan(){
         // from becoming a giant list while still allowing useful combinations.
         if(existing.has(pkg)){
           const miniCount=sameRoom.filter(y=>taskWeight(y)<=2).length;
-          const maxTasks=miniCount>=3 && weight<=2 ? 5 : 4;
-          if(roomWeight+weight>7 || sameRoom.length>=maxTasks)return false;
-        }else if(isHeavyTask(x) || roomWeight+weight>7){
+          const maxTasks=miniCount>=3 && weight<=2 ? 6 : 5;
+          if(roomWeight+weight>8 || sameRoom.length>=maxTasks)return false;
+        }else if(isHeavyTask(x) || roomWeight+weight>8){
           return false;
         }
       }
