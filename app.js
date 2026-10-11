@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V336"
+const APP_BUILD="V337"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1881,6 +1881,52 @@ function buildIntelligentPlan(){
     const after=missingBefore();
     if(after.length===missing.length)break;
     missing=after;
+  }
+
+  // V337 HARD DATE WINDOW: earlier bootstrap/onboarding passes used a longer
+  // horizon and could place flexible tasks months after their due date. Enforce
+  // the agreed +/-30-day window AFTER every placement pass, before `next` is
+  // built. Fixed-exact tasks are intentionally exempt and keep their exact date.
+  const misplaced=[];
+  for(const x of CATALOG){
+    if(isDailyTask(x)||x.fixedExact)continue;
+    const due=planningNextDue(x,today);
+    if(!(due instanceof Date)||Number.isNaN(due.getTime()))continue;
+    const currentKey=[...days.keys()].find(k=>(days.get(k)||[]).some(y=>taskId(y)===taskId(x)));
+    if(!currentKey)continue;
+    const currentDate=fromKey(currentKey);
+    const minDate=due<today?new Date(today):addDays(due,-30);
+    const maxDate=addDays(due,30);
+    if(currentDate<minDate||currentDate>maxDate){
+      const arr=days.get(currentKey),idx=arr.findIndex(y=>taskId(y)===taskId(x));
+      if(idx>=0){arr.splice(idx,1);arr._weight=Math.max(0,(arr._weight||0)-taskWeight(x));}
+      misplaced.push({x,due,minDate,maxDate});
+    }
+  }
+  for(const item of misplaced){
+    const {x,due,minDate,maxDate}=item;
+    let best=null;
+    for(let d=new Date(minDate);d<=maxDate;d=addDays(d,1)){
+      if(d<today||plannerBlocked(d))continue;
+      const arr=days.get(dayKey(d));if(!arr)continue;
+      if(arr.some(y=>taskId(y)===taskId(x)))continue;
+      // Preserve only the hard invariants here. Capacity/package heuristics are
+      // deliberately relaxed so a task can never drift hundreds of days.
+      if(violatesTwoRoomRule(arr,x)||violatesWindowIsolation(arr,x))continue;
+      const rooms=plannedRoomSet(arr),sameRoom=taskRoomParts(x).some(r=>rooms.has(r));
+      const score=(sameRoom?0:20)+(arr.length*3)+(arr._weight||0)+Math.abs((d-due)/86400000)*0.1;
+      if(!best||score<best.score)best={d,arr,score};
+    }
+    if(best){best.arr.push(x);best.arr._weight=(best.arr._weight||0)+taskWeight(x);}
+    else {
+      // Last-resort legal slot: create a light day inside the allowed window.
+      for(let d=new Date(minDate);d<=maxDate;d=addDays(d,1)){
+        if(d<today||plannerBlocked(d))continue;
+        const arr=days.get(dayKey(d));if(!arr)continue;
+        if(violatesTwoRoomRule(arr,x)||violatesWindowIsolation(arr,x))continue;
+        arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);break;
+      }
+    }
   }
 
   // Rebuild next from the FINAL day buckets. This is essential: a moved task
