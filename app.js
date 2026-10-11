@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V335"
+const APP_BUILD="V336"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1848,10 +1848,12 @@ function buildIntelligentPlan(){
         if(!best||sc<best.score)best={d,arr,score:sc};
       }
     }
-    // Then scan the complete first-completion horizon only when the local
-    // window has no legal slot.
+    // V336: hard maximum for flexible tasks. The first-completion onboarding
+    // horizon is not permission to postpone work for months. Fixed-exact tasks
+    // are handled separately and keep their exact dates. If the preferred day
+    // is full, search only through due + 30 calendar days.
     if(!best){
-      const limit=maxFirst||addDays(preferred,30);
+      const limit=addDays(preferred,30);
       for(const [k,arr] of days){
         const d=fromKey(k);
         if(d<today||d>limit)continue;
@@ -1893,7 +1895,7 @@ function buildIntelligentPlan(){
   // count in development, but active tasks are never converted into "—" by
   // this planner.
   const unresolved=CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)&&!next.has(taskId(x)));
-  if(unresolved.length) console.warn("Planner V313 unresolved tasks:",unresolved.map(taskId));
+  if(unresolved.length) console.warn("Planner V336 unresolved tasks:",unresolved.map(taskId));
   plannerCache={key,days,next};
   return plannerCache;
 }
