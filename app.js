@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V338"
+const APP_BUILD="V340"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1301,16 +1301,16 @@ function packageLoad(arr,x){
 }
 function dayBudget(d){
  if(d.getDay()===0)return 0;
- // V309: roughly 90–120 minutes on a normal baby-day. V308 used only 1–3
- // effort points, which scattered the catalog across far too many days.
- if(d.getDay()===6)return 5;
- if(d.getDay()===2)return 9;
- return 8;
+ // V340: light, sustainable workload. Keep Tuesday's established hygiene
+ // block, but lower the ordinary and Saturday budgets to preserve breathing room.
+ if(d.getDay()===6)return 4;
+ if(d.getDay()===2)return 8;
+ return 7;
 }
 function dayTaskLimit(d){
  if(d.getDay()===0)return 0;
  // Keep lists compact without artificially splitting compatible package work.
- return d.getDay()===2 ? 12 : 10;
+ return d.getDay()===2 ? 10 : 8;
 }
 function canAddByTaskCount(d,arr,x,allowFixedRoutine=false){
  const limit=dayTaskLimit(d);
@@ -1352,6 +1352,43 @@ function efficiencyWorkflow(x){
  if(/abwischen|reinigen|abstauben|entstauben|lichtschalter|türklink|türrahmen|handlauf|geländer|spiegel/.test(t))return roomWorkflow(x);
  return roomWorkflow(x);
 }
+function roomFrequencyTier(room){
+ // Balanced household rhythm: everyday spaces receive a modest preference,
+ // not an absolute override of due dates, workload, or fixed appointments.
+ const high=["Küche","Essbereich","Garderobe","Eingangsbereich","Bad","Gäste-WC","Eltern-WC","Kinderbad","Wohnzimmer"];
+ const medium=["Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2","Flur","Flur OG","Flur KG","Speis","Waschküche"];
+ if(high.includes(String(room||"")))return 2;
+ if(medium.includes(String(room||"")))return 1;
+ return 0;
+}
+function roomAnchorWeekday(room){
+ // Soft weekly skeleton; the planner may deviate when a due date or light
+ // workload requires it. 0=Sunday ... 6=Saturday.
+ const anchors={
+  "Küche":[1,4],"Essbereich":[1,4],"Wohnzimmer":[3],
+  "Bad":[2,5],"Gäste-WC":[2,5],"Eltern-WC":[2,5],"Kinderbad":[2,5],
+  "Garderobe":[1,5],"Eingangsbereich":[1,5],"Flur":[5],"Flur OG":[5],"Flur KG":[5],
+  "Schlafzimmer":[4],"Kinderzimmer 1":[3],"Kinderzimmer 2":[3],
+  "Speis":[4],"Waschküche":[6],"Büro":[4],"Abstellraum":[6]
+ };
+ return anchors[String(room||"")]||[];
+}
+function roomRhythmPenalty(d,x){
+ const rooms=taskRoomParts(x);
+ if(!rooms.length||isFixedTask(x)||isWindowRelated(x))return 0;
+ let best=Infinity;
+ for(const room of rooms){
+  const anchors=roomAnchorWeekday(room);
+  if(!anchors.length)continue;
+  const distance=Math.min(...anchors.map(day=>Math.min((d.getDay()-day+7)%7,(day-d.getDay()+7)%7)));
+  const tier=roomFrequencyTier(room);
+  const penalty=(distance===0?-3:distance===1?0:distance===2?2:4)-(tier===2?1:tier===1?0:0);
+  best=Math.min(best,penalty);
+ }
+ // Soft priority: frequent rooms recur in a predictable rhythm, while less-used
+ // rooms remain flexible and cannot steal capacity from due/urgent tasks.
+ return Number.isFinite(best)?best:0;
+}
 function roomSpreadPenalty(arr,x){
  const rooms=new Set((arr||[]).map(y=>y.room).filter(Boolean));
  const sameRoom=rooms.has(x?.room);
@@ -1371,7 +1408,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v338|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v340|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1579,7 +1616,7 @@ function buildIntelligentPlan(){
     const sameUnit=plannedWorkUnits(arr).has(workUnitKey(x));
     const samePkg=arr.some(y=>(workPackage(y)?.key||roomPackageKey(y))===(workPackage(x)?.key||roomPackageKey(x)));
     const dist=Math.abs(Math.round((d-preferred)/86400000));
-    let s=dayBreathingScore(d,arr)+roomSpreadPenalty(arr,x)+adjacentLoadPenalty(days,d)+dist*0.7;
+    let s=dayBreathingScore(d,arr)+roomSpreadPenalty(arr,x)+roomRhythmPenalty(d,x)+adjacentLoadPenalty(days,d)+dist*0.7;
     if(sameRoom)s-=90;
     if(sameUnit)s-=180;
     if(samePkg)s-=40;
