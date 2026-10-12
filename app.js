@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V342"
+const APP_BUILD="V343"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -2171,7 +2171,7 @@ function plannedDateForTask(x){
  // If the planner cannot place it because the normal daily capacity is full,
  // assign its next due date (or the next valid household day) immediately.
  // This fallback does not add anything to today's frozen snapshot.
- if((!(d instanceof Date)||Number.isNaN(d.getTime()))&&(x.fixedExact||x.source==="custom")){
+ if((!(d instanceof Date)||Number.isNaN(d.getTime()))&&!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)){
    let fallback=nextDue(x);
    if(!(fallback instanceof Date)||Number.isNaN(fallback.getTime()))fallback=fromKey(normalizeDateKey(x.start)||todayKey);
    let guard=0;
@@ -2197,7 +2197,25 @@ function plannedDateForTask(x){
      d=null;
    }
  }
- if(!(d instanceof Date) || Number.isNaN(d.getTime()) || d<today)return null;
+ if(!(d instanceof Date) || Number.isNaN(d.getTime()) || d<today){
+   // Last-resort invariant: an active task never remains without a planned date.
+   if(!isDailyTask(x) && !isDone(x) && !isPostponed(x) && !isInvalidLegacyTask(x)){
+     let fallback=nextDue(x,today);
+     if(!(fallback instanceof Date)||Number.isNaN(fallback.getTime()))fallback=fromKey(normalizeDateKey(x.start)||todayKey);
+     if(!(fallback instanceof Date)||Number.isNaN(fallback.getTime()))fallback=new Date(today);
+     fallback=new Date(fallback.getFullYear(),fallback.getMonth(),fallback.getDate());
+     let guard=0;
+     while(guard++<740 && (fallback<today || fallback.getDay()===0 || isHouseholdFree(fallback) ||
+       (dayKey(fallback)===todayKey && hasTodayPlanSnapshot() && !todaySnapshotIds().has(id)))) fallback=addDays(fallback,1);
+     if(fallback instanceof Date && !Number.isNaN(fallback.getTime()) && guard<741){
+       state.plannedOverrides=state.plannedOverrides||{};
+       const key=dayKey(fallback);
+       if(state.plannedOverrides[id]!==key){state.plannedOverrides[id]=key;save({uiOnly:true})}
+       return fallback;
+     }
+   }
+   return null;
+ }
  return d;
 }
 function plannedDateLabel(x){
