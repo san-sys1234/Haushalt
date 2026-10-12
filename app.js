@@ -960,7 +960,7 @@ const FIRST_DUE_WINDOW_DAYS=180;
 // Every active task that has never been completed gets a first-occurrence
 // planning deadline in the first half-year of the current onboarding period.
 // For this household plan the requested hard ceiling is 01.04.2027.
-const FIRST_COMPLETION_DEADLINE_KEY="2027-04-01";
+const FIRST_COMPLETION_DEADLINE_KEY="2027-10-12";
 function stableBootstrapHash(v){
  const str=String(v||"");let h=2166136261;
  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
@@ -1408,7 +1408,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v343|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v344-priority|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1486,6 +1486,18 @@ function violatesWindowIsolation(arr,x){
  return hasWin;
 }
 function strictDayViolation(arr,x){return violatesWindowIsolation(arr,x)||violatesTwoRoomRule(arr,x)}
+function planningPriority(x){
+ const text=String(x?.text||"").toLowerCase();
+ const rooms=taskRoomParts(x).map(r=>String(r).toLowerCase());
+ // Fundamental hygiene in frequently used rooms always outranks onboarding backlog.
+ if(rooms.some(r=>["küche","gäste-wc","kinderbad","bad","eltern-wc"].includes(r))){
+   if(/arbeitsfläche|arbeitsplatte|spüle|waschbecken|toilette|wc|dusche|badewanne|herd|hochstuhl|essplatz|küchenboden|boden/.test(text)) return 0;
+   return 1;
+ }
+ if(rooms.some(r=>["essbereich","wohnzimmer","garderobe","eingangsbereich","flur"].includes(r))) return 2;
+ if(isWindowRelated(x)||/fenster|raffstore|sonnenschutz/.test(text)) return 5;
+ return 3;
+}
 function buildIntelligentPlan(){
   // V278: canonical planner rebuilt around hard invariants.
   // The planner never creates a day first and "fixes" it later. Every placement
@@ -1716,7 +1728,9 @@ function buildIntelligentPlan(){
   // workload rules remain absolute. This is what makes the 1st household
   // pass finish by 31.03.2027 instead of drifting into autumn/winter.
   const bootstrap=CATALOG.filter(x=>!isDailyTask(x)&&!isFixedTask(x)&&!wcPackage(x)&&needsFirstCompletionPlanning(x))
-    .sort((a,b)=>taskWeight(b)-taskWeight(a)||String(a.room).localeCompare(String(b.room),'de')||String(a.text).localeCompare(String(b.text),'de'));
+    // First pass: reliable kitchen/bath hygiene, then other frequent rooms.
+    // Rare and heavy tasks must not crowd out the household basics.
+    .sort((a,b)=>planningPriority(a)-planningPriority(b)||planningNextDue(a,today)-planningNextDue(b,today)||taskWeight(b)-taskWeight(a)||String(a.room).localeCompare(String(b.room),'de')||String(a.text).localeCompare(String(b.text),'de'));
   for(const x of bootstrap){
     const preferred=planningNextDue(x,today);
     place(x,preferred,{range:Math.max(0,Math.ceil((firstCompletionDeadline(today)-preferred)/86400000))});
