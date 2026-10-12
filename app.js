@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V340"
+const APP_BUILD="V342"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1293,7 +1293,7 @@ function packageTaskLimit(arr,x){
  const same=(arr||[]).filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&((workPackage(y)?.key||roomPackageKey(y))===pkg));
  const weight=same.reduce((n,y)=>n+taskWeight(y),0);
  const minis=same.filter(y=>taskWeight(y)<=2).length;
- return minis>=3 && taskWeight(x)<=2 ? 6 : 5;
+ return minis>=2 && taskWeight(x)<=2 ? 4 : 3;
 }
 function packageLoad(arr,x){
  const pkg=workPackage(x)?.key||roomPackageKey(x);
@@ -1301,16 +1301,16 @@ function packageLoad(arr,x){
 }
 function dayBudget(d){
  if(d.getDay()===0)return 0;
- // V340: light, sustainable workload. Keep Tuesday's established hygiene
- // block, but lower the ordinary and Saturday budgets to preserve breathing room.
- if(d.getDay()===6)return 4;
- if(d.getDay()===2)return 8;
- return 7;
+ // V342: the count cap is 20; effort and package rules keep days manageable.
+ // Preserve a slightly larger capacity for the established Tuesday hygiene block.
+ if(d.getDay()===6)return 8;
+ if(d.getDay()===2)return 12;
+ return 10;
 }
 function dayTaskLimit(d){
  if(d.getDay()===0)return 0;
- // Keep lists compact without artificially splitting compatible package work.
- return d.getDay()===2 ? 10 : 8;
+ // Absolute upper limit: no more than 20 scheduled tasks on a non-Sunday.
+ return 20;
 }
 function canAddByTaskCount(d,arr,x,allowFixedRoutine=false){
  const limit=dayTaskLimit(d);
@@ -1580,9 +1580,9 @@ function buildIntelligentPlan(){
         // from becoming a giant list while still allowing useful combinations.
         if(existing.has(pkg)){
           const miniCount=sameRoom.filter(y=>taskWeight(y)<=2).length;
-          const maxTasks=miniCount>=3 && weight<=2 ? 6 : 5;
-          if(roomWeight+weight>8 || sameRoom.length>=maxTasks)return false;
-        }else if(isHeavyTask(x) || roomWeight+weight>8){
+          const maxTasks=miniCount>=2 && weight<=2 ? 4 : 3;
+          if(roomWeight+weight>5 || sameRoom.length>=maxTasks)return false;
+        }else if(isHeavyTask(x) || roomWeight+weight>5){
           return false;
         }
       }
@@ -1602,10 +1602,15 @@ function buildIntelligentPlan(){
     // Nothing else may be placed on a window day.
     if(arr.some(isWindowRelated))return false;
     if(arr._fixedRoutine&&!opts.allowFixedRoutine)return false;
-    if(xHeavy && arr.length)return false;
-    if(hasMighty)return false;
-    if(weight>=5 && hasLarge)return false;
-    if(hasLarge && weight>=3)return false;
+    // Riesenaufgaben: höchstens zwei am Tag, nur wenn sie zum selben Raum
+    // gehören und inhaltlich zusammenpassen; keine kleinen Zusatzaufgaben dazu.
+    const existingWork=arr.filter(y=>!isDailyTask(y)&&!isFixedTask(y));
+    if(xHeavy){
+      if(existingWork.length>=2 || existingWork.some(y=>!isHeavyTask(y)))return false;
+      if(existingWork.some(y=>!taskRoomParts(y).some(r=>taskRoomParts(x).includes(r))))return false;
+    }
+    if(hasMighty && !xHeavy)return false;
+    if(hasLarge && !xHeavy && weight>=3)return false;
     if(used+weight>dayBudget(d))return false;
     if(!opts.ignoreCount && arr.length>=dayTaskLimit(d))return false;
     return true;
@@ -1856,11 +1861,17 @@ function buildIntelligentPlan(){
   const containsTask=(arr,id)=>!!(arr&&arr.some(y=>taskId(y)===id));
   const hardLegal=(d,arr,x)=>{
     if(!d||d<today||plannerBlocked(d)||!arr)return false;
+    // Fallback placements obey the same absolute daily count ceiling.
+    if(arr.length>=dayTaskLimit(d))return false;
     const id=taskId(x);
     if(containsTask(arr,id))return false;
     if(needsFirstCompletionPlanning(x)&&d>firstCompletionDeadline(today))return false;
     if(violatesTwoRoomRule(arr,x))return false;
     if(violatesWindowIsolation(arr,x))return false;
+    const nonRoutine=arr.filter(y=>!isDailyTask(y)&&!isFixedTask(y));
+    if(isHeavyTask(x)){
+      if(nonRoutine.length>=2||nonRoutine.some(y=>!isHeavyTask(y)||!taskRoomParts(y).some(r=>taskRoomParts(x).includes(r))))return false;
+    }else if(nonRoutine.some(isHeavyTask))return false;
     if(!isFixedTask(x)&&!isWindowRelated(x)){
       const samePkg=packageLoad(arr,x);
       if(samePkg.length>=packageTaskLimit(arr,x))return false;
@@ -1949,7 +1960,12 @@ function buildIntelligentPlan(){
       if(arr.some(y=>taskId(y)===taskId(x)))continue;
       // Preserve only the hard invariants here. Capacity/package heuristics are
       // deliberately relaxed so a task can never drift hundreds of days.
+      if(arr.length>=dayTaskLimit(d))continue;
       if(violatesTwoRoomRule(arr,x)||violatesWindowIsolation(arr,x))continue;
+      const nonRoutine=arr.filter(y=>!isDailyTask(y)&&!isFixedTask(y));
+      if(isHeavyTask(x)){
+        if(nonRoutine.length>=2||nonRoutine.some(y=>!isHeavyTask(y)||!taskRoomParts(y).some(r=>taskRoomParts(x).includes(r))))continue;
+      }else if(nonRoutine.some(isHeavyTask))continue;
       const rooms=plannedRoomSet(arr),sameRoom=taskRoomParts(x).some(r=>rooms.has(r));
       const score=(sameRoom?0:20)+(arr.length*3)+(arr._weight||0)+Math.abs((d-due)/86400000)*0.1;
       if(!best||score<best.score)best={d,arr,score};
@@ -1960,7 +1976,12 @@ function buildIntelligentPlan(){
       for(let d=new Date(minDate);d<=maxDate;d=addDays(d,1)){
         if(d<today||plannerBlocked(d))continue;
         const arr=days.get(dayKey(d));if(!arr)continue;
+        if(arr.length>=dayTaskLimit(d))continue;
         if(violatesTwoRoomRule(arr,x)||violatesWindowIsolation(arr,x))continue;
+        const nonRoutine=arr.filter(y=>!isDailyTask(y)&&!isFixedTask(y));
+        if(isHeavyTask(x)){
+          if(nonRoutine.length>=2||nonRoutine.some(y=>!isHeavyTask(y)||!taskRoomParts(y).some(r=>taskRoomParts(x).includes(r))))continue;
+        }else if(nonRoutine.some(isHeavyTask))continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);break;
       }
     }
@@ -1978,7 +1999,7 @@ function buildIntelligentPlan(){
   // count in development, but active tasks are never converted into "—" by
   // this planner.
   const unresolved=CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)&&!next.has(taskId(x)));
-  if(unresolved.length) console.warn("Planner V336 unresolved tasks:",unresolved.map(taskId));
+  if(unresolved.length) console.warn("Planner V341 unresolved tasks:",unresolved.map(taskId));
   plannerCache={key,days,next};
   return plannerCache;
 }
