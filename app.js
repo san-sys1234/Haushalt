@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V343"
+const APP_BUILD="V346"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -960,7 +960,7 @@ const FIRST_DUE_WINDOW_DAYS=180;
 // Every active task that has never been completed gets a first-occurrence
 // planning deadline in the first half-year of the current onboarding period.
 // For this household plan the requested hard ceiling is 01.04.2027.
-const FIRST_COMPLETION_DEADLINE_KEY="2027-10-12";
+const FIRST_COMPLETION_DEADLINE_KEY="2027-10-13";
 function stableBootstrapHash(v){
  const str=String(v||"");let h=2166136261;
  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
@@ -975,16 +975,44 @@ function firstDueDateForTask(x,ref=today){
  // into the available working days and only uses this date as a soft anchor.
  // This keeps the initial household inventory compact while still respecting
  // the hard 01.04.2027 completion ceiling.
- for(let i=0;i<=FIRST_DUE_WINDOW_DAYS;i++){
+ // V346: bootstrap dates are staggered deterministically by room priority.
+ // Never give every never-completed task the same first working day.
+ const room=String(x.room||"");
+ const highRooms=["Küche","Gäste-WC","Eltern-WC","Kinderbad","Bad","Essbereich","Wohnzimmer","Eingangsbereich","Garderobe"];
+ const mediumRooms=["Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2","Flur","Flur OG","Flur KG","Speis","Waschküche"];
+ const tier=highRooms.includes(room)?0:(mediumRooms.includes(room)?1:2);
+ const span=tier===0?21:(tier===1?55:135);
+ const offset=(stableBootstrapHash(x.key||`${room}|${x.text}`)%(span+1));
+ for(let i=offset;i<=FIRST_DUE_WINDOW_DAYS;i++){
    const d=addDays(ref,i);
    if(d.getDay()===0||isHouseholdFree(d))continue;
    return d;
+ }
+ for(let i=0;i<=FIRST_DUE_WINDOW_DAYS;i++){
+   const d=addDays(ref,i);
+   if(d.getDay()!==0&&!isHouseholdFree(d))return d;
  }
  return addDays(ref,FIRST_DUE_WINDOW_DAYS);
 }
 function buildCatalog(){const out=[];const add=(text,room,area,meta={})=>{const key=meta.key||`seed|${room}|${text}`;if(catalogDeleted(key))return;const e=editFor(key)||{};const savedDate=state.manualDates?.[key]||state.catalogDates?.[key]||e.start||meta.start||"";const initialDue=(!savedDate&&meta.source!=="custom"&&meta.source!=="daily"&&!meta.window&&!meta.seasonal)?firstDueDateForTask({key,room,text,source:meta.source||"seed"}):null;out.push({text:e.text??text,room:e.room??room,area:e.area??area,place:e.place??meta.place??"",description:e.description??meta.description??"",start:savedDate,initialDue:initialDue?dayKey(initialDue):"",manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart||meta.manualStart),interval:Number(e.interval??meta.interval??0)||0,effort:savedEffort(key,Number(e.effort??meta.effort??0)||0),key,source:meta.source||"seed",editable:meta.editable!==false,window:!!meta.window,windowKey:meta.windowKey,windowGroup:meta.windowGroup,seasonal:!!meta.seasonal,seasonalKey:meta.seasonalKey,fixedExact:!!(e.fixedExact??meta.fixedExact),fixedDate:!!(e.fixedExact??meta.fixedExact)})};for(const [room,area,tasks] of catalogSeed){for(const text of tasks){if(/^(Fenster innen reinigen|Fenster außen reinigen, wenn sicher|Fensterbänke reinigen|Fensterbank reinigen|Fensterbank abwischen|Dichtungen kontrollieren|Vorhangstangen reinigen|Vorhänge nach Pflegeetikett reinigen|Raffstores nach Herstellerangabe reinigen)$/.test(text))continue;add(text,room,area,{key:`seed|${room}|${text}`})}}for(const [room,area,tasks] of EXTRA_ROOM_TASKS){for(const text of tasks){add(text,room,area,{key:`extra-seed|${room}|${text}`})}}const roomText=new Set(out.map(x=>`${x.room}|${x.text}`));for(const r of ROTATIONS){for(const room of r.rooms||[]){const rk=`${room}|${r.text}`;if(roomText.has(rk))continue;add(r.text,room,r.area,{key:`rotation|${room}|${r.text}`,editable:true,source:"rotation",interval:r.interval});roomText.add(rk)}}for(const c of state.custom){const key=c.key||`custom|${c.id}`;if(catalogDeleted(key))continue;add(c.text,c.room,c.area,{...c,key,source:"custom",editable:true,start:c.start||c.date||"",interval:Number(c.interval||c.repeat||0)||60,place:c.place,description:c.description,fixedExact:!!c.fixedExact})}for(const [group,tasks] of DAILY){for(const text of tasks){const key=`daily|${text}`;if(catalogDeleted(key))continue;const e=editFor(key)||{};out.push({text:e.text??text,room:e.room??"Alltag",area:e.area??"Haushalt",place:e.place??"",description:e.description??"",start:"",manualStart:false,interval:0,effort:savedEffort(key,Number(e.effort??0)||0),key,source:"daily",editable:true,group});}}for(const w of WINDOW_TASKS){const e=editFor(w.key)||{};out.push({...w,text:e.text??w.text,room:e.room??w.room,area:e.area??w.area,place:e.place??w.place,description:e.description??w.description,effort:savedEffort(w.key,Number(e.effort??w.effort??1)||1),start:e.start??w.start,interval:Number(e.interval??w.interval??0)||0,fixedExact:!!(e.fixedExact??w.fixedExact)});}return out}
 function refreshCatalog(){
  CATALOG=buildCatalog().filter(x=>!isInvalidLegacyTask(x));
+ // V346: consolidate toilet-only microtasks into one useful task per WC room.
+ // Existing history remains stored untouched; only the active catalog display/planning is consolidated.
+ const wcRooms=["Gäste-WC","Kinderbad","Bad","Eltern-WC"];
+ const toiletDetail=/\bwc\b|toilette|toilettenrand|spülknopf|spültaste|wc[- ]?bürste|bürstenhalter|toilettensitz|toilettendeckel/i;
+ const merged=[];
+ for(const room of wcRooms){
+   const related=CATALOG.filter(x=>x.room===room && toiletDetail.test(String(x.text||"")) && !isWindowRelated(x));
+   if(!related.length)continue;
+   const keys=new Set(related.map(x=>String(x.key)));
+   for(let i=CATALOG.length-1;i>=0;i--)if(keys.has(String(CATALOG[i].key)))CATALOG.splice(i,1);
+   const key=`merged-toilet|${room}`;
+   if(catalogDeleted(key))continue;
+   const e=editFor(key)||{};
+   merged.push({text:e.text||"Toilette gründlich reinigen",room,area:related[0]?.area||"Bad",place:"",description:"Toilette innen und außen, Sitz und Deckel, Spülknopf sowie zugängliche Bereiche unter dem Rand reinigen. WC-Bürste und Halter außen/innen nach Materialverträglichkeit reinigen.",start:state.manualDates?.[key]||state.catalogDates?.[key]||e.start||"",manualStart:!!(state.manualDates?.[key]||state.catalogDates?.[key]||e.manualStart),interval:Number(e.interval??7)||7,effort:savedEffort(key,Number(e.effort??2)||2),key,source:"merged",editable:true,window:false,seasonal:false,fixedExact:false});
+ }
+ CATALOG.push(...merged);
  CATALOG_BY_ID=new Map();
  for(const x of CATALOG) CATALOG_BY_ID.set(String(taskId(x)),x);
  invalidatePlans();
@@ -1408,7 +1436,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v344-priority|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v346|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1486,18 +1514,6 @@ function violatesWindowIsolation(arr,x){
  return hasWin;
 }
 function strictDayViolation(arr,x){return violatesWindowIsolation(arr,x)||violatesTwoRoomRule(arr,x)}
-function planningPriority(x){
- const text=String(x?.text||"").toLowerCase();
- const rooms=taskRoomParts(x).map(r=>String(r).toLowerCase());
- // Fundamental hygiene in frequently used rooms always outranks onboarding backlog.
- if(rooms.some(r=>["küche","gäste-wc","kinderbad","bad","eltern-wc"].includes(r))){
-   if(/arbeitsfläche|arbeitsplatte|spüle|waschbecken|toilette|wc|dusche|badewanne|herd|hochstuhl|essplatz|küchenboden|boden/.test(text)) return 0;
-   return 1;
- }
- if(rooms.some(r=>["essbereich","wohnzimmer","garderobe","eingangsbereich","flur"].includes(r))) return 2;
- if(isWindowRelated(x)||/fenster|raffstore|sonnenschutz/.test(text)) return 5;
- return 3;
-}
 function buildIntelligentPlan(){
   // V278: canonical planner rebuilt around hard invariants.
   // The planner never creates a day first and "fixes" it later. Every placement
@@ -1728,9 +1744,7 @@ function buildIntelligentPlan(){
   // workload rules remain absolute. This is what makes the 1st household
   // pass finish by 31.03.2027 instead of drifting into autumn/winter.
   const bootstrap=CATALOG.filter(x=>!isDailyTask(x)&&!isFixedTask(x)&&!wcPackage(x)&&needsFirstCompletionPlanning(x))
-    // First pass: reliable kitchen/bath hygiene, then other frequent rooms.
-    // Rare and heavy tasks must not crowd out the household basics.
-    .sort((a,b)=>planningPriority(a)-planningPriority(b)||planningNextDue(a,today)-planningNextDue(b,today)||taskWeight(b)-taskWeight(a)||String(a.room).localeCompare(String(b.room),'de')||String(a.text).localeCompare(String(b.text),'de'));
+    .sort((a,b)=>taskWeight(b)-taskWeight(a)||String(a.room).localeCompare(String(b.room),'de')||String(a.text).localeCompare(String(b.text),'de'));
   for(const x of bootstrap){
     const preferred=planningNextDue(x,today);
     place(x,preferred,{range:Math.max(0,Math.ceil((firstCompletionDeadline(today)-preferred)/86400000))});
@@ -1997,6 +2011,51 @@ function buildIntelligentPlan(){
           if(nonRoutine.length>=2||nonRoutine.some(y=>!isHeavyTask(y)||!taskRoomParts(y).some(r=>taskRoomParts(x).includes(r))))continue;
         }else if(nonRoutine.some(isHeavyTask))continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);break;
+      }
+    }
+  }
+
+  // V346 HARD DAILY CAP: never leave hundreds of tasks on one date.
+  // Keep fixed-exact appointments on their exact date; distribute flexible tasks
+  // from overloaded buckets forward into the next legal day with available capacity.
+  for(const [k,arr] of days){
+    const d=fromKey(k);
+    const exact=arr.filter(x=>x.fixedExact);
+    const movable=arr.filter(x=>!x.fixedExact);
+    if(movable.length+exact.length<=20)continue;
+    const keepSlots=Math.max(0,20-exact.length);
+    // Preserve high-priority and due-soon tasks first; rare/heavy tasks move later.
+    const priority=x=>{
+      const room=String(x.room||"");
+      const high=["Küche","Gäste-WC","Eltern-WC","Kinderbad","Bad","Essbereich","Wohnzimmer","Eingangsbereich","Garderobe"];
+      const tier=high.includes(room)?0:1;
+      const due=planningNextDue(x,today);
+      return tier*100000 + (due instanceof Date?Math.max(0,Math.abs(due-d)/86400000):0)*100 + taskWeight(x);
+    };
+    movable.sort((a,b)=>priority(a)-priority(b));
+    const keep=new Set(movable.slice(0,keepSlots).map(taskId));
+    const overflow=movable.filter(x=>!keep.has(taskId(x)));
+    arr.splice(0,arr.length,...exact,...movable.filter(x=>keep.has(taskId(x))));
+    arr._weight=arr.reduce((n,x)=>n+taskWeight(x),0);
+    for(const x of overflow){
+      let placed=false;
+      const startDay=addDays(d,1);
+      // First try within the agreed +/-30 day window; if capacity is globally full,
+      // continue forward rather than violating the hard daily cap.
+      for(let radius=0;radius<=365&&!placed;radius++){
+        const candidate=addDays(startDay,radius),bucket=days.get(dayKey(candidate));
+        if(!bucket||candidate<today||plannerBlocked(candidate)||bucket.length>=20)continue;
+        if(needsFirstCompletionPlanning(x)&&candidate>firstCompletionDeadline(today))continue;
+        if(violatesTwoRoomRule(bucket,x)||violatesWindowIsolation(bucket,x))continue;
+        if(isHeavyTask(x)&&bucket.some(y=>!isDailyTask(y)&&!isFixedTask(y)&&(!isHeavyTask(y)||!taskRoomParts(y).some(r=>taskRoomParts(x).includes(r)))))continue;
+        if(!isHeavyTask(x)&&bucket.some(y=>!isDailyTask(y)&&!isFixedTask(y)&&isHeavyTask(y)))continue;
+        bucket.push(x);bucket._weight=(bucket._weight||0)+taskWeight(x);placed=true;
+      }
+      if(!placed){
+        // The horizon can be extended safely in memory; the original stored data is untouched.
+        let candidate=addDays(startDay,366);
+        while(candidate.getDay()===0||isHouseholdFree(candidate))candidate=addDays(candidate,1);
+        const bucket=[];bucket.push(x);bucket._weight=taskWeight(x);days.set(dayKey(candidate),bucket);
       }
     }
   }
