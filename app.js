@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V343"
+const APP_BUILD="V344"
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -1989,7 +1989,7 @@ function buildIntelligentPlan(){
 
   // Rebuild next from the FINAL day buckets. This is essential: a moved task
   // must never retain its old date in the catalog/calendar.
-  const next=new Map();
+  let next=new Map();
   for(const [k,arr] of days){
     arr.sort((a,b)=>taskWeight(b)-taskWeight(a)||String(a.room).localeCompare(String(b.room),'de')||String(a.text).localeCompare(String(b.text),'de'));
     for(const x of arr){if(!isDailyTask(x)&&!next.has(taskId(x)))next.set(taskId(x),fromKey(k));}
@@ -1999,7 +1999,35 @@ function buildIntelligentPlan(){
   // count in development, but active tasks are never converted into "—" by
   // this planner.
   const unresolved=CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)&&!next.has(taskId(x)));
-  if(unresolved.length) console.warn("Planner V343 unresolved tasks:",unresolved.map(taskId));
+  // V344: final deterministic repair for any active task still missing a date.
+  // Search only the due date +/-30 days, preserve the 20-task cap, Sundays/free
+  // days, window isolation, heavy-task isolation and the two-room rule. This
+  // repair writes into the canonical day buckets BEFORE `next` is finalized.
+  for(const x of unresolved){
+    const due0=planningNextDue(x,today);
+    const due=due0 instanceof Date&&!Number.isNaN(due0.getTime())?due0:new Date(today);
+    const min=due<today?new Date(today):addDays(due,-30), max=addDays(due,30);
+    let best=null;
+    for(let d=new Date(min);d<=max;d=addDays(d,1)){
+      if(d<today||plannerBlocked(d)||d.getDay()===0)continue;
+      const arr=days.get(dayKey(d)); if(!arr||arr.length>=20||arr.some(y=>taskId(y)===taskId(x)))continue;
+      if(violatesTwoRoomRule(arr,x)||violatesWindowIsolation(arr,x))continue;
+      const nonRoutine=arr.filter(y=>!isDailyTask(y)&&!isFixedTask(y));
+      if(isHeavyTask(x)){
+        if(nonRoutine.length>=2||nonRoutine.some(y=>!isHeavyTask(y)||!taskRoomParts(y).some(r=>taskRoomParts(x).includes(r))))continue;
+      } else if(nonRoutine.some(isHeavyTask)) continue;
+      const score=arr.length*4+(arr._weight||0)+Math.abs((d-due)/86400000)*0.15;
+      if(!best||score<best.score)best={d,arr,score};
+    }
+    if(best){best.arr.push(x);best.arr._weight=(best.arr._weight||0)+taskWeight(x);}
+  }
+  next=new Map();
+  for(const [k,arr] of days){
+    arr.sort((a,b)=>taskWeight(b)-taskWeight(a)||String(a.room).localeCompare(String(b.room),'de')||String(a.text).localeCompare(String(b.text),'de'));
+    for(const x of arr){if(!isDailyTask(x)&&!next.has(taskId(x)))next.set(taskId(x),fromKey(k));}
+  }
+  const stillUnresolved=CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)&&!next.has(taskId(x)));
+  if(stillUnresolved.length) console.error("Planner V344: no legal date within the allowed window",stillUnresolved.map(taskId));
   plannerCache={key,days,next};
   return plannerCache;
 }
