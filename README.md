@@ -17,3 +17,12 @@ Vor dem Update in der bisherigen App möglichst über den Aufgabenkatalog ein Ba
 
 ## Prüfumfang
 JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier nicht in einem echten iPhone-/Safari-Browser mit deinem aktuellen lokalen Speicher durchgeklickt. Bitte nach dem Deployment zuerst Backup-Export und anschließend „Planung prüfen“ ausführen.
+
+
+## V327 – visuelle Überarbeitung
+- Ruhigere, klarere Typografie und wärmere Neoclassical-Farbpalette
+- Bessere visuelle Hierarchie für Tageskopf, Fortschritt und Abschnittsüberschriften
+- Konsistentere Karten, Raumgruppen, Kalender und Raumkarte
+- Größere Touch-Ziele, sichtbare Tastaturfokusse und Unterstützung für reduzierte Bewegung
+- Sticky, horizontal scrollbare Hauptnavigation auf kleinen Bildschirmen
+- Keine absichtliche Änderung der Planungsregeln oder des Datenformats
