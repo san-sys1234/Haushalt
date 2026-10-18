@@ -48,3 +48,8 @@ JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier ni
 - Fällige/überfällige Fixaufgaben erscheinen zusätzlich in „Heute“, auch bei vollem Tagesplan und am Sonntag.
 - Erledigung wird pro ursprünglichem Fälligkeitstermin gespeichert; verpasste Fixaufgaben bleiben sichtbar, bis sie erledigt werden.
 - Fixaufgaben werden an das Widget übergeben. Bestehende lokale Datenstruktur wird erweitert, nicht ersetzt.
+
+
+## V331 – Planner-Reparatur
+- Zusätzlicher letzter Reparaturlauf für aktive Aufgaben ohne geplantes Datum.
+- Der Lauf hält die ±14-Tage-Grenze, sperrt Sonntage/haushaltsfreie Tage und bewahrt die Isolation großer bzw. fensterbezogener Aufgaben. Nur wenn nötig darf die Zwei-Raum-Grenze als Notfallregel übergangen werden, damit Aufgaben nicht ohne Datum bleiben.

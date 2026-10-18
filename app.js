@@ -1386,7 +1386,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v329|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v331|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1875,6 +1875,32 @@ function buildIntelligentPlan(){
     const after=missingBefore();
     if(after.length===missing.length)break;
     missing=after;
+  }
+
+  // V331 LAST-RESORT DATE GUARANTEE: if strict room/package rules leave a
+  // catalog task without a bucket, never render “Geplant: —”. First preserve
+  // Sunday/free-day blocks and focus-task isolation; only the two-room limit
+  // may be relaxed as an emergency, and only inside the task's +/-14-day band.
+  // This path is deterministic and is used only for otherwise unresolved tasks.
+  const unresolvedBeforeFinal=()=>CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)&&![...days.values()].some(a=>containsTask(a,taskId(x))));
+  let emergencyMissing=unresolvedBeforeFinal();
+  for(const x of emergencyMissing){
+    const due=planningNextDue(x,today);
+    const preferred=due instanceof Date&&!Number.isNaN(due.getTime())?due:today;
+    let placed=false;
+    for(let radius=0;radius<=PLAN_TOLERANCE_DAYS&&!placed;radius++){
+      const offsets=radius===0?[0]:[radius,-radius];
+      for(const off of offsets){
+        const d=addDays(preferred,off),arr=days.get(dayKey(d));
+        if(!arr||d<today||plannerBlocked(d)||containsTask(arr,taskId(x)))continue;
+        // Never combine large/focus/window work with another non-daily task.
+        if((isHeavyTask(x)||isWindowRelated(x))&&arr.some(y=>!isDailyTask(y)))continue;
+        if(arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))continue;
+        if(violatesWindowIsolation(arr,x))continue;
+        arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
+      }
+    }
+    if(!placed)console.warn("Planner V331 could not place task inside strict date window:",taskId(x));
   }
 
   // Rebuild next from the FINAL day buckets. This is essential: a moved task
