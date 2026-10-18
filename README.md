@@ -1,43 +1,19 @@
-# Unser Zuhause – V3
+# Unser Zuhause – optimierte Version V326
 
-Diese Version führt **jede tägliche Routine und jede wiederkehrende Haushaltsarbeit als eigene Aufgabe**.
+## Enthalten
+- Einheitliche Build-/Cache-Version V326 für HTML, App-JavaScript und Service Worker.
+- Neuer Bereich „Datensicherung & Planungsprüfung“ im Aufgabenkatalog.
+- JSON-Backup-Export inklusive Aufgaben, Terminen, Intervallen, individuellen Einstellungen und Historie.
+- Validierte Backup-Wiederherstellung mit Bestätigung und vorherigem Backup-Download.
+- Manuelle Planungsprüfung auf aktive Aufgaben ohne gültigen Termin, vergangene Termine und doppelte Tageszuordnungen.
+- Sichtbarer Hinweis, wenn das Speichern des App-Zustands fehlschlägt.
+- Service Worker mit einheitlicher Cache-Version und sauberem Cache-Aufbau.
 
-Beispiele:
-- Bett machen
-- Schlafzimmer lüften
-- Geschirrspüler ausräumen
-- Frühstücksgeschirr in den Geschirrspüler geben
-- Küchenarbeitsflächen abwischen
-- Esstisch abwischen
-- Baby-Hochstuhl / Essbereich reinigen
-- Wege freihalten
-- Wäsche in den Wäschekorb
-- Geschirr wegräumen
-- Spielzeug grob zurücksetzen
-- Geschirrspüler beladen/starten
-- Herd abwischen
-- Spüle und Armatur reinigen
-- Müll kontrollieren
+## Installation / GitHub Pages
+Alle Dateien aus diesem Ordner gemeinsam in den bestehenden App-Ordner hochladen und die vorhandenen Dateien ersetzen. Die Namen müssen exakt `index.html`, `app.js`, `sw.js`, `manifest.json`, `icon-192.png`, `icon-512.png` und `apple-touch-icon.png` lauten.
 
-Auch Sanitärarbeiten sind getrennt: Toilette, Waschbecken und Toilettenbürste werden nicht zu „Bad reinigen“ zusammengefasst.
+## Wichtig
+Vor dem Update in der bisherigen App möglichst über den Aufgabenkatalog ein Backup exportieren. Die Wiederherstellungsfunktion ersetzt den gespeicherten App-Stand nach ausdrücklicher Bestätigung. Browserdaten bleiben lokal auf dem jeweiligen Gerät; ein JSON-Backup sollte zusätzlich sicher aufbewahrt werden.
 
-Die tägliche Basisroutine erscheint jeden Tag. Das Belastungsbudget steuert nur die **zusätzlichen Turnusaufgaben**, damit die tägliche Routine nicht gegen Fensteretappen oder andere Großaufgaben ausgespielt wird.
-
-
-## Strikte Raumregel V4
-
-Für **zusätzliche Turnus-/Haushaltsaufgaben** gilt:
-- maximal **2 konkrete Räume pro Tag**
-- niemals „alle Türklinken im Haus“
-- niemals „alle Lichtschalter im Haus“
-- niemals „alle Sockelleisten im Haus“
-- niemals Sammelaufgaben mit `Alle Räume` oder `Mehrere Räume`
-- Detailarbeiten wie Türklinken, Lichtschalter, Steckdosen, Zargen, Türblätter, Sockelleisten und erreichbare Lampen sind pro Raum eigene Aufgaben.
-- Die tägliche Basisroutine bleibt separat sichtbar, weil sie laut Master jeden Tag erscheinen soll; sie wird nicht als Turnus-Raumpaket gezählt.
-
-
-## V5 Startstabilität
-- Fehler in der Dienstagstermin-Berechnung (`nextWeekday`) behoben.
-- Neuer LocalStorage-Key verhindert alte Demo-/Fehlerdaten.
-- Service Worker wird vor der App-Initialisierung registriert.
-- Sichtbarer Start-Fehler statt leerer Seite bei einem künftigen Laufzeitfehler.
+## Prüfumfang
+JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier nicht in einem echten iPhone-/Safari-Browser mit deinem aktuellen lokalen Speicher durchgeklickt. Bitte nach dem Deployment zuerst Backup-Export und anschließend „Planung prüfen“ ausführen.
