@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V328";
+const APP_BUILD="V333";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -452,6 +452,16 @@ let state=loadState();
     state.__dailyLedgerRepairV168=true;
     try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
   }
+})();
+// V333 one-time bootstrap rebalance. initialDueDates are system-generated
+// first-occurrence dates (manual dates live in manualDates/catalogDates), so
+// old clustered bootstrap dates can safely be regenerated once. Completion
+// history and user-authored dates are not touched.
+(function rebalanceInitialDueDatesV333(){
+  if(state.__initialDueRebalancedV333)return;
+  state.initialDueDates={};
+  state.__initialDueRebalancedV333=true;
+  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
 })();
 let selectedTab="today";
 let catalogSearchTerm="";
@@ -989,9 +999,21 @@ function firstDueDateForTask(x,ref=today){
  state.initialDueDates=state.initialDueDates&&typeof state.initialDueDates==="object"?state.initialDueDates:{};
  const saved=state.initialDueDates[x.key];
  if(/^\d{4}-\d{2}-\d{2}$/.test(saved||""))return fromKey(saved);
- const offset=stableBootstrapHash(x.key||`${x.room}|${x.text}`)%(PLAN_TOLERANCE_DAYS+1);
- let d=addDays(ref,offset);
- while(d.getDay()===0||isHouseholdFree(d))d=addDays(d,1);
+ // V333: distribute first-time tasks across the real onboarding window instead
+ // of clustering all 1,000+ initial due dates into the first 15 days. Leave a
+ // full +/-14-day placement band before the hard first-completion deadline.
+ const deadline=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
+ const lastDue=addDays(deadline,-PLAN_TOLERANCE_DAYS);
+ const eligible=[];
+ for(let d0=new Date(ref.getFullYear(),ref.getMonth(),ref.getDate(),12);d0<=lastDue;d0=addDays(d0,1)){
+   if(d0.getDay()!==0&&!isHouseholdFree(d0))eligible.push(new Date(d0));
+ }
+ if(!eligible.length){
+   const fallback=new Date(ref);fallback.setHours(12,0,0,0);
+   state.initialDueDates[x.key]=dayKey(fallback);state.__initialDueDatesDirty=true;return fallback;
+ }
+ const offset=stableBootstrapHash(x.key||`${x.room}|${x.text}`)%eligible.length;
+ const d=eligible[offset];
  state.initialDueDates[x.key]=dayKey(d);
  state.__initialDueDatesDirty=true;
  return d;
@@ -1386,7 +1408,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v331|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v333|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1877,7 +1899,7 @@ function buildIntelligentPlan(){
     missing=after;
   }
 
-  // V331 LAST-RESORT DATE GUARANTEE: if strict room/package rules leave a
+  // V333 LAST-RESORT DATE GUARANTEE: if strict room/package rules leave a
   // catalog task without a bucket, never render “Geplant: —”. First preserve
   // Sunday/free-day blocks and focus-task isolation; only the two-room limit
   // may be relaxed as an emergency, and only inside the task's +/-14-day band.
@@ -1900,7 +1922,7 @@ function buildIntelligentPlan(){
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
       }
     }
-    if(!placed)console.warn("Planner V331 could not place task inside strict date window:",taskId(x));
+    if(!placed)console.warn("Planner V333 could not place task inside strict date window:",taskId(x));
   }
 
   // Rebuild next from the FINAL day buckets. This is essential: a moved task

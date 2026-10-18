@@ -53,3 +53,11 @@ JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier ni
 ## V331 – Planner-Reparatur
 - Zusätzlicher letzter Reparaturlauf für aktive Aufgaben ohne geplantes Datum.
 - Der Lauf hält die ±14-Tage-Grenze, sperrt Sonntage/haushaltsfreie Tage und bewahrt die Isolation großer bzw. fensterbezogener Aufgaben. Nur wenn nötig darf die Zwei-Raum-Grenze als Notfallregel übergangen werden, damit Aufgaben nicht ohne Datum bleiben.
+
+
+## V333 – Erstplanung über den verfügbaren Zeitraum verteilen
+- Behebt den konkreten Bootstrap-Fehler, bei dem automatisch erzeugte Erstfälligkeiten über nur 15 Tage verteilt wurden.
+- Noch nie erledigte, nicht manuell datierte Aufgaben werden einmalig über die verfügbaren Arbeitstage bis 14 Tage vor dem Erstplanungs-Stichtag verteilt.
+- Manuelle Termine, Intervalle, Erledigungshistorien, gelöschte Aufgaben und bestehende Fixaufgaben bleiben erhalten.
+- Die automatische Neuverteilung wird durch ein Migrationskennzeichen nur einmal ausgeführt.
+- Wichtig: Die App kann nicht automatisch auf eine bereits im Browser vorhandene Exportdatei zugreifen; die Migration erfolgt in dem Browser, in dem die App gestartet wird.
