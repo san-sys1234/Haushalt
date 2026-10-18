@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V337";
+const APP_BUILD="V338";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -1269,7 +1269,14 @@ function taskWeight(x){const t=(x.text||"").toLowerCase();
 function effortClass(v){const n=Math.max(1,Math.min(5,Math.round(Number(v)||1)));return "effort-"+n}
 function effortLabel(v){const n=Math.max(1,Math.min(5,Math.round(Number(v)||1)));return ["Sehr klein","Klein","Mittel","Groß","Sehr groß"][n-1]}
 function effortDescription(v){const n=Math.max(1,Math.min(5,Math.round(Number(v)||1)));return ["kleiner Handgriff · ca. 5–10 Min.","kleine Aufgabe · ca. 10–20 Min.","mittlerer Aufwand · ca. 20–35 Min.","größere Aufgabe · ca. 35–60 Min.","sehr großer Block · ca. 60+ Min."][n-1]}
-function isHeavyTask(x){return !!x && (x.window||isWindowRelated(x)||taskWeight(x)>=4);}
+function isHeavyTask(x){
+ // Focus day: every task explicitly rated Groß (4) or Sehr groß (5) in the
+ // effort colour scale is isolated, regardless of its name/category. Physical
+ // window-cleaning and Raffstore jobs also remain focus blocks by default.
+ // Small window-adjacent checks (sills, seals, drainage, insect screens) are
+ // NOT isolated unless the user explicitly rates them 4 or 5.
+ return !!x && (taskWeight(x)>=4||x.window||x.raffstore);
+}
 function roomWorkflow(x){
  const t=(x?.text||"").toLowerCase();
  if(/boden|sockelleiste|tür|türklink|lichtschalter|steckdose/.test(t))return "raum-unterhalb";
@@ -1433,7 +1440,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v337|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v339|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1490,8 +1497,12 @@ function taskRoomParts(x){
 function plannedRoomSet(arr){const rooms=new Set();for(const x of (arr||[])){if(isDailyTask(x))continue;for(const r of taskRoomParts(x))rooms.add(r)}return rooms}
 function violatesTwoRoomRule(arr,x){const rooms=plannedRoomSet(arr);for(const r of taskRoomParts(x))rooms.add(r);return rooms.size>2}
 function isWindowRelated(x){
+ // Strict isolation is reserved for actual glass-cleaning tasks and large
+ // raffstore/solar-shading work. Small checks around a window (insect screen,
+ // seals, drainage and sill) may join a light room package instead of taking
+ // an entire day just because their name contains "Fenster".
  const t=String(x?.text||"").toLowerCase();
- return !!(x?.window||x?.windowSill||x?.raffstore||x?.source==="window"||x?.source==="windowSill"||x?.source==="windowSeal"||x?.source==="windowDrain"||x?.source==="windowScreen"||x?.source==="raffstore"||/\bfenster\b|fensterbank|raffstore|sonnenschutz|insektenschutz/.test(t));
+ return !!(x?.window||x?.source==="window"||x?.raffstore||x?.source==="raffstore"||/raffstore|sonnenschutz/.test(t));
 }
 function windowRoom(x){const p=taskRoomParts(x);return p.length===1?p[0]:String(x?.room||"").trim()}
 function violatesWindowIsolation(arr,x){
@@ -3331,7 +3342,7 @@ function renderCatalog(){
    const blockedDates=active.filter(x=>{const d=auditDate(x);return d instanceof Date&&plannerBlocked(d)&&!(postponedEntry(x)?.postponedUntil>dayKey())});
    const duplicate=[];for(const [k,arr] of plan.days){const ids=arr.map(taskId);if(new Set(ids).size!==ids.length)duplicate.push(k)}
    if(!missing.length&&!invalid.length&&!duplicate.length&&!blockedDates.length){const recovered=Array.isArray(state.planningRepairReport)?state.planningRepairReport.length:0;const unresolved=Object.keys(state.planningConflicts||{}).length;dataResult.textContent=`Planungsprüfung erfolgreich: ${active.length} aktive Aufgaben (einschließlich verschobener Aufgaben) haben einen konkreten Termin; keine doppelten Aufgaben und keine unerklärten Termine auf gesperrten Tagen.${recovered?` ${recovered} übermäßig weit verschobene Aufgaben wurden zur Neuplanung zurückgeführt.`:""}${unresolved?` Hinweis: ${unresolved} reparierte Altverschiebungen sind im Prüfprotokoll vermerkt.`:""}`;}
-   else{dataResult.textContent=`Planungsprüfung: ${missing.length} aktive Aufgaben ohne gültigen Termin (einschließlich verschobener Aufgaben), ${invalid.length} Termine in der Vergangenheit, ${duplicate.length} Tage mit doppelten Aufgaben, ${blockedDates.length} unerklärte Termine auf haushaltsfreien/gesperrten Tagen. Bitte Backup exportieren; Details stehen in der Browser-Konsole.`;console.error("Planungsintegrität / V337-Reparaturprotokoll",{repaired:state.planningRepairReport||[],conflicts:state.planningConflicts||{},missing:missing.map(x=>({id:taskId(x),text:x.text,room:x.room})),invalid:invalid.map(taskId),duplicate,blockedDates:blockedDates.map(x=>({id:taskId(x),date:dayKey(plan.next.get(taskId(x)))}))})}
+   else{dataResult.textContent=`Planungsprüfung: ${missing.length} aktive Aufgaben ohne gültigen Termin (einschließlich verschobener Aufgaben), ${invalid.length} Termine in der Vergangenheit, ${duplicate.length} Tage mit doppelten Aufgaben, ${blockedDates.length} unerklärte Termine auf haushaltsfreien/gesperrten Tagen. Bitte Backup exportieren; Details stehen in der Browser-Konsole.`;console.error("Planungsintegrität / V338-Reparaturprotokoll",{repaired:state.planningRepairReport||[],conflicts:state.planningConflicts||{},missing:missing.map(x=>({id:taskId(x),text:x.text,room:x.room})),invalid:invalid.map(taskId),duplicate,blockedDates:blockedDates.map(x=>({id:taskId(x),date:dayKey(plan.next.get(taskId(x)))}))})}
   }catch(e){dataResult.textContent="Planungsprüfung fehlgeschlagen. Bitte exportiere ein Backup, bevor du Änderungen vornimmst.";console.error(e)}
  };
  q.value=catalogSearchTerm||"";
