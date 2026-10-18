@@ -61,3 +61,18 @@ JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier ni
 - Manuelle Termine, Intervalle, Erledigungshistorien, gelöschte Aufgaben und bestehende Fixaufgaben bleiben erhalten.
 - Die automatische Neuverteilung wird durch ein Migrationskennzeichen nur einmal ausgeführt.
 - Wichtig: Die App kann nicht automatisch auf eine bereits im Browser vorhandene Exportdatei zugreifen; die Migration erfolgt in dem Browser, in dem die App gestartet wird.
+
+
+## V334 – harte Termin-Garantie
+- Zusätzlicher abschließender Reparaturlauf für aktive Aufgaben ohne Plantermin.
+- Versucht zuerst einen Termin innerhalb von ±14 Tagen mit gelockerten Raum-/Kapazitätsgrenzen.
+- Wenn kein zulässiger Fokus-Tag verfügbar ist, wird ein späterer freier Wochentag gesucht, statt die Aufgabe ohne Datum zu lassen.
+- Bestehende Datenstruktur und Erledigungshistorien bleiben erhalten.
+
+
+## V335 – Vollständigkeitsgarantie
+- Letzter Reparaturlauf versucht, für jede aktive Nicht-Tagesroutine einen konkreten Termin zu erzeugen.
+- Wenn alle regulären Termine blockiert sind, darf die Notfallplatzierung Raum-/Kapazitäts-/Sperrtagregeln lockern, damit eine Aufgabe nicht ohne Termin bleibt; Sonntage werden weiterhin vermieden, soweit ein späterer Tag verfügbar ist.
+- „Planung prüfen“ kontrolliert nun auch auf Termine an gesperrten/haushaltsfreien Tagen und zählt aufgeschobene aktive Aufgaben mit.
+- Planungs-Cache und Service-Worker-Version auf V335 aktualisiert.
+- Laufzeittest mit echten lokalen Browserdaten bleibt erforderlich.

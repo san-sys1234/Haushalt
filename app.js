@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V333";
+const APP_BUILD="V335";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -1408,7 +1408,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v333|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v335|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1923,6 +1923,63 @@ function buildIntelligentPlan(){
       }
     }
     if(!placed)console.warn("Planner V333 could not place task inside strict date window:",taskId(x));
+  }
+
+  // V334 HARD GUARANTEE: no active non-daily task may end without a planned date.
+  // Previous fallbacks still left gaps when every day in the +/-14-day window
+  // was occupied by an exclusive focus/window task, or when a task was postponed.
+  // First try the original +/-14-day window while relaxing room-count and workload
+  // caps; keep Sunday/free days and focus-task isolation intact. If no slot exists,
+  // append a visible future slot beyond the tolerance window rather than returning "—".
+  const hasBucket=id=>[...days.values()].some(a=>containsTask(a,id));
+  const missingHard=()=>CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!hasBucket(taskId(x)));
+  for(const x of missingHard()){
+    const pe=postponedEntry(x);
+    const due=pe?.postponedUntil?fromKey(pe.postponedUntil):planningNextDue(x,today);
+    const preferred=due instanceof Date&&!Number.isNaN(due.getTime())&&due>=today?due:today;
+    let placed=false;
+    const tryPlace=(d,strictFocus=true,ignoreBlocked=false)=>{
+      if(!d||d<today||(!ignoreBlocked&&plannerBlocked(d)))return false;
+      const k=dayKey(d); let arr=days.get(k);
+      if(!arr){arr=[];days.set(k,arr)}
+      if(containsTask(arr,taskId(x)))return true;
+      if(strictFocus&&((isHeavyTask(x)||isWindowRelated(x))&&arr.some(y=>!isDailyTask(y))))return false;
+      if(strictFocus&&arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))return false;
+      if(strictFocus&&violatesWindowIsolation(arr,x))return false;
+      // Final integrity fallback: a saved, visible date is more important than
+      // capacity/free-day rules. Such exceptional placements are surfaced by audit.
+      arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);return true;
+    };
+    for(let delta=0;delta<=PLAN_TOLERANCE_DAYS&&!placed;delta++){
+      for(const off of delta===0?[0]:[delta,-delta]){
+        if(tryPlace(addDays(preferred,off),true)){placed=true;break}
+      }
+    }
+    // If the +/-14-day band has no legal focus slot, find the earliest later
+    // weekday with room. This is an explicit safety fallback, not silent omission.
+    for(let off=PLAN_TOLERANCE_DAYS+1;off<=730&&!placed;off++){
+      const d=addDays(preferred,off);
+      if(tryPlace(d,true)){placed=true;break}
+    }
+    if(!placed){
+      // Extremely defensive final fallback: keep task dated even if a legacy
+      // custom free-day block conflicts. Sunday remains protected where possible.
+      for(let off=731;off<=3650&&!placed;off++){
+        const d=addDays(preferred,off);
+        if(d.getDay()===0||isHouseholdFree(d))continue;
+        if(tryPlace(d,false)){placed=true;break}
+      }
+    }
+    // Absolute last resort: do not let a user-defined free-day block cause a
+    // task to disappear. Sundays are still avoided where any later slot exists.
+    if(!placed){
+      for(let off=1;off<=3650&&!placed;off++){
+        const d=addDays(preferred,off);
+        if(d.getDay()===0)continue;
+        if(tryPlace(d,false,true)){placed=true;}
+      }
+    }
+    if(!placed)console.error("V335: could not assign planned date",taskId(x),x.text);
   }
 
   // Rebuild next from the FINAL day buckets. This is essential: a moved task
@@ -3232,12 +3289,13 @@ function renderCatalog(){
   dataResult.textContent="Planung wird geprüft …";
   try{
    invalidatePlans();const plan=buildIntelligentPlan();
-   const active=CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x));
+   const active=CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x));
    const missing=active.filter(x=>{const d=plan.next.get(taskId(x));return !(d instanceof Date)||Number.isNaN(d.getTime())||d<today});
    const invalid=active.filter(x=>{const d=plan.next.get(taskId(x));return d instanceof Date&&(!Number.isFinite(d.getTime())||dayKey(d)<dayKey(today))});
+   const blockedDates=active.filter(x=>{const d=plan.next.get(taskId(x));return d instanceof Date&&plannerBlocked(d)});
    const duplicate=[];for(const [k,arr] of plan.days){const ids=arr.map(taskId);if(new Set(ids).size!==ids.length)duplicate.push(k)}
-   if(!missing.length&&!invalid.length&&!duplicate.length){dataResult.textContent=`Planungsprüfung erfolgreich: ${active.length} aktive Aufgaben haben einen konkreten Termin; keine doppelten Aufgaben in Tagesplänen gefunden.`;}
-   else{dataResult.textContent=`Planungsproblem gefunden: ${missing.length} aktive Aufgaben ohne gültigen Termin, ${invalid.length} Termine in der Vergangenheit, ${duplicate.length} Tage mit doppelten Aufgaben. Bitte Backup exportieren und diese Prüfung nach einer Korrektur wiederholen.`;console.error("Planungsintegrität",{missing:missing.map(x=>({id:taskId(x),text:x.text,room:x.room})),invalid:invalid.map(taskId),duplicate})}
+   if(!missing.length&&!invalid.length&&!duplicate.length&&!blockedDates.length){dataResult.textContent=`Planungsprüfung erfolgreich: ${active.length} aktive Aufgaben haben einen konkreten Termin; keine doppelten Aufgaben und keine Termine auf gesperrten Tagen.`;}
+   else{dataResult.textContent=`Planungsprüfung: ${missing.length} aktive Aufgaben ohne gültigen Termin, ${invalid.length} Termine in der Vergangenheit, ${duplicate.length} Tage mit doppelten Aufgaben, ${blockedDates.length} Termine auf haushaltsfreien/gesperrten Tagen. Bitte Backup exportieren; Details stehen in der Browser-Konsole.`;console.error("Planungsintegrität",{missing:missing.map(x=>({id:taskId(x),text:x.text,room:x.room})),invalid:invalid.map(taskId),duplicate,blockedDates:blockedDates.map(x=>({id:taskId(x),date:dayKey(plan.next.get(taskId(x)))}))})}
   }catch(e){dataResult.textContent="Planungsprüfung fehlgeschlagen. Bitte exportiere ein Backup, bevor du Änderungen vornimmst.";console.error(e)}
  };
  q.value=catalogSearchTerm||"";
