@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V335";
+const APP_BUILD="V337";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -354,7 +354,7 @@ function purgeWholeHouseDoorFrameData(s){
    for(const [k,v] of Object.entries(s.postponed)) if(isInvalidLegacyTask(v)){delete s.postponed[k]}
  }
 }
-function defaultState(){return {fixedTasks:[],fixedDone:{},done:{},lastDone:{},completionHistory:{},dailyDone:{},postponed:{},custom:[],catalogEdits:{},catalogDates:{},manualDates:{},catalogDeleted:{},todayExtras:[],completedDays:{},dayCelebrations:{},plannedOverrides:{},completedOpen:false,postponedOpen:false,chaos:false,sundayOptional:{},energyOffset:0,energySkipDay:"",energySeen:[],calendarYear:new Date().getFullYear(),catalogRoomFilter:"",todayPlanLock:{},todayPlanSnapshot:{},householdFreeDays:{},effortOverrides:{}}}
+function defaultState(){return {fixedTasks:[],fixedDone:{},done:{},lastDone:{},completionHistory:{},dailyDone:{},postponed:{},planningRepairReport:[],planningConflicts:{},custom:[],catalogEdits:{},catalogDates:{},manualDates:{},catalogDeleted:{},todayExtras:[],completedDays:{},dayCelebrations:{},plannedOverrides:{},completedOpen:false,postponedOpen:false,chaos:false,sundayOptional:{},energyOffset:0,energySkipDay:"",energySeen:[],calendarYear:new Date().getFullYear(),catalogRoomFilter:"",todayPlanLock:{},todayPlanSnapshot:{},householdFreeDays:{},effortOverrides:{}}}
 function migrateWCRoomNames(s){
  if(!s)return;
  const renameKey=k=>String(k||"").replace(/\|WC(?=\||$)/g,"|Eltern-WC");
@@ -1028,6 +1028,31 @@ function refreshCatalog(){
 }
 refreshCatalog();
 
+// V337 safety repair: older planner fallbacks could turn an ordinary
+// planning-only postponement into a date months/years away. Keep the full
+// record as an audit trail, but remove only those machine-generated deferrals
+// that exceed 45 days from their recorded action date so the canonical planner
+// can assign them again from their original due date. Recent user postponements
+// remain intact. Completion history, recurrence, manual dates and task IDs are untouched.
+(function repairExcessivePlannerDeferralsV337(){
+  state.planningRepairReport=Array.isArray(state.planningRepairReport)?state.planningRepairReport:[];
+  state.planningConflicts=state.planningConflicts&&typeof state.planningConflicts==="object"?state.planningConflicts:{};
+  let changed=false;
+  for(const [id,p] of Object.entries(state.postponed||{})){
+    if(!p||p.planningOnly!==true||!/^\d{4}-\d{2}-\d{2}$/.test(p.postponedUntil||""))continue;
+    const origin=p.actionDate||p.from;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(origin||""))continue;
+    const days=Math.round((Date.parse(p.postponedUntil+"T12:00:00Z")-Date.parse(origin+"T12:00:00Z"))/86400000);
+    if(days<=45)continue;
+    const task=CATALOG_BY_ID.get(String(id))||p;
+    state.planningRepairReport.push({id:String(id),text:task.text||p.text||String(id),room:task.room||p.room||"",oldDate:p.postponedUntil,actionDate:origin,daysDeferred:days,repairedAt:dayKey(today)});
+    state.planningConflicts[id]={id:String(id),text:task.text||p.text||String(id),room:task.room||p.room||"",oldDate:p.postponedUntil,reason:"Automatische Verschiebung lag mehr als 45 Tage in der Zukunft; Termin wird neu nach den normalen Planungsregeln vergeben.",createdAt:dayKey(today)};
+    delete state.postponed[id];
+    changed=true;
+  }
+  if(changed){invalidatePlans();try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}}
+})();
+
 // V233 data-repair: older room-focus/energy copies could exist without a
 // canonical catalog key. Repair their identity and any already-recorded
 // completion without touching user-entered dates, intervals or history.
@@ -1408,7 +1433,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v335|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v337|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1979,7 +2004,7 @@ function buildIntelligentPlan(){
         if(tryPlace(d,false,true)){placed=true;}
       }
     }
-    if(!placed)console.error("V335: could not assign planned date",taskId(x),x.text);
+    if(!placed)console.error("V336: could not assign planned date",taskId(x),x.text);
   }
 
   // Rebuild next from the FINAL day buckets. This is essential: a moved task
@@ -2135,10 +2160,14 @@ function calendarTasksForDate(d){
 function isDailyTask(x){return !!x&&(x.source==="daily"||String(x.key||"").startsWith("daily|")||String(x.id||"").startsWith("daily|"))}
 function nextDueLabel(x){return isDailyTask(x)?"täglich":nextDue(x).toLocaleDateString("de-AT",{day:"2-digit",month:"2-digit",year:"numeric"})}
 function plannedDateForTask(x){
- // V308: canonical date lookup. The current day's plan is persisted once and
- // is therefore independent of tab navigation, catalog filters and cache resets.
+ // V336: postponed tasks remain visible in the catalog with their explicit
+ // return date; they must not look as though they have no planned date.
  const id=taskId(x);
  const todayKey=dayKey(today);
+ const postponed=postponedEntry(x);
+ if(!isDone(x)&&postponed?.postponedUntil&&/^\d{4}-\d{2}-\d{2}$/.test(postponed.postponedUntil)&&postponed.postponedUntil>todayKey){
+   return fromKey(postponed.postponedUntil);
+ }
  if(today.getDay()!==0 && hasTodayPlanSnapshot() && !isDone(x)){
    const snap=todaySnapshotIds();
    if(snap.has(id))return new Date(today);
@@ -3289,13 +3318,20 @@ function renderCatalog(){
   dataResult.textContent="Planung wird geprüft …";
   try{
    invalidatePlans();const plan=buildIntelligentPlan();
+   // Include postponed tasks in the integrity check. Their explicit return
+   // date is a valid scheduled date even while the regular planner holds them out.
    const active=CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x));
-   const missing=active.filter(x=>{const d=plan.next.get(taskId(x));return !(d instanceof Date)||Number.isNaN(d.getTime())||d<today});
-   const invalid=active.filter(x=>{const d=plan.next.get(taskId(x));return d instanceof Date&&(!Number.isFinite(d.getTime())||dayKey(d)<dayKey(today))});
-   const blockedDates=active.filter(x=>{const d=plan.next.get(taskId(x));return d instanceof Date&&plannerBlocked(d)});
+   const auditDate=x=>{
+    const pe=postponedEntry(x);
+    if(pe?.postponedUntil&&/^\d{4}-\d{2}-\d{2}$/.test(pe.postponedUntil)&&pe.postponedUntil>dayKey())return fromKey(pe.postponedUntil);
+    return plan.next.get(taskId(x));
+   };
+   const missing=active.filter(x=>{const d=auditDate(x);return !(d instanceof Date)||Number.isNaN(d.getTime())||d<today});
+   const invalid=active.filter(x=>{const d=auditDate(x);return d instanceof Date&&(!Number.isFinite(d.getTime())||dayKey(d)<dayKey(today))});
+   const blockedDates=active.filter(x=>{const d=auditDate(x);return d instanceof Date&&plannerBlocked(d)&&!(postponedEntry(x)?.postponedUntil>dayKey())});
    const duplicate=[];for(const [k,arr] of plan.days){const ids=arr.map(taskId);if(new Set(ids).size!==ids.length)duplicate.push(k)}
-   if(!missing.length&&!invalid.length&&!duplicate.length&&!blockedDates.length){dataResult.textContent=`Planungsprüfung erfolgreich: ${active.length} aktive Aufgaben haben einen konkreten Termin; keine doppelten Aufgaben und keine Termine auf gesperrten Tagen.`;}
-   else{dataResult.textContent=`Planungsprüfung: ${missing.length} aktive Aufgaben ohne gültigen Termin, ${invalid.length} Termine in der Vergangenheit, ${duplicate.length} Tage mit doppelten Aufgaben, ${blockedDates.length} Termine auf haushaltsfreien/gesperrten Tagen. Bitte Backup exportieren; Details stehen in der Browser-Konsole.`;console.error("Planungsintegrität",{missing:missing.map(x=>({id:taskId(x),text:x.text,room:x.room})),invalid:invalid.map(taskId),duplicate,blockedDates:blockedDates.map(x=>({id:taskId(x),date:dayKey(plan.next.get(taskId(x)))}))})}
+   if(!missing.length&&!invalid.length&&!duplicate.length&&!blockedDates.length){const recovered=Array.isArray(state.planningRepairReport)?state.planningRepairReport.length:0;const unresolved=Object.keys(state.planningConflicts||{}).length;dataResult.textContent=`Planungsprüfung erfolgreich: ${active.length} aktive Aufgaben (einschließlich verschobener Aufgaben) haben einen konkreten Termin; keine doppelten Aufgaben und keine unerklärten Termine auf gesperrten Tagen.${recovered?` ${recovered} übermäßig weit verschobene Aufgaben wurden zur Neuplanung zurückgeführt.`:""}${unresolved?` Hinweis: ${unresolved} reparierte Altverschiebungen sind im Prüfprotokoll vermerkt.`:""}`;}
+   else{dataResult.textContent=`Planungsprüfung: ${missing.length} aktive Aufgaben ohne gültigen Termin (einschließlich verschobener Aufgaben), ${invalid.length} Termine in der Vergangenheit, ${duplicate.length} Tage mit doppelten Aufgaben, ${blockedDates.length} unerklärte Termine auf haushaltsfreien/gesperrten Tagen. Bitte Backup exportieren; Details stehen in der Browser-Konsole.`;console.error("Planungsintegrität / V337-Reparaturprotokoll",{repaired:state.planningRepairReport||[],conflicts:state.planningConflicts||{},missing:missing.map(x=>({id:taskId(x),text:x.text,room:x.room})),invalid:invalid.map(taskId),duplicate,blockedDates:blockedDates.map(x=>({id:taskId(x),date:dayKey(plan.next.get(taskId(x)))}))})}
   }catch(e){dataResult.textContent="Planungsprüfung fehlgeschlagen. Bitte exportiere ein Backup, bevor du Änderungen vornimmst.";console.error(e)}
  };
  q.value=catalogSearchTerm||"";

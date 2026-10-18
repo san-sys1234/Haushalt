@@ -76,3 +76,20 @@ JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier ni
 - „Planung prüfen“ kontrolliert nun auch auf Termine an gesperrten/haushaltsfreien Tagen und zählt aufgeschobene aktive Aufgaben mit.
 - Planungs-Cache und Service-Worker-Version auf V335 aktualisiert.
 - Laufzeittest mit echten lokalen Browserdaten bleibt erforderlich.
+
+
+## V336 – Sichtbarkeit verschobener Aufgaben
+
+- Verschobene aktive Aufgaben zeigen ihr konkretes Rückkehrdatum im Aufgabenkatalog statt „Geplant: —“.
+- Die Planungsprüfung zählt verschobene Aufgaben mit und prüft ihr Rückkehrdatum.
+- Bestehende Aufgaben- und Erledigungsdaten bleiben im bestehenden lokalen Speicherformat.
+
+## V337 – Schutz vor übermäßig weit verschobenen Aufgaben
+- Ergänzt eine einmalige, datenbewahrende Reparatur beim Start: automatisch markierte Planungsverschiebungen, deren Rückkehrtermin mehr als 45 Tage nach dem damaligen Aktionsdatum liegt, werden aus der Sperrliste genommen und wieder nach den normalen Planungsregeln eingeplant.
+- Kürzere bzw. aktuelle Verschiebungen bleiben erhalten.
+- Die reparierten Alttermine werden samt Aufgabe, Raum, altem Termin und Verschiebungsdauer im lokalen Prüfprotokoll gespeichert.
+- Erledigungshistorie, Intervalle, benutzerdefinierte Aufgaben und manuelle Termine werden durch diese Reparatur nicht gelöscht.
+- Die Prüfung „Planung prüfen“ meldet, wenn solche Altverschiebungen repariert wurden; zusätzliche Details stehen in der Browser-Konsole.
+- Build-/Cache-Kennung auf V337 aktualisiert.
+
+**Wichtig:** Die App-Syntax wurde geprüft und die Reparaturlogik anhand des bereitgestellten Backups auf die betroffenen Datensätze abgestimmt. Ein echter Durchklicktest in iOS/Safari ist in dieser Umgebung nicht möglich. Vor dem Update bitte in der bestehenden App ein frisches Backup exportieren; nach dem Update „Planung prüfen“ ausführen und das neue Backup aufbewahren.
