@@ -1440,7 +1440,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v339|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v340|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1647,11 +1647,13 @@ function buildIntelligentPlan(){
     const rooms=roomSet(arr),sameRoom=taskRoomParts(x).some(r=>rooms.has(r));
     const sameUnit=plannedWorkUnits(arr).has(workUnitKey(x));
     const samePkg=arr.some(y=>(workPackage(y)?.key||roomPackageKey(y))===(workPackage(x)?.key||roomPackageKey(x)));
+    const sameWorkflow=arr.some(y=>!isDailyTask(y)&&!isWindowRelated(y)&&taskRoomParts(y).some(r=>taskRoomParts(x).includes(r))&&roomWorkflow(y)===roomWorkflow(x));
     const dist=Math.abs(Math.round((d-preferred)/86400000));
     let s=dayBreathingScore(d,arr)+roomSpreadPenalty(arr,x)+adjacentLoadPenalty(days,d)+dist*0.7;
     if(sameRoom)s-=90;
     if(sameUnit)s-=180;
-    if(samePkg)s-=40;
+    if(samePkg)s-=70;
+    if(sameWorkflow)s-=35;
     if(sameRoom){
       const pkg=workPackage(x)?.key||roomPackageKey(x);
       const sameRoomTasks=arr.filter(y=>!isDailyTask(y)&&!isFixedTask(y)&&!isWindowRelated(y)&&taskRoomParts(y).includes(x.room));
@@ -1955,6 +1957,9 @@ function buildIntelligentPlan(){
         if((isHeavyTask(x)||isWindowRelated(x))&&arr.some(y=>!isDailyTask(y)))continue;
         if(arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))continue;
         if(violatesWindowIsolation(arr,x))continue;
+        // V340: absolute two-room cap for ordinary daily planning. Multi-room
+        // window blocks and explicitly fixed tasks are handled by their own rules.
+        if(!isFixedTask(x) && !isWindowRelated(x) && roomCountAfter(arr,x)>2)continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
       }
     }
@@ -1982,8 +1987,9 @@ function buildIntelligentPlan(){
       if(strictFocus&&((isHeavyTask(x)||isWindowRelated(x))&&arr.some(y=>!isDailyTask(y))))return false;
       if(strictFocus&&arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))return false;
       if(strictFocus&&violatesWindowIsolation(arr,x))return false;
-      // Final integrity fallback: a saved, visible date is more important than
-      // capacity/free-day rules. Such exceptional placements are surfaced by audit.
+      // V340: even the last-resort dated fallback may not introduce a third
+      // room. Fixed tasks keep their existing priority; normal tasks search on.
+      if(!isFixedTask(x) && !isWindowRelated(x) && roomCountAfter(arr,x)>2)return false;
       arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);return true;
     };
     for(let delta=0;delta<=PLAN_TOLERANCE_DAYS&&!placed;delta++){
@@ -2069,7 +2075,7 @@ function ensureTodayPlanSnapshotIds(){
  // planned date is today is guaranteed to appear in Heute. This fixes older
  // partial snapshots without bringing the expensive catalog scan back into
  // every render.
- const marker=`${k}|v325`;
+ const marker=`${k}|v340`;
  if(hasTodayPlanSnapshot() && state.__todayPlanReconciled===marker) return state.todayPlanSnapshot[k];
  const plan=buildIntelligentPlan();
  const ids=new Set(hasTodayPlanSnapshot()?state.todayPlanSnapshot[k]:[]);

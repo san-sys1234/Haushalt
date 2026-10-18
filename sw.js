@@ -1,5 +1,5 @@
-/* Unser Zuhause service worker – V339. Keep all app assets on one build version. */
-const CACHE='unser-zuhause-v339';
+/* Unser Zuhause service worker – V340. Keep all app assets on one build version. */
+const CACHE='unser-zuhause-v340';
 const ASSETS=['./','./index.html','./app.js?v=338','./manifest.json','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{

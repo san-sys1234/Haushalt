@@ -1,4 +1,4 @@
-# Unser Zuhause – optimierte Version V339
+# Unser Zuhause – optimierte Version V340
 
 ## Enthalten
 - Einheitliche Build-/Cache-Version V326 für HTML, App-JavaScript und Service Worker.
@@ -95,8 +95,16 @@ JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier ni
 **Wichtig:** Die App-Syntax wurde geprüft und die Reparaturlogik anhand des bereitgestellten Backups auf die betroffenen Datensätze abgestimmt. Ein echter Durchklicktest in iOS/Safari ist in dieser Umgebung nicht möglich. Vor dem Update bitte in der bestehenden App ein frisches Backup exportieren; nach dem Update „Planung prüfen“ ausführen und das neue Backup aufbewahren.
 
 
-## V339 – kleine Fenster-Nebenaufgaben sinnvoll bündeln
+## V340 – kleine Fenster-Nebenaufgaben sinnvoll bündeln
 - Insektenschutz prüfen/reinigen, Fensterdichtungen prüfen, Fensterentwässerung prüfen und Fensterbänke sind keine automatisch isolierten Fenster-Großarbeiten mehr. Sie können innerhalb der normalen Raum- und Aufwandsregeln mit passenden kleinen Aufgaben gebündelt werden.
 - Die strikte Isolation bleibt für die eigentliche Glasreinigung einzelner Fenster sowie große Raffstore-/Sonnenschutzarbeiten bestehen.
 - Kein Backup wird beim Update automatisch importiert oder ersetzt.
 - Syntaxprüfung durchgeführt; kein vollständiger End-to-End-Test in iPhone-Safari mit dem lokalen Nutzerdatenbestand.
+
+
+## V340 – Reinigungsschritte bündeln und maximal zwei Räume pro Tag
+- Die Planungsbewertung bevorzugt Aufgaben aus demselben Raum, Reinigungsschritt und Aufgabenpaket.
+- Die Notfall- und letzte Datumszuweisung dürfen bei normalen Aufgaben keine dritte Raumgruppe mehr hinzufügen.
+- Explizit fixierte Aufgaben behalten ihre priorisierte Behandlung; Fenster-/Raffstore-Arbeiten bleiben isoliert.
+- Versionsschlüssel und Tagesplan-Abgleich wurden aktualisiert, damit die neue Planung nicht unbemerkt aus einem alten Cache kommt.
+- Hinweis: Der Tagesplan wird in dieser Version weiterhin aus den bestehenden Einzelaufgaben gebildet; eine separate, vom Nutzer editierbare Paketverwaltung wurde nicht eingeführt.
