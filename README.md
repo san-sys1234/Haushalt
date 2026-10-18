@@ -26,3 +26,25 @@ JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier ni
 - Größere Touch-Ziele, sichtbare Tastaturfokusse und Unterstützung für reduzierte Bewegung
 - Sticky, horizontal scrollbare Hauptnavigation auf kleinen Bildschirmen
 - Keine absichtliche Änderung der Planungsregeln oder des Datenformats
+
+## V329 – kürzerer Planungshorizont
+- Verbindliche Planungstoleranz: maximal 14 Tage vor oder nach dem jeweiligen Fälligkeitstermin.
+- Keine automatische Verteilung normaler Aufgaben über einen künstlichen Sechs-Monats-Zeitraum.
+- Ersttermine werden deterministisch auf eine kurze 15-Tage-Spanne verteilt; bestehende individuelle Termine bleiben maßgeblich.
+- Fehlende explizite Intervalle werden nach Aufgabentyp differenzierter abgeleitet; gespeicherte oder individuell konfigurierte Intervalle haben immer Vorrang.
+- Die letzte Garantie-Stufe darf Arbeitslast-/Paketgrenzen lockern, aber nicht die +/-14-Tage-Grenze, die Raumgrenze oder die Fenster-Isolation.
+
+
+## V329 – Soft Neoclassical & realistische Planung
+- Deutlich überarbeitete Farbwelt, Typografie, Karten, Kalender und Navigation.
+- Neues App-Symbol im Stil Hauslinie, Salbeigrün und warmem Gold.
+- Große Aufgaben ab Aufwand 4 sowie Fenster-/Sonnenschutzarbeiten werden als isolierte Schwerpunktaufgaben geplant; die finale Vollständigkeitsprüfung darf diese Isolation nicht aufheben.
+- Planungsfenster bleibt auf maximal ±14 Tage rund um die Fälligkeit begrenzt.
+
+
+## V330 – Fixaufgaben
+- Eigener Tab „Fixaufgaben“ zum Anlegen und Verwalten verbindlicher Aufgaben.
+- Fixes Startdatum und Intervall werden nach Erstellung gesperrt; Text und Ort bleiben bearbeitbar.
+- Fällige/überfällige Fixaufgaben erscheinen zusätzlich in „Heute“, auch bei vollem Tagesplan und am Sonntag.
+- Erledigung wird pro ursprünglichem Fälligkeitstermin gespeichert; verpasste Fixaufgaben bleiben sichtbar, bis sie erledigt werden.
+- Fixaufgaben werden an das Widget übergeben. Bestehende lokale Datenstruktur wird erweitert, nicht ersetzt.
