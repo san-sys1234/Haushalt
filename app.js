@@ -1480,7 +1480,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v344|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v345|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -2113,22 +2113,16 @@ function tasksFromIds(ids){
 }
 function ensureTodayPlanSnapshotIds(){
  const k=dayKey(today);
- // The snapshot is only the fast display cache. Once per app session/day we
- // reconcile it against the canonical planner so EVERY task whose authoritative
- // planned date is today is guaranteed to appear in Heute. This fixes older
- // partial snapshots without bringing the expensive catalog scan back into
- // every render.
- const marker=`${k}|v341`;
- if(hasTodayPlanSnapshot() && state.__todayPlanReconciled===marker) return state.todayPlanSnapshot[k];
+ // V345: Today's list is a frozen daily manifest. Once it exists, never merge
+ // newly calculated planner candidates into it during the day. Completing a
+ // task only changes its status; it must not pull another task into the freed slot.
+ if(hasTodayPlanSnapshot()) return state.todayPlanSnapshot[k];
  const plan=buildIntelligentPlan();
- const ids=new Set(hasTodayPlanSnapshot()?state.todayPlanSnapshot[k]:[]);
+ const ids=new Set();
  const todayBucket=plan.days.get(k)||[];
  for(const x of todayBucket){
    if(!isDailyTask(x)&&!isDone(x)&&!isPostponed(x))ids.add(taskId(x));
  }
- // Also trust the planner's final next-map. This is the authoritative source
- // for planned dates and catches tasks that are present in next but were lost
- // from a legacy/partial day bucket.
  for(const x of CATALOG){
    if(isDailyTask(x)||isDone(x)||isPostponed(x))continue;
    const pd=plan.next.get(taskId(x));
@@ -2136,7 +2130,7 @@ function ensureTodayPlanSnapshotIds(){
  }
  const arr=[...ids];
  persistTodayPlanSnapshot(arr);
- state.__todayPlanReconciled=marker;
+ state.__todayPlanReconciled=`${k}|v345-frozen`;
  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
  return arr;
 }
@@ -2241,11 +2235,10 @@ function plannedDateForTask(x){
    // The canonical planner says TODAY. Never turn that into "—" merely
    // because an old snapshot omitted the task. Repair the snapshot instead.
    if(today.getDay()!==0 && !isDone(x)){
-     state.todayPlanSnapshot=state.todayPlanSnapshot||{};
-     const arr=Array.isArray(state.todayPlanSnapshot[todayKey])?state.todayPlanSnapshot[todayKey]:[];
-     if(!arr.includes(id)) arr.push(id);
-     state.todayPlanSnapshot[todayKey]=[...new Set(arr.map(String))];
-     return new Date(today);
+     // A frozen Today manifest is authoritative. Do not silently add a task
+     // merely because a fresh planner pass proposes it for today.
+     if(hasTodayPlanSnapshot() && todaySnapshotIds().has(id)) return new Date(today);
+     d=null;
    }
    d=null;
    for(const [k,arr] of plan.days){
