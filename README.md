@@ -1,4 +1,4 @@
-# Unser Zuhause – optimierte Version V341
+# Unser Zuhause – optimierte Version V344
 
 ## Enthalten
 - Einheitliche Build-/Cache-Version V326 für HTML, App-JavaScript und Service Worker.
@@ -95,14 +95,14 @@ JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier ni
 **Wichtig:** Die App-Syntax wurde geprüft und die Reparaturlogik anhand des bereitgestellten Backups auf die betroffenen Datensätze abgestimmt. Ein echter Durchklicktest in iOS/Safari ist in dieser Umgebung nicht möglich. Vor dem Update bitte in der bestehenden App ein frisches Backup exportieren; nach dem Update „Planung prüfen“ ausführen und das neue Backup aufbewahren.
 
 
-## V341 – kleine Fenster-Nebenaufgaben sinnvoll bündeln
+## V344 – kleine Fenster-Nebenaufgaben sinnvoll bündeln
 - Insektenschutz prüfen/reinigen, Fensterdichtungen prüfen, Fensterentwässerung prüfen und Fensterbänke sind keine automatisch isolierten Fenster-Großarbeiten mehr. Sie können innerhalb der normalen Raum- und Aufwandsregeln mit passenden kleinen Aufgaben gebündelt werden.
 - Die strikte Isolation bleibt für die eigentliche Glasreinigung einzelner Fenster sowie große Raffstore-/Sonnenschutzarbeiten bestehen.
 - Kein Backup wird beim Update automatisch importiert oder ersetzt.
 - Syntaxprüfung durchgeführt; kein vollständiger End-to-End-Test in iPhone-Safari mit dem lokalen Nutzerdatenbestand.
 
 
-## V341 – Reinigungsschritte bündeln und maximal zwei Räume pro Tag
+## V344 – Reinigungsschritte bündeln und maximal zwei Räume pro Tag
 - Die Planungsbewertung bevorzugt Aufgaben aus demselben Raum, Reinigungsschritt und Aufgabenpaket.
 - Die Notfall- und letzte Datumszuweisung dürfen bei normalen Aufgaben keine dritte Raumgruppe mehr hinzufügen.
 - Explizit fixierte Aufgaben behalten ihre priorisierte Behandlung; Fenster-/Raffstore-Arbeiten bleiben isoliert.
@@ -110,6 +110,30 @@ JavaScript-Syntax von `app.js` und `sw.js` wurde geprüft. Die App wurde hier ni
 - Hinweis: Der Tagesplan wird in dieser Version weiterhin aus den bestehenden Einzelaufgaben gebildet; eine separate, vom Nutzer editierbare Paketverwaltung wurde nicht eingeführt.
 
 
-## V341 – harte Obergrenze von zwei Räumen
+## V344 – harte Obergrenze von zwei Räumen
 
 Die Grenze von maximal zwei Räumen pro Tag wird nun vor jeder regulären Platzierung geprüft, einschließlich fixer Aufgaben und Notfallpfaden. Wenn eine fixe Aufgabe mit anderen Aufgaben zu einem dritten Raum führen würde, wird sie nicht in diesen Tagesplan gedrückt; sie muss stattdessen an einem anderen zulässigen Datum liegen. Der Planungs-Cache wurde invalidiert.
+
+
+## V344 – Priorität wichtiger Alltagsräume
+
+Automatisch erzeugte erste Termine priorisieren Küche, Schlafzimmer, beide Kinderzimmer, WCs, Bäder, Wohnzimmer und Essbereich innerhalb der ersten 45 Tage ab App-Start. Die Waschküche folgt innerhalb der ersten 75 Tage. Manuelle Termine und Erledigungshistorien bleiben maßgeblich.
+
+
+## V344 – Haushaltsorientierte Erstplanung
+
+- Zentrale Alltagsräume werden bei automatisch erzeugten Erstterminen priorisiert und innerhalb eines kürzeren Zeitfensters berücksichtigt.
+- Die Waschküche folgt in einem eigenen frühen Zeitfenster; Nebenräume werden danach verteilt.
+- Ersttermine werden nach Raum und Aufgabenreihenfolge gestaffelt, nicht ausschließlich über einen Hash-Wert zufällig über das Fenster verteilt.
+- Die harte Grenze von maximal zwei Räumen pro Tag bleibt bestehen.
+- Service-Worker-Cache und App-Buster sind auf V344 abgestimmt.
+
+Hinweis: Die Planung muss nach Deployment anhand des tatsächlichen gespeicherten Backups geprüft werden; ein vollständiger Safari-Lauf wurde nicht durchgeführt.
+
+
+## V344 – Haushaltsrhythmus und wöchentliche Hygiene
+
+- Wöchentliche WC- und Waschbeckenpflege ist auf zwei feste Routinetage verteilt: Dienstag (Gäste-WC und Bad) sowie Freitag (Kinderbad und Eltern-WC). Handtücher folgen demselben Raumrhythmus.
+- Die vorhandene Aufgabenliste, benutzerdefinierte Intervalle, manuelle Termine und Erledigungshistorien werden nicht absichtlich gelöscht oder überschrieben.
+- Die neu erzeugten Ersttermine zentraler Alltagsräume bleiben priorisiert; die Planungsgrenze von maximal zwei physischen Räumen pro Tag bleibt hart.
+- Vor Installation bitte ein frisches In-App-Backup exportieren. Diese Version wurde auf Syntax und Paketintegrität geprüft; ein vollständiger Lauf in Safari mit dem echten lokalen Bestand ist nicht erfolgt.

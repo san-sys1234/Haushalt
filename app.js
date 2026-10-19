@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V338";
+const APP_BUILD="V344";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -457,10 +457,12 @@ let state=loadState();
 // first-occurrence dates (manual dates live in manualDates/catalogDates), so
 // old clustered bootstrap dates can safely be regenerated once. Completion
 // history and user-authored dates are not touched.
-(function rebalanceInitialDueDatesV333(){
-  if(state.__initialDueRebalancedV333)return;
+(function rebalanceInitialDueDatesV344(){
+  if(state.__initialDueRebalancedV344)return;
+  // Rebuild only generated first-occurrence dates. Manual dates and history
+  // are stored separately and remain untouched.
   state.initialDueDates={};
-  state.__initialDueRebalancedV333=true;
+  state.__initialDueRebalancedV344=true;
   try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
 })();
 let selectedTab="today";
@@ -984,6 +986,24 @@ const FIRST_DUE_WINDOW_DAYS=180;
 // planning deadline in the first half-year of the current onboarding period.
 // For this household plan the requested hard ceiling is 01.04.2027.
 const FIRST_COMPLETION_DEADLINE_KEY="2027-04-01";
+// V343: prioritize real-life everyday rooms for their first pass.
+const CORE_ROOM_PRIORITY = new Map([
+ ["Küche",0],["Schlafzimmer",0],["Kinderzimmer",0],["Kinderzimmer 1",0],["Kinderzimmer 2",0],
+ ["Kinderzimmer OG",0],["Kinderzimmer EG",0],["Gäste-WC",0],["WC",0],["WC EG",0],["WC OG",0],
+ ["Eltern-WC",0],["Kinderbad",0],["Bad",0],["Badezimmer",0],["Badezimmer EG",0],["Badezimmer OG",0],
+ ["Wohnzimmer",0],["Essbereich",0],["Waschküche",1]
+]);
+function firstDuePriorityRoom(x){
+ const parts=String(x?.room||"").split(/\s*\+\s*/).map(v=>v.trim()).filter(Boolean);
+ if(!parts.length)return 2;
+ return Math.min(...parts.map(r=>{
+   if(CORE_ROOM_PRIORITY.has(r))return CORE_ROOM_PRIORITY.get(r);
+   const n=r.toLocaleLowerCase("de-AT");
+   if(/küche|schlafzimmer|kinderzimmer|wohnzimmer|essbereich|(^|\b)wc\b|bad|badezimmer/.test(n))return 0;
+   if(/waschküche|waschraum/.test(n))return 1;
+   return 2;
+ }));
+}
 function stableBootstrapHash(v){
  const str=String(v||"");let h=2166136261;
  for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619)}
@@ -1005,15 +1025,27 @@ function firstDueDateForTask(x,ref=today){
  const deadline=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
  const lastDue=addDays(deadline,-PLAN_TOLERANCE_DAYS);
  const eligible=[];
- for(let d0=new Date(ref.getFullYear(),ref.getMonth(),ref.getDate(),12);d0<=lastDue;d0=addDays(d0,1)){
+ const priority=firstDuePriorityRoom(x);
+ const bandStart=new Date(ref.getFullYear(),ref.getMonth(),ref.getDate(),12);
+ // Core everyday rooms: first 45 days. Laundry: first 75 days.
+ // Secondary rooms: remaining onboarding window through the hard deadline.
+ const bandEnd=priority===0?addDays(bandStart,29):priority===1?addDays(bandStart,44):addDays(bandStart,119);
+ for(let d0=new Date(bandStart);d0<=bandEnd;d0=addDays(d0,1)){
    if(d0.getDay()!==0&&!isHouseholdFree(d0))eligible.push(new Date(d0));
  }
  if(!eligible.length){
    const fallback=new Date(ref);fallback.setHours(12,0,0,0);
    state.initialDueDates[x.key]=dayKey(fallback);state.__initialDueDatesDirty=true;return fallback;
  }
- const offset=stableBootstrapHash(x.key||`${x.room}|${x.text}`)%eligible.length;
- const d=eligible[offset];
+ // Allocate by room and day load, rather than a pure hash: a room's first
+ // visits should appear early, and tasks should not all land on a single date.
+ const roomKey=String(x.room||"Ohne Raum");
+ const roomTasks=CATALOG.filter(y=>String(y.room||"Ohne Raum")===roomKey&&!isDailyTask(y)&&!isDone(y)&&!isPostponed(y));
+ const ordinal=Math.max(0,roomTasks.findIndex(y=>y.key===x.key));
+ const seed=stableBootstrapHash(roomKey)%Math.max(1,eligible.length);
+ const ranked=eligible.map((d,i)=>({d,i,score:Math.abs(i-((seed+ordinal*3)%eligible.length))})).sort((a,b)=>a.score-b.score||a.i-b.i);
+ // Spread a room's task dates over the band but keep the first few tasks close.
+ const d=ranked[Math.min(ranked.length-1,Math.floor(ordinal/2))]?.d||eligible[0];
  state.initialDueDates[x.key]=dayKey(d);
  state.__initialDueDatesDirty=true;
  return d;
@@ -1234,12 +1266,20 @@ function fixedRoutineDate(x,ref=today){
  const d=new Date(due); d.setHours(12,0,0,0);
  // Hygiene block: Tuesday. Bed linen: Thursday. Hand towels: Tuesday.
  const isBed=/bettwäsche wechseln/.test((x.text||"").toLowerCase());
- const dow=isBed?4:2;
+ const isWeeklyHygiene=isFixedWeeklyRoutine(x) || /handtücher wechseln/.test((x.text||"").toLowerCase());
+ // Weekly hygiene is deliberately split across two days, with two physical
+ // wet rooms per day: Tuesday = Gäste-WC + Bad; Friday = Kinderbad + Eltern-WC.
+ // This keeps toilets and basins reliably weekly without forcing all bathrooms
+ // into one overloaded day. The planner's hard two-room cap still applies.
+ let dow=isBed?4:2;
+ if(isWeeklyHygiene){
+   const fridayRooms=new Set(["Kinderbad","Eltern-WC"]);
+   dow=fridayRooms.has(x.room)?5:2;
+ }
  const delta=(dow-d.getDay()+7)%7;
  let planned=addDays(d,delta);
- // HARD ROOM LIMIT: bed linen exists in three bedrooms. Keep the fixed
- // Thursday rhythm, but distribute the third bedroom to the following
- // Thursday so no day can ever contain more than two rooms.
+ // Bed linen follows the Thursday rhythm; third bedroom rotates to the next week
+ // so the plan never adds a third bedroom to the same day's room count.
  if(isBed){
    const order=["Schlafzimmer","Kinderzimmer 1","Kinderzimmer 2"];
    const idx=order.indexOf(x.room);
@@ -1440,7 +1480,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v341|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v344|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1583,7 +1623,7 @@ function buildIntelligentPlan(){
     if(isRestDay(d))return false;
     if(!arr)return false;
     if(arr.some(y=>taskId(y)===taskId(x)))return false;
-    // V341: absolute daily cap. No task type, fixed status or emergency fallback
+    // V344: absolute daily cap. No task type, fixed status or emergency fallback
     // may introduce a third physical room. Daily routines are excluded from room counting.
     if(roomCountAfter(arr,x)>2)return false;
     if(!windowCompatible(arr,x))return false;
@@ -1960,13 +2000,13 @@ function buildIntelligentPlan(){
         if((isHeavyTask(x)||isWindowRelated(x))&&arr.some(y=>!isDailyTask(y)))continue;
         if(arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))continue;
         if(violatesWindowIsolation(arr,x))continue;
-        // V341: absolute two-room cap for ordinary daily planning. Multi-room
+        // V343: absolute two-room cap for ordinary daily planning. Multi-room
         // window blocks and explicitly fixed tasks are handled by their own rules.
         if(roomCountAfter(arr,x)>2)continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
       }
     }
-    if(!placed)console.warn("Planner V333 could not place task inside strict date window:",taskId(x));
+    if(!placed)console.warn("Planner V344 could not place task inside strict date window:",taskId(x));
   }
 
   // V334 HARD GUARANTEE: no active non-daily task may end without a planned date.
