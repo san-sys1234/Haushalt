@@ -2064,6 +2064,51 @@ function buildIntelligentPlan(){
     }
   }
 
+  // V348 ABSOLUTE COMPLETENESS: a date is mandatory for every active task.
+  // The earlier passes can still fail when all legal slots are occupied. In
+  // that case preserve the task with a concrete date and record a visible
+  // conflict instead of returning null / rendering "Geplant: —". We first
+  // try a clean weekday in the rolling horizon; only if none exists do we use
+  // the nearest future weekday and mark the day as conflicted.
+  const hasAnyBucket=id=>[...days.values()].some(a=>containsTask(a,id));
+  const absoluteMissing=()=>CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)&&!hasAnyBucket(taskId(x)));
+  for(const x of absoluteMissing()){
+    const id=String(taskId(x));
+    const raw=planningNextDue(x,today);
+    const preferred=raw instanceof Date&&!Number.isNaN(raw.getTime())&&raw>=today?raw:today;
+    const first=needsFirstCompletionPlanning(x)?0:-PLAN_TOLERANCE_DAYS;
+    const last=needsFirstCompletionPlanning(x)?180:PLAN_TOLERANCE_DAYS;
+    let chosen=null;
+    for(let radius=first;radius<=last&&!chosen;radius++){
+      const offsets=radius===0?[0]:[radius,-radius];
+      for(const off of offsets){
+        const d=addDays(preferred,off);
+        if(d<today||isFreeDay(d)||plannerBlocked(d))continue;
+        const arr=days.get(dayKey(d));
+        if(arr && hardLegal(d,arr,x)){chosen={d,arr,conflict:false};break;}
+      }
+    }
+    // Absolute final fallback: concrete date always wins over an absent date.
+    // Do not silently hide a rule conflict; attach a diagnostic record.
+    if(!chosen){
+      for(let off=0;off<=180&&!chosen;off++){
+        const d=addDays(preferred,off);
+        if(d<today||isFreeDay(d)||plannerBlocked(d))continue;
+        let arr=days.get(dayKey(d));
+        if(!arr){arr=[];days.set(dayKey(d),arr)}
+        chosen={d,arr,conflict:true};
+      }
+    }
+    if(chosen){
+      if(!chosen.arr.some(y=>taskId(y)===taskId(x))){chosen.arr.push(x);chosen.arr._weight=(chosen.arr._weight||0)+taskWeight(x)}
+      if(chosen.conflict){
+        state.planningConflicts=state.planningConflicts&&typeof state.planningConflicts==="object"?state.planningConflicts:{};
+        state.planningConflicts[id]={id,text:x.text||id,room:x.room||"",oldDate:dayKey(chosen.d),reason:"Nottermin: Aufgabe hat ein konkretes Datum erhalten, aber mindestens eine harte Planungsregel kollidiert. Bitte Konfliktprüfung öffnen.",createdAt:dayKey(today)};
+        console.error("V348 absolute date assigned with visible planning conflict",id,dayKey(chosen.d));
+      }
+    }
+  }
+
   // Rebuild next from the FINAL day buckets. This is essential: a moved task
   // must never retain its old date in the catalog/calendar.
   const next=new Map();
@@ -2243,7 +2288,19 @@ function plannedDateForTask(x){
      if((arr||[]).some(y=>taskId(y)===id)){d=fromKey(k);break}
    }
  }
- if(!(d instanceof Date) || Number.isNaN(d.getTime()) || d<today)return null;
+ if(!(d instanceof Date) || Number.isNaN(d.getTime()) || d<today){
+   // Last UI-level safety net: active tasks must never display an empty plan.
+   // Normally V348's canonical planner has already placed them in plan.next.
+   // If legacy/corrupt state escapes that pass, return a deterministic future
+   // weekday and log it so the integrity checker can expose the conflict.
+   if(!isDone(x)&&!isDailyTask(x)){
+     let fallback=addDays(today,1);
+     for(let i=0;i<14&&(fallback.getDay()===0||isHouseholdFree(fallback));i++)fallback=addDays(fallback,1);
+     console.error("V348 UI fallback date used; planner repair required",taskId(x),dayKey(fallback));
+     return fallback;
+   }
+   return null;
+ }
  return d;
 }
 function plannedDateLabel(x){
