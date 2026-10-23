@@ -1,14 +1,16 @@
-# Unser Zuhause – V350 Entlastung
+# Unser Zuhause – V351 Editorial
 
-## Änderungen in V350
-- Tägliche Routinen deutlich gekürzt und Dopplungen reduziert: Morgenroutine 4 Punkte, nach Mahlzeiten 2, Abendroutine 3, Tagescheck 2.
-- Bedarfsaufgaben (z. B. Boden, Kühlschrank oder Toiletten) erscheinen nicht mehr als tägliche Pflichtaufgabe; nur sichtbare Essensreste/Flecken bleiben als situativer Kurzcheck.
-- Tageskapazität konservativer: regulär 3 Aufwandspunkte, Dienstag 4, Samstag 2; Sonntage 0.
-- Maximal 5 geplante Aufgaben pro Tag; große Aufgaben bleiben durch die bestehende Isolationsregel eigene Schwerpunkt-Tage.
-- Build- und Service-Worker-Cache auf V350 aktualisiert.
+Diese Version ergänzt die bestehende V350-App um eine optische Ebene im Stil **Elegant & neoklassisch + Soft Lifestyle**, mit mehr Editorial-/Pinterest-Charakter: warmes Elfenbein, Blush, Salbei, dezente Goldtöne, Serifenschriften und ruhigere Karten.
 
-## Installation
-Vor dem Update in der bestehenden App ein JSON-Backup exportieren. Alle Dateien dieses ZIP gemeinsam in den bestehenden App-Ordner hochladen und ersetzen. Anschließend App neu laden und „Planung prüfen“ ausführen.
+## Wichtig
+- Die Änderung betrifft ausschließlich die Darstellung in `index.html` sowie Versions-/Cache-Kennungen.
+- `app.js`-Planungs- und Datenlogik wurde nicht funktional verändert.
+- Vor dem Aktualisieren in der bestehenden App bitte eine aktuelle Datensicherung exportieren.
+- Diese ZIP enthält die Dateien direkt im Stammverzeichnis. Alle Dateien gemeinsam hochladen/ersetzen; nicht nur `index.html` austauschen.
+- Danach die App im Browser neu laden. Falls noch alte Gestaltung erscheint, App/Website-Daten bzw. Service-Worker-Cache aktualisieren.
 
-## Prüfumfang und Einschränkung
-JavaScript-Syntax und ZIP-Inhalt wurden geprüft. Kein echter iPhone-/Safari-Lauf mit dem aktuellen lokalen Speicher wurde ausgeführt. Die bestehenden gespeicherten Termine werden von dieser Änderung nicht direkt im Backup umgeschrieben; die App berechnet ihre Planung beim Laden nach ihrer vorhandenen Planungslogik neu. Bitte die Tagesansichten nach dem Update kontrollieren.
+## Dateien
+`index.html`, `app.js`, `sw.js`, `manifest.json`, Icons und `widget-bridge.js`.
+
+## Prüfstatus
+JavaScript-Syntax und ZIP-Struktur werden geprüft. Ein echter Laufzeittest in iOS Safari und ein Test mit deiner Live-Datenbank sind nicht erfolgt. Die vorhandenen App-Daten liegen nicht in diesem ZIP; sie werden durch das reine CSS-Redesign nicht migriert oder verändert.
