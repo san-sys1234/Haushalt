@@ -1480,7 +1480,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v345|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v346|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1516,12 +1516,12 @@ function plannerHorizon(){
  // dates needed for actual due dates and the strict +/-14-day tolerance.
  // Long-interval tasks can still have a genuinely distant due date, but the
  // planner may not scatter ordinary tasks months away from their own due date.
- let end=addDays(start,PLAN_TOLERANCE_DAYS);
+ let end=addDays(start,30);
  for(const x of CATALOG){
    if(isDailyTask(x)||isInvalidLegacyTask(x))continue;
    const due=planningNextDue(x,today);
    if(due instanceof Date && !Number.isNaN(due.getTime())){
-     const candidate=addDays(due,PLAN_TOLERANCE_DAYS);
+     const candidate=addDays(due,30);
      if(candidate>end)end=candidate;
    }
  }
@@ -2040,31 +2040,21 @@ function buildIntelligentPlan(){
         if(tryPlace(addDays(preferred,off),true)){placed=true;break}
       }
     }
-    // If the +/-14-day band has no legal focus slot, find the earliest later
-    // weekday with room. This is an explicit safety fallback, not silent omission.
-    for(let off=PLAN_TOLERANCE_DAYS+1;off<=730&&!placed;off++){
+    // V346: never silently push a task months or years into the future.
+    // Search only within the household's maximum permitted 30-day deviation,
+    // while retaining the hard room, focus-task, Sunday and free-day rules.
+    // If no legal slot exists, leave an explicit diagnostic instead of inventing
+    // a distant date or breaking a hard invariant.
+    for(let off=PLAN_TOLERANCE_DAYS+1;off<=30&&!placed;off++){
       const d=addDays(preferred,off);
       if(tryPlace(d,true)){placed=true;break}
     }
     if(!placed){
-      // Extremely defensive final fallback: keep task dated even if a legacy
-      // custom free-day block conflicts. Sunday remains protected where possible.
-      for(let off=731;off<=3650&&!placed;off++){
-        const d=addDays(preferred,off);
-        if(d.getDay()===0||isHouseholdFree(d))continue;
-        if(tryPlace(d,false)){placed=true;break}
-      }
+      const id=String(taskId(x));
+      state.planningConflicts=state.planningConflicts&&typeof state.planningConflicts==="object"?state.planningConflicts:{};
+      state.planningConflicts[id]={id,text:x.text||id,room:x.room||"",oldDate:dayKey(preferred),reason:"Kein zulässiger Termin innerhalb der maximalen Abweichung von 30 Tagen gefunden. Bitte Planungskonflikt prüfen; es wurde kein weit entfernter Ersatztermin erfunden.",createdAt:dayKey(today)};
+      console.error("V346: unresolved planning conflict; no distant fallback assigned",id,x.text);
     }
-    // Absolute last resort: do not let a user-defined free-day block cause a
-    // task to disappear. Sundays are still avoided where any later slot exists.
-    if(!placed){
-      for(let off=1;off<=3650&&!placed;off++){
-        const d=addDays(preferred,off);
-        if(d.getDay()===0)continue;
-        if(tryPlace(d,false,true)){placed=true;}
-      }
-    }
-    if(!placed)console.error("V336: could not assign planned date",taskId(x),x.text);
   }
 
   // Rebuild next from the FINAL day buckets. This is essential: a moved task
@@ -2130,7 +2120,7 @@ function ensureTodayPlanSnapshotIds(){
  }
  const arr=[...ids];
  persistTodayPlanSnapshot(arr);
- state.__todayPlanReconciled=`${k}|v345-frozen`;
+ state.__todayPlanReconciled=`${k}|v346-frozen`;
  try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
  return arr;
 }
