@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V344";
+const APP_BUILD="V349";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -272,7 +272,7 @@ const SEED_ROOMS = {
 const WINDOW_INVENTORY = [
  ["KG","Waschküche",2],["KG","Musikzimmer",2],["KG","Technikraum",2],["KG","Trainingsraum",2],["KG","Flur KG",2],["KG","Stiegenhaus",1],
  ["EG","Garderobe",1],["EG","Büro",3],["EG","Wohnzimmer",1],["EG","Essbereich",2],["EG","Küche",2],["EG","Speis",1],["EG","Abstellraum",1],["EG","Gäste-WC",1],
- ["OG","Kinderzimmer 1",3],["OG","Kinderzimmer 2",3],["OG","Kinderbad",1],["OG","Schlafzimmer",1],["OG","Ankleide",1],["OG","Eltern-WC",1],["OG","Saunaraum",1],["OG","Bad",2]
+ ["OG","Kinderzimmer 1",2],["OG","Kinderzimmer 2",3],["OG","Kinderbad",1],["OG","Schlafzimmer",1],["OG","Ankleide",1],["OG","Eltern-WC",1],["OG","Saunaraum",1],["OG","Bad",2]
 ];
 const SEASONAL_SPECIALS = [
  // Herbst 2026 – erste Runde, bewusst klein portioniert
@@ -282,8 +282,7 @@ const SEASONAL_SPECIALS = [
  {key:"fenster-eg-garderobe-buero",text:" Fenster EG · Garderobe + Büro",room:"Garderobe + Büro",area:"EG",dates:["2026-10-06","2026-10-08","2026-10-10"]},
  {key:"fenster-eg-wohnen-essen",text:" Fenster EG · Wohnzimmer + Essbereich",room:"Wohnzimmer + Essbereich",area:"EG",dates:["2026-10-13","2026-10-15","2026-10-17"]},
  {key:"fenster-eg-kueche-speis-abstell",text:" Fenster EG · Küche + Speis + Abstellraum + Gäste-WC",room:"Küche + Speis + Abstellraum + Gäste-WC",area:"EG",dates:["2026-10-20","2026-10-22","2026-10-24"]},
- {key:"fenster-og-kinder1",text:" Fenster OG · Kinderzimmer 1 (3 Fenster)",room:"Kinderzimmer 1",area:"OG",dates:["2026-10-27"]},
- {key:"fenster-og-kinder2",text:" Fenster OG · Kinderzimmer 2",room:"Kinderzimmer 2",area:"OG",dates:["2026-10-29"]},
+ {key:"fenster-og-kinder",text:" Fenster OG · beide Kinderzimmer",room:"Kinderzimmer 1 + Kinderzimmer 2",area:"OG",dates:["2026-10-27","2026-10-29","2026-10-31"]},
  {key:"fenster-og-schlaf-ankleide",text:" Fenster OG · Schlafzimmer + Ankleide",room:"Schlafzimmer + Ankleide",area:"OG",dates:["2026-11-03","2026-11-05","2026-11-07"]},
  {key:"fenster-og-baeder-wc-sauna",text:" Fenster OG · Kinderbad + Eltern-WC + Sauna",room:"Kinderbad + Eltern-WC + Sauna",area:"OG",dates:["2026-11-10","2026-11-12","2026-11-14"]},
  {key:"fenster-og-bad",text:" Fenster OG · großes Bad",room:"Bad",area:"OG",dates:["2026-11-17","2026-11-19","2026-11-21"]},
@@ -295,8 +294,7 @@ const SEASONAL_SPECIALS = [
  {key:"fenster-eg-garderobe-buero",text:" Fenster EG · Garderobe + Büro",room:"Garderobe + Büro",area:"EG",dates:["2027-04-27","2027-04-29","2027-05-01"]},
  {key:"fenster-eg-wohnen-essen",text:" Fenster EG · Wohnzimmer + Essbereich",room:"Wohnzimmer + Essbereich",area:"EG",dates:["2027-05-04","2027-05-06","2027-05-08"]},
  {key:"fenster-eg-kueche-speis-abstell",text:" Fenster EG · Küche + Speis + Abstellraum + Gäste-WC",room:"Küche + Speis + Abstellraum + Gäste-WC",area:"EG",dates:["2027-05-11","2027-05-13","2027-05-15"]},
- {key:"fenster-og-kinder1",text:" Fenster OG · Kinderzimmer 1 (3 Fenster)",room:"Kinderzimmer 1",area:"OG",dates:["2027-05-18"]},
- {key:"fenster-og-kinder2",text:" Fenster OG · Kinderzimmer 2",room:"Kinderzimmer 2",area:"OG",dates:["2027-05-20"]},
+ {key:"fenster-og-kinder",text:" Fenster OG · beide Kinderzimmer",room:"Kinderzimmer 1 + Kinderzimmer 2",area:"OG",dates:["2027-05-18","2027-05-20","2027-05-22"]},
  {key:"fenster-og-schlaf-ankleide",text:" Fenster OG · Schlafzimmer + Ankleide",room:"Schlafzimmer + Ankleide",area:"OG",dates:["2027-05-25","2027-05-27","2027-05-29"]},
  {key:"fenster-og-baeder-wc-sauna",text:" Fenster OG · Kinderbad + Eltern-WC + Sauna",room:"Kinderbad + Eltern-WC + Sauna",area:"OG",dates:["2027-06-01","2027-06-03","2027-06-05"]},
  {key:"fenster-og-bad",text:" Fenster OG · großes Bad",room:"Bad",area:"OG",dates:["2027-06-08","2027-06-10","2027-06-12"]},
@@ -308,8 +306,7 @@ const SEASONAL_SPECIALS = [
  {key:"fenster-eg-garderobe-buero",text:" Fenster EG · Garderobe + Büro",room:"Garderobe + Büro",area:"EG",dates:["2027-09-28","2027-09-30","2027-10-02"]},
  {key:"fenster-eg-wohnen-essen",text:" Fenster EG · Wohnzimmer + Essbereich",room:"Wohnzimmer + Essbereich",area:"EG",dates:["2027-10-05","2027-10-07","2027-10-09"]},
  {key:"fenster-eg-kueche-speis-abstell",text:" Fenster EG · Küche + Speis + Abstellraum + Gäste-WC",room:"Küche + Speis + Abstellraum + Gäste-WC",area:"EG",dates:["2027-10-12","2027-10-14","2027-10-16"]},
- {key:"fenster-og-kinder1",text:" Fenster OG · Kinderzimmer 1 (3 Fenster)",room:"Kinderzimmer 1",area:"OG",dates:["2027-10-19"]},
- {key:"fenster-og-kinder2",text:" Fenster OG · Kinderzimmer 2",room:"Kinderzimmer 2",area:"OG",dates:["2027-10-21"]},
+ {key:"fenster-og-kinder",text:" Fenster OG · beide Kinderzimmer",room:"Kinderzimmer 1 + Kinderzimmer 2",area:"OG",dates:["2027-10-19","2027-10-21","2027-10-23"]},
  {key:"fenster-og-schlaf-ankleide",text:" Fenster OG · Schlafzimmer + Ankleide",room:"Schlafzimmer + Ankleide",area:"OG",dates:["2027-10-26","2027-10-28","2027-10-30"]},
  {key:"fenster-og-baeder-wc-sauna",text:" Fenster OG · Kinderbad + Eltern-WC + Sauna",room:"Kinderbad + Eltern-WC + Sauna",area:"OG",dates:["2027-11-02","2027-11-04","2027-11-06"]},
  {key:"fenster-og-bad",text:" Fenster OG · großes Bad",room:"Bad",area:"OG",dates:["2027-11-09","2027-11-11","2027-11-13"]}
@@ -460,12 +457,12 @@ let state=loadState();
 // first-occurrence dates (manual dates live in manualDates/catalogDates), so
 // old clustered bootstrap dates can safely be regenerated once. Completion
 // history and user-authored dates are not touched.
-(function rebalanceInitialDueDatesV344(){
-  if(state.__initialDueRebalancedV344)return;
+(function rebalanceInitialDueDatesV349(){
+  if(state.__initialDueRebalancedV349)return;
   // Rebuild only generated first-occurrence dates. Manual dates and history
   // are stored separately and remain untouched.
   state.initialDueDates={};
-  state.__initialDueRebalancedV344=true;
+  state.__initialDueRebalancedV349=true;
   try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
 })();
 let selectedTab="today";
@@ -1413,16 +1410,16 @@ function packageLoad(arr,x){
 }
 function dayBudget(d){
  if(d.getDay()===0)return 0;
- // V309: roughly 90–120 minutes on a normal baby-day. V308 used only 1–3
- // effort points, which scattered the catalog across far too many days.
- if(d.getDay()===6)return 5;
- if(d.getDay()===2)return 8;
- return 7;
+ // V349: deliberately light household load. Tuesday retains modest room for
+ // the established hygiene rhythm; Saturday stays lighter; other days are small.
+ if(d.getDay()===6)return 3;
+ if(d.getDay()===2)return 5;
+ return 4;
 }
 function dayTaskLimit(d){
  if(d.getDay()===0)return 0;
- // Keep lists compact without artificially splitting compatible package work.
- return d.getDay()===2 ? 12 : 8;
+ // A short, realistic task list; effort limits remain the primary gate.
+ return d.getDay()===2 ? 6 : 4;
 }
 function canAddByTaskCount(d,arr,x,allowFixedRoutine=false){
  const limit=dayTaskLimit(d);
@@ -1626,9 +1623,9 @@ function buildIntelligentPlan(){
     if(isRestDay(d))return false;
     if(!arr)return false;
     if(arr.some(y=>taskId(y)===taskId(x)))return false;
-    // V344: absolute daily cap. No task type, fixed status or emergency fallback
-    // may introduce a third physical room. Daily routines are excluded from room counting.
-    if(roomCountAfter(arr,x)>2)return false;
+    // V349: gentle planning. A normal household day is limited to ONE physical room.
+    // Fixed sanitation routines retain their explicitly designed exception.
+    if(!opts.allowFixedRoutine && !isFixedTask(x) && roomCountAfter(arr,x)>1)return false;
     if(!windowCompatible(arr,x))return false;
     // Normal work is limited by TWO work units. Fixed/exact routines remain an
     // intentional exception (e.g. the Tuesday sanitation block).
@@ -2009,7 +2006,7 @@ function buildIntelligentPlan(){
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
       }
     }
-    if(!placed)console.warn("Planner V344 could not place task inside strict date window:",taskId(x));
+    if(!placed)console.warn("Planner V349 could not place task inside strict date window:",taskId(x));
   }
 
   // V334 HARD GUARANTEE: no active non-daily task may end without a planned date.
@@ -2043,7 +2040,7 @@ function buildIntelligentPlan(){
         if(tryPlace(addDays(preferred,off),true)){placed=true;break}
       }
     }
-    // V346: never silently push a task months or years into the future.
+    // V349: never silently push a task months or years into the future.
     // Search only within the household's maximum permitted 30-day deviation,
     // while retaining the hard room, focus-task, Sunday and free-day rules.
     // If no legal slot exists, leave an explicit diagnostic instead of inventing
@@ -2056,7 +2053,7 @@ function buildIntelligentPlan(){
       const id=String(taskId(x));
       state.planningConflicts=state.planningConflicts&&typeof state.planningConflicts==="object"?state.planningConflicts:{};
       state.planningConflicts[id]={id,text:x.text||id,room:x.room||"",oldDate:dayKey(preferred),reason:"Kein zulässiger Termin innerhalb der maximalen Abweichung von 30 Tagen gefunden. Bitte Planungskonflikt prüfen; es wurde kein weit entfernter Ersatztermin erfunden.",createdAt:dayKey(today)};
-      console.error("V346: unresolved planning conflict; no distant fallback assigned",id,x.text);
+      console.error("V349: unresolved planning conflict; no distant fallback assigned",id,x.text);
     }
   }
 

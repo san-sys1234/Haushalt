@@ -1,4 +1,4 @@
-# Unser Zuhause – optimierte Version V347
+# Unser Zuhause – optimierte Version V346
 
 ## Enthalten
 - Einheitliche Build-/Cache-Version V326 für HTML, App-JavaScript und Service Worker.
@@ -151,8 +151,8 @@ Hinweis: Die Planung muss nach Deployment anhand des tatsächlichen gespeicherte
 - Das ist eine konservative Reparatur der Termin-Fallback-Logik; ein echter iPhone/Safari-Laufzeittest ist hier nicht möglich.
 
 
-## V347 – Fensterbestand Kinderzimmer 1 korrigiert
-- Fensterinventar für Kinderzimmer 1 von zwei auf drei physische Fenster korrigiert.
-- Für jedes der drei Fenster werden die bereits vorgesehenen Einzelaufgaben separat erzeugt: innen, außen, Fensterbank, Dichtung, Entwässerung, Insektenschutz (falls vorhanden) und Raffstore (falls vorhanden).
-- Die saisonale Fensterreinigung im OG ist nun nach Kinderzimmer 1 und Kinderzimmer 2 getrennt; keine gemeinsame Sammelaufgabe für beide Kinderzimmer.
-- Die bestehenden Daten und gespeicherten Erledigungshistorien werden nicht verändert.
+## V349 – Entlastete Haushaltsplanung
+- Normale Tage: maximal 4 Aufwandspunkte und 4 Aufgaben; Dienstag 5 Aufwandspunkte/6 Aufgaben; Samstag 3 Aufwandspunkte/4 Aufgaben. Sonntag bleibt frei.
+- Normale Aufgaben werden auf höchstens einen physischen Raum pro Tag begrenzt; definierte Fixroutinen behalten ihre Ausnahme.
+- Bestehende Daten bleiben im lokalen App-Speicher; vor dem Update trotzdem ein JSON-Backup exportieren.
+- Technische Prüfung: JavaScript-Syntax geprüft; kein echter Safari-/iPhone-Laufzeittest durchgeführt. Nach dem Update bitte „Planung prüfen“ verwenden und Konflikte kontrollieren.
