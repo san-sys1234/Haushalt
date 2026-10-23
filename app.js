@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V349";
+const APP_BUILD="V350";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -8,10 +8,11 @@ const LEGACY_STORAGE_OLD2="unser-zuhause-v148";
 const LEGACY_STORAGE_2="unser-zuhause-v139";
 const LEGACY_STORAGE_3="unser-zuhause-v109";
 const DAILY=[
- [" Morgenroutine",["Bett machen","Schlafzimmer kurz lüften","Kleidung wegräumen","Schmutzwäsche in den Wäschekorb","Vorhänge/Raffstores öffnen","Geschirrspüler ausräumen","Frühstücksgeschirr einräumen","Küchenarbeitsfläche abwischen","Esstisch abwischen","Hochstuhl/Essplatz sauber machen","Schuhe, Jacken & Taschen kurz ordnen"]],
- [" Nach Mahlzeiten",["Geschirr in den Geschirrspüler","Tisch abwischen","Hochstuhl/Essplatz sauber machen","Heruntergefallenes Essen vom Boden entfernen","Arbeitsfläche bei Bedarf abwischen"]],
- [" Abend · max. 10 Minuten",["Geschirrspüler einräumen & einschalten","Küchenflächen kurz abwischen","Spüle kurz sauber machen","Herd kurz sauber machen","Esstisch abwischen","Hochstuhl/Essplatz sauber machen","Müll kontrollieren","Wohnzimmer grob zurücksetzen","Garderobe kurz ordnen","Kleidung wegräumen","Vorhänge/Raffstores schließen"]],
- [" Tagescheck",["Restmüll kontrollieren","Biomüll kontrollieren","Wäsche nur bei Bedarf starten","Kühlschrank nur bei Bedarf prüfen","Toiletten nur bei Bedarf prüfen","Küchenboden bei Essensresten reinigen","Sichtbare Bodenflecken beseitigen"]]
+ // V350: bewusst schlanke Routinen. Bedarfsaufgaben werden nicht als tägliche Pflicht dargestellt.
+ [" Morgenroutine",["Schlafzimmer kurz lüften","Geschirrspüler ausräumen","Frühstücks-/Essplatz kurz ordnen","Schmutzwäsche in den Wäschekorb"]],
+ [" Nach Mahlzeiten",["Geschirr in den Geschirrspüler","Essplatz bei Bedarf abwischen"]],
+ [" Abend · max. 10 Minuten",["Geschirrspüler einräumen & einschalten","Küchenarbeitsfläche und Spüle kurz abwischen","Wohnbereich grob zurücksetzen"]],
+ [" Tagescheck",["Müll nur bei Bedarf kontrollieren","Sichtbare Essensreste oder Bodenflecken beseitigen"]]
 ];
 
 /* V270 – einheitliche Raumgruppen + aufgabenbezogene Symbole */
@@ -1410,16 +1411,15 @@ function packageLoad(arr,x){
 }
 function dayBudget(d){
  if(d.getDay()===0)return 0;
- // V349: deliberately light household load. Tuesday retains modest room for
- // the established hygiene rhythm; Saturday stays lighter; other days are small.
- if(d.getDay()===6)return 3;
- if(d.getDay()===2)return 5;
- return 4;
+ // V350: conservative daily capacity. Routine micro-tasks are shown separately.
+ if(d.getDay()===6)return 2;
+ if(d.getDay()===2)return 4;
+ return 3;
 }
 function dayTaskLimit(d){
  if(d.getDay()===0)return 0;
- // A short, realistic task list; effort limits remain the primary gate.
- return d.getDay()===2 ? 6 : 4;
+ // At most five scheduled tasks, regardless of fallback placement.
+ return 5;
 }
 function canAddByTaskCount(d,arr,x,allowFixedRoutine=false){
  const limit=dayTaskLimit(d);
