@@ -1,6 +1,6 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V344";
-const PLAN_TOLERANCE_DAYS=14;
+const APP_BUILD="V347";
+const PLAN_TOLERANCE_DAYS=7;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
 const LEGACY_STORAGE_OLD="unser-zuhause-v165";
@@ -985,7 +985,7 @@ const FIRST_DUE_WINDOW_DAYS=180;
 // Every active task that has never been completed gets a first-occurrence
 // planning deadline in the first half-year of the current onboarding period.
 // For this household plan the requested hard ceiling is 01.04.2027.
-const FIRST_COMPLETION_DEADLINE_KEY="2027-04-01";
+const FIRST_COMPLETION_DEADLINE_KEY="";
 // V343: prioritize real-life everyday rooms for their first pass.
 const CORE_ROOM_PRIORITY = new Map([
  ["Küche",0],["Schlafzimmer",0],["Kinderzimmer",0],["Kinderzimmer 1",0],["Kinderzimmer 2",0],
@@ -1018,7 +1018,18 @@ function firstDueDateForTask(x,ref=today){
  // are then placed only within the strict +/-14-day tolerance.
  state.initialDueDates=state.initialDueDates&&typeof state.initialDueDates==="object"?state.initialDueDates:{};
  const saved=state.initialDueDates[x.key];
- if(/^\d{4}-\d{2}-\d{2}$/.test(saved||""))return fromKey(saved);
+ if(/^\d{4}-\d{2}-\d{2}$/.test(saved||"")){
+   const savedDate=fromKey(saved),todayKeyDate=fromKey(dayKey(ref)),maxDate=addDays(todayKeyDate,180);
+   // Keep a stored first due date only if it is still inside the rolling window
+   // and respects the room-priority band. Otherwise regenerate it below.
+   const roomNameSaved=String(x.room||"").toLocaleLowerCase("de-AT");
+   const storageSaved=/lager|abstellraum|speis|technikraum|flur kg|saunaraum/.test(roomNameSaved);
+   const prioritySaved=firstDuePriorityRoom(x);
+   const earliest=storageSaved?addDays(todayKeyDate,120):prioritySaved===0?todayKeyDate:prioritySaved===1?addDays(todayKeyDate,30):addDays(todayKeyDate,60);
+   const latest=storageSaved?maxDate:prioritySaved===0?addDays(todayKeyDate,44):prioritySaved===1?addDays(todayKeyDate,89):addDays(todayKeyDate,149);
+   if(savedDate>=earliest&&savedDate<=latest)return savedDate;
+   delete state.initialDueDates[x.key];
+ }
  // V333: distribute first-time tasks across the real onboarding window instead
  // of clustering all 1,000+ initial due dates into the first 15 days. Leave a
  // full +/-14-day placement band before the hard first-completion deadline.
@@ -1027,10 +1038,13 @@ function firstDueDateForTask(x,ref=today){
  const eligible=[];
  const priority=firstDuePriorityRoom(x);
  const bandStart=new Date(ref.getFullYear(),ref.getMonth(),ref.getDate(),12);
- // Core everyday rooms: first 45 days. Laundry: first 75 days.
- // Secondary rooms: remaining onboarding window through the hard deadline.
- const bandEnd=priority===0?addDays(bandStart,29):priority===1?addDays(bandStart,44):addDays(bandStart,119);
- for(let d0=new Date(bandStart);d0<=bandEnd;d0=addDays(d0,1)){
+ // Rolling six-month first-completion window. Core everyday rooms first,
+ // laundry and secondary rooms next, storage rooms last.
+ const roomName=String(x.room||"").toLocaleLowerCase("de-AT");
+ const storage=/lager|abstellraum|speis|technikraum|flur kg|saunaraum/.test(roomName);
+ const bandEnd=storage?addDays(bandStart,179):priority===0?addDays(bandStart,44):priority===1?addDays(bandStart,89):addDays(bandStart,149);
+ const bandStartAdjusted=storage?addDays(bandStart,120):priority===0?bandStart:priority===1?addDays(bandStart,30):addDays(bandStart,60);
+ for(let d0=new Date(bandStartAdjusted);d0<=bandEnd;d0=addDays(d0,1)){
    if(d0.getDay()!==0&&!isHouseholdFree(d0))eligible.push(new Date(d0));
  }
  if(!eligible.length){
@@ -1480,15 +1494,10 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v346|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v347|tol"+PLAN_TOLERANCE_DAYS+"|rolling180|"+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
-  const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
-  // If this build is ever reused after the configured onboarding period,
-  // keep the rule meaningful by using a rolling six-month ceiling instead.
-  // During the current household onboarding period the requested 01.04.2027
-  // ceiling is authoritative.
-  if(configured>=ref)return configured;
+  // Rolling six-month deadline from the actual planning date; never a fixed calendar date.
   return addDays(ref,180);
 }
 function hasFirstCompletion(x){return !!lastDone(x);}
@@ -1512,16 +1521,14 @@ function planningNextDue(x,ref=today){
 }
 function plannerHorizon(){
  const start=new Date(today.getFullYear(),today.getMonth(),today.getDate(),12);
- // No artificial six-month onboarding horizon: the planner only opens the
- // dates needed for actual due dates and the strict +/-14-day tolerance.
- // Long-interval tasks can still have a genuinely distant due date, but the
- // planner may not scatter ordinary tasks months away from their own due date.
- let end=addDays(start,30);
+ // Open a full rolling six-month horizon so first-time tasks can be scheduled
+ // by priority. Recurring tasks are still constrained to +/-7 days of their interval date.
+ let end=addDays(start,187);
  for(const x of CATALOG){
    if(isDailyTask(x)||isInvalidLegacyTask(x))continue;
    const due=planningNextDue(x,today);
    if(due instanceof Date && !Number.isNaN(due.getTime())){
-     const candidate=addDays(due,30);
+     const candidate=addDays(due,7);
      if(candidate>end)end=candidate;
    }
  }
@@ -1917,14 +1924,14 @@ function buildIntelligentPlan(){
     // workload/package caps only inside this task's +/-14-day window.
   }
 
-  // V328 ABSOLUTE COMPLETENESS GUARANTEE WITH STRICT +/-14-DAY WINDOW.
+  // V347 completeness guarantee: recurring tasks use +/-7 days; first-time tasks use rolling 180 days.
   // The normal optimizer is intentionally conservative, but "no planned date"
   // is not an acceptable outcome. Before rebuilding `next`, make one final
   // deterministic placement pass that only keeps the true hard invariants:
   //   - no Sunday / household-free day
   //   - no more than two rooms/work units on a day
   //   - window work remains isolated to one physical window room
-  //   - first-completion tasks stay <= 01.04.2027
+  //   - first-completion tasks stay within rolling 180 days
   // Daily capacity, task count and package-fit heuristics are NOT allowed to
   // make a task disappear. Same-room packages may therefore continue on a
   // second day when a package is too large for one day.
@@ -2040,19 +2047,19 @@ function buildIntelligentPlan(){
         if(tryPlace(addDays(preferred,off),true)){placed=true;break}
       }
     }
-    // V346: never silently push a task months or years into the future.
-    // Search only within the household's maximum permitted 30-day deviation,
-    // while retaining the hard room, focus-task, Sunday and free-day rules.
-    // If no legal slot exists, leave an explicit diagnostic instead of inventing
-    // a distant date or breaking a hard invariant.
-    for(let off=PLAN_TOLERANCE_DAYS+1;off<=30&&!placed;off++){
+    // V347: recurring tasks are never moved more than +/-7 days from their
+    // interval-derived due date. Never use a distant fallback for recurrence.
+    // First-time tasks may be placed anywhere within the rolling 180-day window,
+    // with lower-priority/storage rooms allocated later.
+    const maxExtra=needsFirstCompletionPlanning(x)?180:PLAN_TOLERANCE_DAYS;
+    for(let off=PLAN_TOLERANCE_DAYS+1;off<=maxExtra&&!placed;off++){
       const d=addDays(preferred,off);
       if(tryPlace(d,true)){placed=true;break}
     }
     if(!placed){
       const id=String(taskId(x));
       state.planningConflicts=state.planningConflicts&&typeof state.planningConflicts==="object"?state.planningConflicts:{};
-      state.planningConflicts[id]={id,text:x.text||id,room:x.room||"",oldDate:dayKey(preferred),reason:"Kein zulässiger Termin innerhalb der maximalen Abweichung von 30 Tagen gefunden. Bitte Planungskonflikt prüfen; es wurde kein weit entfernter Ersatztermin erfunden.",createdAt:dayKey(today)};
+      state.planningConflicts[id]={id,text:x.text||id,room:x.room||"",oldDate:dayKey(preferred),reason:needsFirstCompletionPlanning(x)?"Kein zulässiger Termin innerhalb des rollierenden 180-Tage-Zeitraums gefunden. Prioritäts- und Raumkonflikt prüfen.":"Kein zulässiger Termin innerhalb von +/-7 Tagen zum Intervalltermin gefunden. Intervallkonflikt prüfen; kein weit entfernter Ersatztermin vergeben.",createdAt:dayKey(today)};
       console.error("V346: unresolved planning conflict; no distant fallback assigned",id,x.text);
     }
   }

@@ -1,4 +1,4 @@
-# Unser Zuhause – optimierte Version V346
+# Unser Zuhause – optimierte Version V347
 
 ## Enthalten
 - Einheitliche Build-/Cache-Version V326 für HTML, App-JavaScript und Service Worker.
@@ -144,8 +144,14 @@ Hinweis: Die Planung muss nach Deployment anhand des tatsächlichen gespeicherte
 „Heute“ wird beim ersten Öffnen des Tages als feste Aufgabenliste gespeichert. Erledigen entfernt nur den Status der erledigten Aufgabe aus der sichtbaren Restliste; es werden während desselben Tages keine neuen Aufgaben nachgezogen. Eine bestehende Tagesliste wird nicht nachträglich mit neu berechneten Planner-Kandidaten aufgefüllt.
 
 
-## V346 – keine jahrelangen Ersatztermine
+## V347 – keine jahrelangen Ersatztermine
 - Entfernt die Notfallplatzierung, die Aufgaben bis zu 10 Jahre später einplanen konnte.
 - Sucht bei ausgebuchtem Plan nur bis maximal 30 Tage nach dem bevorzugten Termin und wahrt dabei harte Raum-/Fokus-/Sperrtagregeln.
 - Wenn kein zulässiger Platz gefunden wird, wird ein konkreter Planungskonflikt protokolliert statt ein irreführender Termin in ferner Zukunft erzeugt.
 - Das ist eine konservative Reparatur der Termin-Fallback-Logik; ein echter iPhone/Safari-Laufzeittest ist hier nicht möglich.
+
+
+## V347 Planungsregeln
+- Erledigte Aufgaben: Intervall ab letzter Erledigung, maximale Planungsabweichung +/- 7 Tage.
+- Noch nie erledigte Aufgaben: gleitender 180-Tage-Zeitraum; Alltagsräume zuerst, Lagerräume/Abstellräume zuletzt.
+- Kein pauschaler 10-Jahres-Fallback. Wenn kein zulässiger Platz existiert, wird ein sichtbarer Planungskonflikt protokolliert.
