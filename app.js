@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V360";
+const APP_BUILD="V362";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -491,9 +491,9 @@ let CATALOG_BY_ID=new Map();
 let todaySnapshotSetCache=null;
 let todaySnapshotSetCacheKey="";
 let calendarCache={year:null,days:new Map()};
-let plannerCache={key:null,days:new Map(),next:new Map()};
+let plannerCache={key:null,days:new Map(),next:new Map(),restDays:new Set()};
 function invalidatePlanner(){
-  plannerCache={key:null,days:new Map(),next:new Map()};
+  plannerCache={key:null,days:new Map(),next:new Map(),restDays:new Set()};
   todaySnapshotSetCache=null;
   todaySnapshotSetCacheKey="";
 }
@@ -1442,15 +1442,16 @@ function packageLoad(arr,x){
 }
 function dayBudget(d){
  if(d.getDay()===0)return 0;
- // V350: conservative daily capacity. Routine micro-tasks are shown separately.
- if(d.getDay()===6)return 2;
- if(d.getDay()===2)return 4;
- return 3;
+ // V362: allow a genuinely useful first-cleaning session while keeping large
+ // tasks isolated and limiting the total to ten additional tasks.
+ if(d.getDay()===6)return 12;
+ if(d.getDay()===2)return 18; // Tuesday accommodates the fixed sanitation block.
+ return 15;
 }
 function dayTaskLimit(d){
  if(d.getDay()===0)return 0;
- // At most five scheduled tasks, regardless of fallback placement.
- return 5;
+ // User-approved ceiling: up to ten non-routine household tasks per workday.
+ return 10;
 }
 function canAddByTaskCount(d,arr,x,allowFixedRoutine=false){
  const limit=dayTaskLimit(d);
@@ -1511,7 +1512,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v360|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v362|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1681,9 +1682,9 @@ function buildIntelligentPlan(){
         // from becoming a giant list while still allowing useful combinations.
         if(existing.has(pkg)){
           const miniCount=sameRoom.filter(y=>taskWeight(y)<=2).length;
-          const maxTasks=miniCount>=3 && weight<=2 ? 5 : 4;
-          if(roomWeight+weight>7 || sameRoom.length>=maxTasks)return false;
-        }else if(isHeavyTask(x) || roomWeight+weight>7){
+          const maxTasks=miniCount>=3 && weight<=2 ? 6 : 5;
+          if(roomWeight+weight>12 || sameRoom.length>=maxTasks)return false;
+        }else if(isHeavyTask(x) || roomWeight+weight>12){
           return false;
         }
       }
@@ -1874,7 +1875,7 @@ function buildIntelligentPlan(){
     for(let radius=0;radius<=PLAN_TOLERANCE_DAYS&&!placed;radius++){
       for(const sign of radius===0?[1]:[1,-1]){
         const d=addDays(due,radius*sign),arr=days.get(dayKey(d));
-        if(!arr||isFreeDay(d))continue;
+        if(!arr||isFreeDay(d)||isRestDay(d))continue;
           if(!legal(d,arr,x,{ignoreCount:true}))continue;
         if(arr.length>=dayTaskLimit(d))continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
@@ -1891,7 +1892,7 @@ function buildIntelligentPlan(){
     for(let delta=-PLAN_TOLERANCE_DAYS;delta<=PLAN_TOLERANCE_DAYS;delta++){
       for(const sign of delta===0?[1]:[1,-1]){
         const d=addDays(due,delta*sign),arr=days.get(dayKey(d));
-        if(!arr||isFreeDay(d))continue;
+        if(!arr||isFreeDay(d)||isRestDay(d))continue;
           if(!legal(d,arr,x,{ignoreCount:true}))continue;
         const sc=score(d,arr,x,due)+Math.abs(delta)*.1;
         if(!best||sc<best.score)best={d,arr,score:sc};
@@ -1953,7 +1954,7 @@ function buildIntelligentPlan(){
     for(let radius=0;radius<=PLAN_TOLERANCE_DAYS&&!placed;radius++){
       for(const sign of radius===0?[1]:[1,-1]){
         const d=addDays(due,radius*sign),arr=days.get(dayKey(d));
-        if(!arr||isFreeDay(d)||arr.length>=dayTaskLimit(d))continue;
+        if(!arr||isFreeDay(d)||isRestDay(d)||arr.length>=dayTaskLimit(d))continue;
           if(!legal(d,arr,x,{ignoreCount:true}))continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
       }
@@ -1975,7 +1976,7 @@ function buildIntelligentPlan(){
   // second day when a package is too large for one day.
   const containsTask=(arr,id)=>!!(arr&&arr.some(y=>taskId(y)===id));
   const hardLegal=(d,arr,x)=>{
-    if(!d||d<today||plannerBlocked(d)||!arr)return false;
+    if(!d||d<today||plannerBlocked(d)||isRestDay(d)||!arr)return false;
     const id=taskId(x);
     if(containsTask(arr,id))return false;
     if(violatesTwoRoomRule(arr,x))return false;
@@ -2041,7 +2042,7 @@ function buildIntelligentPlan(){
       const offsets=radius===0?[0]:[radius,-radius];
       for(const off of offsets){
         const d=addDays(preferred,off),arr=days.get(dayKey(d));
-        if(!arr||d<today||plannerBlocked(d)||containsTask(arr,taskId(x)))continue;
+        if(!arr||d<today||plannerBlocked(d)||isRestDay(d)||containsTask(arr,taskId(x)))continue;
         // Emergency placement must not recreate overloaded days. Exact-date
         // tasks are handled in their dedicated protected path above.
         if(arr.length>=dayTaskLimit(d))continue;
@@ -2073,7 +2074,7 @@ function buildIntelligentPlan(){
     const preferred=due instanceof Date&&!Number.isNaN(due.getTime())&&due>=today?due:today;
     let placed=false;
     const tryPlace=(d,strictFocus=true,ignoreBlocked=false)=>{
-      if(!d||d<today||(!ignoreBlocked&&plannerBlocked(d)))return false;
+      if(!d||d<today||(!ignoreBlocked&&plannerBlocked(d))||isRestDay(d))return false;
       const k=dayKey(d); let arr=days.get(k);
       if(!arr){arr=[];days.set(k,arr)}
       if(containsTask(arr,taskId(x)))return true;
@@ -2109,7 +2110,7 @@ function buildIntelligentPlan(){
       let best=null;
       for(const [k,arr] of days){
         const d=fromKey(k);
-        if(d<today||!hardLegal(d,arr,x))continue;
+        if(d<today||isRestDay(d)||!hardLegal(d,arr,x))continue;
         const sameRoom=taskRoomParts(x).some(r=>plannedRoomSet(arr).has(r));
         const samePkg=arr.some(y=>(workPackage(y)?.key||roomPackageKey(y))===(workPackage(x)?.key||roomPackageKey(x)));
         const score=(arr._weight||0)*8+arr.length*3+(samePkg?-10:0)+(sameRoom?-5:0)+Math.abs((d-preferred)/86400000)*.03;
@@ -2138,7 +2139,7 @@ function buildIntelligentPlan(){
   // this planner.
   const unresolved=CATALOG.filter(x=>!isDailyTask(x)&&!isDone(x)&&!isPostponed(x)&&!next.has(taskId(x)));
   if(unresolved.length) console.warn("Planner V313 unresolved tasks:",unresolved.map(taskId));
-  plannerCache={key,days,next};
+  plannerCache={key,days,next,restDays};
   return plannerCache;
 }
 
@@ -2171,10 +2172,26 @@ function tasksFromIds(ids){
 }
 function ensureTodayPlanSnapshotIds(){
  const k=dayKey(today);
+ // V362 one-time capacity migration: refresh today's old automatically generated
+ // manifest so the new ten-task ceiling can take effect immediately. Preserve an
+ // explicitly locked plan, all completion history, and separately added tasks.
+ if(!state.__v362CapacityMigration){
+   state.__v362CapacityMigration=true;
+   if(!state.todayPlanLock?.[k] && state.todayPlanSnapshot && Object.prototype.hasOwnProperty.call(state.todayPlanSnapshot,k))delete state.todayPlanSnapshot[k];
+   todaySnapshotSetCache=null;todaySnapshotSetCacheKey="";
+   try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
+ }
  // V345: Today's list is a frozen daily manifest. Once it exists, never merge
  // newly calculated planner candidates into it during the day. Completing a
  // task only changes its status; it must not pull another task into the freed slot.
- if(hasTodayPlanSnapshot()) return state.todayPlanSnapshot[k];
+ if(hasTodayPlanSnapshot()){
+   const currentPlan=buildIntelligentPlan();
+   if(currentPlan.restDays?.has(k)){
+     persistTodayPlanSnapshot([]);
+     return [];
+   }
+   return state.todayPlanSnapshot[k];
+ }
  const plan=buildIntelligentPlan();
  const ids=new Set();
  const todayBucket=plan.days.get(k)||[];
@@ -2271,6 +2288,10 @@ function populateCalendarYear(year){
   }
   for(const arr of days.values())arr.sort((a,b)=>taskWeight(b)-taskWeight(a)||roomLabel(a.room).localeCompare(roomLabel(b.room),'de')||a.text.localeCompare(b.text,'de'));
   calendarCache={year,days};
+}
+function isPlannerRestDay(d){
+  const plan=buildIntelligentPlan();
+  return !!plan.restDays?.has(dayKey(d));
 }
 function calendarTasksForDate(d){
   const year=d.getFullYear();
@@ -3153,15 +3174,22 @@ function roomGroupTasksSorted(tasks){
 function appendDailyRoutineGroups(container,tasks){
   const arr=tasks.filter(x=>x.source==="daily");
   if(!arr.length)return;
-  const sec=document.createElement("section");
-  sec.className="dailyRoutineGroup";
-  const head=document.createElement("div");
-  head.className="dailyRoutineHead";
-  head.innerHTML=`<span class="dailyRoutineName">Tägliche Routinen · einzeln abhaken</span><span class="roomGroupCount">${arr.length} Aufgaben</span>`;
-  sec.appendChild(head);
-  // No bundled routine cards: every activity has its own independent checkbox.
-  arr.forEach(x=>sec.appendChild(taskRow(x)));
-  container.appendChild(sec);
+  // V361: Routinen sind nach Tageszeit in getrennten Karten gegliedert.
+  // Jede einzelne Tätigkeit behält ihre eigene Zeile und Checkbox.
+  for(const [groupName] of DAILY){
+    const groupTasks=arr.filter(x=>String(x.group||"").trim()===String(groupName).trim());
+    if(!groupTasks.length)continue;
+    const sec=document.createElement("section");
+    sec.className="dailyRoutineGroup dailyRoutineTimeGroup";
+    const head=document.createElement("div");
+    head.className="dailyRoutineHead";
+    const label=String(groupName).trim();
+    const icon=label.startsWith("Morgen")?"☀️":label.startsWith("Nach")?"🍽️":label.startsWith("Abend")?"🌙":"✓";
+    head.innerHTML=`<span class="dailyRoutineName"><span class="dailyRoutineIcon" aria-hidden="true">${icon}</span>${esc(label)}</span><span class="roomGroupCount">${groupTasks.length} ${groupTasks.length===1?"Aufgabe":"Aufgaben"}</span>`;
+    sec.appendChild(head);
+    groupTasks.forEach(x=>sec.appendChild(taskRow(x)));
+    container.appendChild(sec);
+  }
 }
 function fixedDueDate(x){return fromKey(x.nextDue||x.startDate)}
 function isFixedDone(x){return !!state.fixedDone?.[x.id]?.[dayKey(x.dueDate||today)]}
@@ -3563,7 +3591,7 @@ function renderWeek(){
   if(!candidates.length){list.innerHTML=`<div class="empty">Gerade ist nichts offen, das bald ansteht. </div>`;return;}
   appendRoomGroups(list,roomGroupTasksSorted(candidates),{showDue:true});
 }
-function renderCalendar(){const main=document.getElementById("main"),year=state.calendarYear||today.getFullYear(),months=["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];main.innerHTML=`<div class="card"><div class="yearIntro"><div><div class="small">Jahresvorschau</div><div class="yearTitle"> ${year}</div></div><div class="yearNav"><button id="prev">‹</button><button id="cur">Dieses Jahr</button><button id="next">›</button></div></div><div class="calendarLegend"><span> erledigt</span><span> Sonntag frei</span><span> Ausflug/Urlaub</span><span>Die Zahl = sinnvoll eingeplante Aufgaben ·  = Tag geschafft</span></div><div class="monthGrid" id="mg"></div><div id="detailDay"></div></div>`;const mg=main.querySelector("#mg");for(let m=0;m<12;m++){const card=document.createElement("div");card.className="monthCard";card.innerHTML=`<div class="monthName">${months[m]}</div><div class="weekdays">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<span>${x}</span>`).join("")}</div><div class="monthDays"></div>`;const grid=card.querySelector(".monthDays"),first=new Date(year,m,1,12),offset=(first.getDay()+6)%7;for(let z=0;z<offset;z++)grid.appendChild(document.createElement("span"));const count=new Date(year,m+1,0).getDate();for(let n=1;n<=count;n++){const d=new Date(year,m,n,12),tasks=calendarTasksForDate(d),el=document.createElement("button");const completed=calendarDayCompleted(d,tasks);el.className="yearDay"+(d.getDay()===0||isHouseholdFree(d)?" free":"")+(sameDay(d,today)?" today":"")+(completed?" completed":"");el.innerHTML=`<span class="dayNum">${n}</span>${tasks.length?`<span class="dayMark">${tasks.length}</span>`:""}${completed?`<span class="dayComplete" title="Tag geschafft"></span>`:""}`;el.onclick=()=>showCalendarDay(d,tasks);grid.appendChild(el)}mg.appendChild(card)}main.querySelector("#prev").onclick=()=>{state.calendarYear=year-1;save({invalidate:false});renderCalendar()};main.querySelector("#next").onclick=()=>{state.calendarYear=year+1;save({invalidate:false});renderCalendar()};main.querySelector("#cur").onclick=()=>{state.calendarYear=today.getFullYear();save({invalidate:false});renderCalendar()}}
+function renderCalendar(){const main=document.getElementById("main"),year=state.calendarYear||today.getFullYear(),months=["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];main.innerHTML=`<div class="card"><div class="yearIntro"><div><div class="small">Jahresvorschau</div><div class="yearTitle"> ${year}</div></div><div class="yearNav"><button id="prev">‹</button><button id="cur">Dieses Jahr</button><button id="next">›</button></div></div><div class="calendarLegend"><span> erledigt</span><span> Sonntag frei</span><span> Zweiter freier Tag</span><span> Ausflug/Urlaub</span><span>Die Zahl = sinnvoll eingeplante Aufgaben ·  = Tag geschafft</span></div><div class="monthGrid" id="mg"></div><div id="detailDay"></div></div>`;const mg=main.querySelector("#mg");for(let m=0;m<12;m++){const card=document.createElement("div");card.className="monthCard";card.innerHTML=`<div class="monthName">${months[m]}</div><div class="weekdays">${["Mo","Di","Mi","Do","Fr","Sa","So"].map(x=>`<span>${x}</span>`).join("")}</div><div class="monthDays"></div>`;const grid=card.querySelector(".monthDays"),first=new Date(year,m,1,12),offset=(first.getDay()+6)%7;for(let z=0;z<offset;z++)grid.appendChild(document.createElement("span"));const count=new Date(year,m+1,0).getDate();for(let n=1;n<=count;n++){const d=new Date(year,m,n,12),tasks=calendarTasksForDate(d),el=document.createElement("button");const completed=calendarDayCompleted(d,tasks);el.className="yearDay"+(d.getDay()===0||isHouseholdFree(d)||isPlannerRestDay(d)?" free":"")+(sameDay(d,today)?" today":"")+(completed?" completed":"");el.innerHTML=`<span class="dayNum">${n}</span>${tasks.length?`<span class="dayMark">${tasks.length}</span>`:""}${completed?`<span class="dayComplete" title="Tag geschafft"></span>`:""}`;el.onclick=()=>showCalendarDay(d,tasks);grid.appendChild(el)}mg.appendChild(card)}main.querySelector("#prev").onclick=()=>{state.calendarYear=year-1;save({invalidate:false});renderCalendar()};main.querySelector("#next").onclick=()=>{state.calendarYear=year+1;save({invalidate:false});renderCalendar()};main.querySelector("#cur").onclick=()=>{state.calendarYear=today.getFullYear();save({invalidate:false});renderCalendar()}}
 function showCalendarDay(d,tasks){
  const box=document.getElementById("detailDay");
  // Calendar day details always come from the same canonical plan as Today and
@@ -3572,7 +3600,7 @@ function showCalendarDay(d,tasks){
  const completed=calendarDayCompleted(d,dayTasks),done=completedTasksForDate(d,dayTasks),doneBy={};
  done.forEach(x=>(doneBy[x.room]??=[]).push(x));
  const plannedBy={};dayTasks.forEach(x=>(plannedBy[x.room]??=[]).push(x));
- box.innerHTML=`<div class="yearDetail"><h3>${esc(dateLabel(d))}${completed?` `:``}</h3><div class="small">${esc(isHouseholdFree(d)?" Haushaltsfrei":themeFor(d))}</div>
+ box.innerHTML=`<div class="yearDetail"><h3>${esc(dateLabel(d))}${completed?` `:``}</h3><div class="small">${esc(isHouseholdFree(d)?"Haushaltsfrei":d.getDay()===0?"Sonntag · haushaltsfrei":isPlannerRestDay(d)?"Zweiter freier Tag · keine Haushaltsaufgaben":themeFor(d))}</div>
  ${completed?`<div class="completedDayBadge"> <b>Tag geschafft!</b><br><span class="small">Alle geplanten Aufgaben dieses Tages wurden erledigt.</span></div>`:""}
  ${dayTasks.length?`<div class="detailTasks"><b>Geplante Arbeiten · ${dayTasks.length}</b><div id="calendarDayTasks"></div></div>`:`<div class="empty">Für diesen Tag sind keine geplanten Arbeiten eingetragen.</div>`}
  ${done.length?`<div class="detailTasks"><b> Erledigte Arbeiten · ${done.length}</b>${Object.entries(doneBy).map(([r,arr])=>`<div class="detailTasks"><b>${esc(r)}</b>${arr.map(x=>`<div class="detailTask ${effortClass(taskWeight(x))}"> ${esc(displayTaskName(x))}</div>`).join("")}</div>`).join("")}</div>`:""}

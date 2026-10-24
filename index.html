@@ -348,6 +348,14 @@ body{background:radial-gradient(ellipse at 95% 0%,rgba(230,202,190,.35),transpar
 footer{color:#9a887d}
 @media(max-width:500px){.app>h1{font-size:37px}.card{border-radius:22px}.hero{background:linear-gradient(135deg,#fffaf5,#f6e7df 65%,#edf0e6)}}
 
+
+/* V362: Tagesroutinen klar in vier Tageszeit-Karten gliedern. */
+.dailyRoutineTimeGroup .dailyRoutineHead{display:flex;align-items:center;gap:8px}
+.dailyRoutineTimeGroup .dailyRoutineName{display:flex;align-items:center;gap:7px}
+.dailyRoutineIcon{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;flex:0 0 27px;border-radius:9px;background:#f2e8dc;font-size:14px}
+.dailyRoutineTimeGroup .task{border-bottom:1px solid rgba(140,116,94,.12)}
+.dailyRoutineTimeGroup .task:last-child{border-bottom:0}
+
 </style>
 </head>
 <body>
@@ -355,7 +363,7 @@ footer{color:#9a887d}
 <div class="tabs"><button class="tab active" data-tab="today">Heute</button><button class="tab" data-tab="week"> Bald fällig</button><button class="tab" data-tab="calendar"> Kalender</button><button class="tab" data-tab="catalog"> Aufgabenkatalog</button><button class="tab" data-tab="fixed">🔒 Fixaufgaben</button></div>
 <main id="main"></main><footer>Flexibel statt perfekt. Ein ausgelassener Tag wird nicht automatisch nachgeholt. </footer></div>
 <div class="detailOverlay" id="detailOverlay"><div class="sheet"><div class="sheetTop"><div><div class="small" id="detailMeta"></div><h2 id="detailTitle"></h2></div><button class="close" id="closeDetail">×</button></div><div id="detailContent"></div></div></div><div class="toast" id="toast"></div>
-<script src="app.js?v=360"></script>
+<script src="app.js?v=362"></script>
 <script>if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").then(r=>r.update()).catch(()=>{});}</script>
 </body></html>
 
