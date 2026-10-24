@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V354";
+const APP_BUILD="V355";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -1512,11 +1512,11 @@ function planningNextDue(x,ref=today){
 }
 function plannerHorizon(){
  const start=new Date(today.getFullYear(),today.getMonth(),today.getDate(),12);
- // No artificial six-month onboarding horizon: the planner only opens the
- // dates needed for actual due dates and the strict +/-14-day tolerance.
- // Long-interval tasks can still have a genuinely distant due date, but the
- // planner may not scatter ordinary tasks months away from their own due date.
- let end=addDays(start,30);
+ // V355: reserve enough calendar capacity for the initial household backlog.
+ // A short horizon pushed the old emergency paths to overload individual days.
+ // Normal placements still honor their due-date tolerance; only tasks that
+ // cannot fit there use the later balanced slots.
+ let end=addDays(start,365);
  for(const x of CATALOG){
    if(isDailyTask(x)||isInvalidLegacyTask(x))continue;
    const due=planningNextDue(x,today);
@@ -1942,12 +1942,13 @@ function buildIntelligentPlan(){
     if(containsTask(arr,id))return false;
     if(violatesTwoRoomRule(arr,x))return false;
     if(violatesWindowIsolation(arr,x))return false;
-    // Large jobs (effort 4–5) and every window-related job are exclusive focus
-    // blocks. The emergency completeness pass may relax workload, never isolation.
+    // V355: even a last-resort placement respects visible daily capacity.
+    if(arr.length>=dayTaskLimit(d))return false;
+    // Large jobs/window work have an exclusive focus day and may exceed the
+    // normal weight budget only when that day has no other non-daily task.
     if((isHeavyTask(x)||isWindowRelated(x)) && arr.some(y=>!isDailyTask(y)))return false;
     if(arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))return false;
-    // This is the final guarantee path: workload and package-size caps may
-    // be relaxed, but the due-date window, room count and window isolation may not.
+    if(!isHeavyTask(x)&&!isWindowRelated(x)&&(arr._weight||0)+taskWeight(x)>dayBudget(d))return false;
     return true;
   };
   const addGuaranteed=(x)=>{
@@ -2006,10 +2007,10 @@ function buildIntelligentPlan(){
         // Emergency placement must not recreate overloaded days. Exact-date
         // tasks are handled in their dedicated protected path above.
         if(arr.length>=dayTaskLimit(d))continue;
-        if((arr._weight||0)+taskWeight(x)>dayBudget(d))continue;
         // Never combine large/focus/window work with another non-daily task.
         if((isHeavyTask(x)||isWindowRelated(x))&&arr.some(y=>!isDailyTask(y)))continue;
         if(arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))continue;
+        if(!isHeavyTask(x)&&!isWindowRelated(x)&&(arr._weight||0)+taskWeight(x)>dayBudget(d))continue;
         if(violatesWindowIsolation(arr,x))continue;
         // V343: absolute two-room cap for ordinary daily planning. Multi-room
         // window blocks and explicitly fixed tasks are handled by their own rules.
@@ -2041,9 +2042,12 @@ function buildIntelligentPlan(){
       if(strictFocus&&((isHeavyTask(x)||isWindowRelated(x))&&arr.some(y=>!isDailyTask(y))))return false;
       if(strictFocus&&arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))return false;
       if(strictFocus&&violatesWindowIsolation(arr,x))return false;
-      // V341: even the last-resort dated fallback may not introduce a third
-      // room. Fixed tasks keep their existing priority; normal tasks search on.
+      // V355: never exceed daily task/workload limits, even in a last resort.
       if(roomCountAfter(arr,x)>2)return false;
+      if(arr.length>=dayTaskLimit(d))return false;
+      if(strictFocus&&((isHeavyTask(x)||isWindowRelated(x))&&arr.some(y=>!isDailyTask(y))))return false;
+      if(strictFocus&&arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))return false;
+      if(!isHeavyTask(x)&&!isWindowRelated(x)&&(arr._weight||0)+taskWeight(x)>dayBudget(d))return false;
       arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);return true;
     };
     for(let delta=0;delta<=PLAN_TOLERANCE_DAYS&&!placed;delta++){
@@ -2061,10 +2065,25 @@ function buildIntelligentPlan(){
       if(tryPlace(d,true)){placed=true;break}
     }
     if(!placed){
-      const id=String(taskId(x));
-      state.planningConflicts=state.planningConflicts&&typeof state.planningConflicts==="object"?state.planningConflicts:{};
-      state.planningConflicts[id]={id,text:x.text||id,room:x.room||"",oldDate:dayKey(preferred),reason:"Kein zulässiger Termin innerhalb der maximalen Abweichung von 30 Tagen gefunden. Bitte Planungskonflikt prüfen; es wurde kein weit entfernter Ersatztermin erfunden.",createdAt:dayKey(today)};
-      console.error("V349: unresolved planning conflict; no distant fallback assigned",id,x.text);
+      // V355: spread genuinely unresolved tasks over the full horizon instead
+      // of stacking them onto the first available room/day. This pass still
+      // obeys daily workload, focus, room and window-isolation limits.
+      let best=null;
+      for(const [k,arr] of days){
+        const d=fromKey(k);
+        if(d<today||!hardLegal(d,arr,x))continue;
+        const sameRoom=taskRoomParts(x).some(r=>plannedRoomSet(arr).has(r));
+        const samePkg=arr.some(y=>(workPackage(y)?.key||roomPackageKey(y))===(workPackage(x)?.key||roomPackageKey(x)));
+        const score=(arr._weight||0)*8+arr.length*3+(samePkg?-10:0)+(sameRoom?-5:0)+Math.abs((d-preferred)/86400000)*.03;
+        if(!best||score<best.score)best={arr,d,score};
+      }
+      if(best){best.arr.push(x);best.arr._weight=(best.arr._weight||0)+taskWeight(x);placed=true;}
+      if(!placed){
+        const id=String(taskId(x));
+        state.planningConflicts=state.planningConflicts&&typeof state.planningConflicts==="object"?state.planningConflicts:{};
+        state.planningConflicts[id]={id,text:x.text||id,room:x.room||"",oldDate:dayKey(preferred),reason:"Kein zulässiger Termin im Planungshorizont gefunden. Bitte Tageskapazität oder Aufgabenaufwand prüfen.",createdAt:dayKey(today)};
+        console.error("V355: unresolved planning conflict",id,x.text);
+      }
     }
   }
 
