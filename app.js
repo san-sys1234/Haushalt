@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V358";
+const APP_BUILD="V360";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -8,12 +8,28 @@ const LEGACY_STORAGE_OLD2="unser-zuhause-v148";
 const LEGACY_STORAGE_2="unser-zuhause-v139";
 const LEGACY_STORAGE_3="unser-zuhause-v109";
 const DAILY=[
- // V357: Bett machen ist eine eigene tägliche Aufgabe innerhalb der Morgenroutine.
- // Die vier Routinepakete bleiben kompakt; die harte Tagesgrenze zählt alle Einträge zusammen.
- [" Morgenroutine",["Morgenroutine: lüften, Geschirrspüler ausräumen, Essplatz ordnen & Wäsche sammeln","Bett machen"]],
- [" Nach Mahlzeiten",["Nach Mahlzeiten: Geschirr versorgen & Essplatz bei Bedarf abwischen"]],
- [" Abendroutine",["Abendroutine: Geschirrspüler, Küche & Wohnbereich zurücksetzen"]],
- [" Tagescheck",["Tagescheck: Müll, Essensreste & sichtbare Flecken bei Bedarf"]]
+ // V359: Jede tägliche Tätigkeit ist eine eigene, separat abhakebare Aufgabe.
+ [" Morgenroutine",[
+   "Lüften",
+   "Geschirrspüler ausräumen",
+   "Essplatz ordnen",
+   "Wäsche sammeln",
+   "Bett machen"
+ ]],
+ [" Nach Mahlzeiten",[
+   "Nach Mahlzeiten: Geschirr versorgen",
+   "Nach Mahlzeiten: Essplatz bei Bedarf abwischen"
+ ]],
+ [" Abend · max. 10 Minuten",[
+   "Geschirrspüler am Abend einräumen bzw. starten",
+   "Küche am Abend zurücksetzen",
+   "Wohnbereich am Abend aufräumen"
+ ]],
+ [" Tagescheck",[
+   "Müll kontrollieren",
+   "Essensreste entfernen",
+   "Sichtbare Flecken beseitigen"
+ ]]
 ];
 
 /* V270 – einheitliche Raumgruppen + aufgabenbezogene Symbole */
@@ -987,22 +1003,20 @@ const FIRST_DUE_WINDOW_DAYS=180;
 // planning deadline in the first half-year of the current onboarding period.
 // For this household plan the requested hard ceiling is 01.04.2027.
 const FIRST_COMPLETION_DEADLINE_KEY="2027-04-01";
-// V343: prioritize real-life everyday rooms for their first pass.
-const CORE_ROOM_PRIORITY = new Map([
- ["Küche",0],["Schlafzimmer",0],["Kinderzimmer",0],["Kinderzimmer 1",0],["Kinderzimmer 2",0],
- ["Kinderzimmer OG",0],["Kinderzimmer EG",0],["Gäste-WC",0],["WC",0],["WC EG",0],["WC OG",0],
- ["Eltern-WC",0],["Kinderbad",0],["Bad",0],["Badezimmer",0],["Badezimmer EG",0],["Badezimmer OG",0],
- ["Wohnzimmer",0],["Essbereich",0],["Waschküche",1]
-]);
+// V360: Erst-Reinigungsphase nach der ausdrücklich gewünschten Priorität:
+// 1 Sanitärbereiche, 2 Schlafbereiche, 3 Wohnbereiche, 4 Waschküche, danach Nebenräume.
+// Die Reihenfolge beeinflusst die Auswahl innerhalb der zulässigen Fälligkeitstoleranz;
+// große Aufgaben und Fenster-/Raffstore-Arbeiten bleiben weiterhin isolierte Fokustage.
 function firstDuePriorityRoom(x){
  const parts=String(x?.room||"").split(/\s*\+\s*/).map(v=>v.trim()).filter(Boolean);
- if(!parts.length)return 2;
+ if(!parts.length)return 4;
  return Math.min(...parts.map(r=>{
-   if(CORE_ROOM_PRIORITY.has(r))return CORE_ROOM_PRIORITY.get(r);
    const n=r.toLocaleLowerCase("de-AT");
-   if(/küche|schlafzimmer|kinderzimmer|wohnzimmer|essbereich|(^|\b)wc\b|bad|badezimmer/.test(n))return 0;
-   if(/waschküche|waschraum/.test(n))return 1;
-   return 2;
+   if(/gäste-wc|eltern-wc|kinderbad|(^|\b)wc(\b|\s)|bad|badezimmer|dusche|sanitär/.test(n))return 0;
+   if(/schlafzimmer|kinderzimmer|ankleidezimmer|schlafbereich/.test(n))return 1;
+   if(/wohnzimmer|essbereich|küche|garderobe|eingangsbereich|flur|stiegenhaus/.test(n))return 2;
+   if(/waschküche|waschraum/.test(n))return 3;
+   return 4;
  }));
 }
 function stableBootstrapHash(v){
@@ -1028,9 +1042,9 @@ function firstDueDateForTask(x,ref=today){
  const eligible=[];
  const priority=firstDuePriorityRoom(x);
  const bandStart=new Date(ref.getFullYear(),ref.getMonth(),ref.getDate(),12);
- // Core everyday rooms: first 45 days. Laundry: first 75 days.
- // Secondary rooms: remaining onboarding window through the hard deadline.
- const bandEnd=priority===0?addDays(bandStart,29):priority===1?addDays(bandStart,44):addDays(bandStart,119);
+ // First pass: Sanitär 30 days, Schlafbereiche 45, Wohnbereiche 75,
+ // Waschküche 90, Nebenräume bis zum Ende des Onboarding-Fensters.
+ const bandEnd=priority===0?addDays(bandStart,29):priority===1?addDays(bandStart,44):priority===2?addDays(bandStart,74):priority===3?addDays(bandStart,89):addDays(bandStart,119);
  for(let d0=new Date(bandStart);d0<=bandEnd;d0=addDays(d0,1)){
    if(d0.getDay()!==0&&!isHouseholdFree(d0))eligible.push(new Date(d0));
  }
@@ -1060,6 +1074,23 @@ function refreshCatalog(){
  invalidatePlans();
 }
 refreshCatalog();
+
+// V360: Rebuild only automatically generated first-completion dates so the
+// updated priority order takes effect immediately. Explicit/manual dates and
+// completed-task history are preserved.
+(function rebalanceFirstPassDatesV360(){
+ let changed=false;
+ state.initialDueDates=state.initialDueDates&&typeof state.initialDueDates==="object"?state.initialDueDates:{};
+ for(const x of CATALOG){
+   if(isDailyTask(x)||isDone(x))continue;
+   const explicit=state.manualDates?.[x.key]||state.catalogDates?.[x.key]||x.start||"";
+   if(/^\d{4}-\d{2}-\d{2}$/.test(explicit))continue;
+   if(Object.prototype.hasOwnProperty.call(state.initialDueDates,x.key)){
+     delete state.initialDueDates[x.key];changed=true;
+   }
+ }
+ if(changed){invalidatePlans();try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}}
+})();
 
 // V337 safety repair: older planner fallbacks could turn an ordinary
 // planning-only postponement into a date months/years away. Keep the full
@@ -1480,7 +1511,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v346|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v360|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1696,7 +1727,9 @@ function buildIntelligentPlan(){
     // Household usefulness: frequently used rooms win close planning ties;
     // storage/technical rooms naturally drift toward later, lighter slots.
     const priority=firstDuePriorityRoom(x);
-    s += priority===0 ? -3 : priority===1 ? 0 : 4;
+    // Deutliche, aber nicht absolute Gewichtung: erst Sanitär, dann Schlafräume,
+    // Wohnbereiche, Waschküche und zuletzt Nebenräume. Fixtermine bleiben vorrangig.
+    s += priority===0 ? -18 : priority===1 ? -10 : priority===2 ? -3 : priority===3 ? 5 : 12;
     // Prefer days that are genuinely lighter, not just days with fewer tasks
     // (one large job must count more than several tiny handgrips).
     s += (arr?arr._weight||0:0)*2.5;
@@ -2369,9 +2402,9 @@ function ensureTodayPlanSnapshot(d=today){
 }
 function plannedToday(){
  const d=today;
- // Sonntag ist ein echter haushaltsfreier Tag: weder tägliche Routinen noch
- // automatisch geplante Aufgaben werden in "Heute" angezeigt.
- if(d.getDay()===0)return [];
+ // Sonntag bleibt für den normalen Haushalt haushaltsfrei; die täglichen
+ // Routinen erscheinen dennoch einzeln und separat abhakebar.
+ if(d.getDay()===0)return dailyTasks();
  if(state.chaos)return dailyTasks().filter(x=>/Geschirrspüler|Küchenarbeitsfläche|Esstisch|Hochstuhl|Heruntergefallenes|Müll/.test(x.text));
  const out=dailyTasks();
  // ensureTodayPlanSnapshotIds() reconciles the fast cache ONCE per day/session
@@ -3118,21 +3151,17 @@ function roomGroupTasksSorted(tasks){
   return [...tasks].sort((a,b)=>roomLabel(a.room).localeCompare(roomLabel(b.room),"de")||nextDue(a)-nextDue(b)||taskWeight(b)-taskWeight(a)||String(a.text||"").localeCompare(String(b.text||""),"de"));
 }
 function appendDailyRoutineGroups(container,tasks){
-  const order=[" Morgenroutine"," Nach Mahlzeiten"," Abend · max. 10 Minuten"," Tagescheck"];
-  const groups=new Map();
-  tasks.filter(x=>x.source==="daily").forEach(x=>{const g=x.group||"Alltag";if(!groups.has(g))groups.set(g,[]);groups.get(g).push(x)});
-  order.forEach(g=>{
-    const arr=groups.get(g);
-    if(!arr||!arr.length)return;
-    const sec=document.createElement("section");
-    sec.className="dailyRoutineGroup";
-    const head=document.createElement("div");
-    head.className="dailyRoutineHead";
-    head.innerHTML=`<span class="dailyRoutineName">${esc(g)}</span><span class="roomGroupCount">${arr.length} ${arr.length===1?"Aufgabe":"Aufgaben"}</span>`;
-    sec.appendChild(head);
-    arr.forEach(x=>sec.appendChild(taskRow(x)));
-    container.appendChild(sec);
-  });
+  const arr=tasks.filter(x=>x.source==="daily");
+  if(!arr.length)return;
+  const sec=document.createElement("section");
+  sec.className="dailyRoutineGroup";
+  const head=document.createElement("div");
+  head.className="dailyRoutineHead";
+  head.innerHTML=`<span class="dailyRoutineName">Tägliche Routinen · einzeln abhaken</span><span class="roomGroupCount">${arr.length} Aufgaben</span>`;
+  sec.appendChild(head);
+  // No bundled routine cards: every activity has its own independent checkbox.
+  arr.forEach(x=>sec.appendChild(taskRow(x)));
+  container.appendChild(sec);
 }
 function fixedDueDate(x){return fromKey(x.nextDue||x.startDate)}
 function isFixedDone(x){return !!state.fixedDone?.[x.id]?.[dayKey(x.dueDate||today)]}
@@ -3380,8 +3409,8 @@ function pullCatalogTaskToday(x){
     toast(`„${canonical.text}“ ist heute bereits eingeplant `);
     return;
   }
-  if(plannedToday().length>=10){
-    toast("Tageslimit erreicht: maximal 10 Aufgaben insgesamt. Bitte zuerst eine Aufgabe erledigen oder für später planen.");
+  if(plannedToday().filter(x=>x.source!=="daily").length>=10){
+    toast("Tageslimit erreicht: maximal 10 zusätzliche Haushaltsaufgaben (ohne tägliche Routinen). Bitte zuerst eine Aufgabe erledigen oder für später planen.");
     return;
   }
   state.todayExtras.push({id:`extra|${day}|${uid()}`,date:day,text:canonical.text,room:canonical.room,area:canonical.area,place:canonical.place||"",description:canonical.description||"",source:"extra",sourceKey:tid,canonical:tid,interval:canonical.interval,start:canonical.start,manual:true});

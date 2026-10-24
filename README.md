@@ -1,17 +1,18 @@
-# Unser Zuhause – V358
+# Unser Zuhause – V360
 
 ## Änderungen
-- Die WC-Reinigung ist pro Raum zu einer einzelnen Aufgabe „Toilette gründlich reinigen“ gebündelt. WC-Becken, Rand, Sitz/Deckel, Außenseite, Spülknopf, WC-Bürste und Bürstenhalter gehören in allen betroffenen Räumen zu diesem einen Paket.
-- Im Gäste-WC umfasst dasselbe Paket zusätzlich das vorhandene Pissoir einschließlich der zugänglichen Kontaktflächen. Für WC und Pissoir getrennte Reinigungsutensilien verwenden.
-- Waschbecken, Armaturen, Spiegel, Dusche/Badewanne, Papierhalter und Boden bleiben eigene Aufgaben.
-- „Bett machen“ bleibt eine eigene tägliche Aufgabe innerhalb der Morgenroutine.
-- Die bestehende Zehn-Aufgaben-Grenze, Raumrotation, Planungslogik und Speicherkennung bleiben unverändert.
-- App- und Service-Worker-Version auf V358 aktualisiert. Die Speicherkennung und Datenstruktur bleiben unverändert, damit vorhandene Erledigungen und Einstellungen weiterverwendet werden.
+- Die erste Reinigungsrunde wird jetzt nach der gewünschten Priorität geplant: 1. Sanitärbereiche, 2. Schlafbereiche, 3. Wohnbereiche, 4. Waschküche, danach Nebenräume.
+- Der erste Planungshorizont folgt dieser Reihenfolge: Sanitärbereiche innerhalb der ersten 30 Tage, Schlafbereiche innerhalb der ersten 45 Tage, Wohnbereiche innerhalb der ersten 75 Tage, Waschküche innerhalb der ersten 90 Tage und Nebenräume innerhalb des erweiterten Einführungszeitraums.
+- Automatisch erzeugte Ersttermine für noch nicht erledigte Aufgaben werden einmalig neu verteilt, damit die neue Priorität sofort wirksam wird. Manuell gesetzte Termine, explizite Katalogtermine und erledigte Aufgaben samt Historie bleiben erhalten.
+- Große Aufgaben (Aufwand 4/5) sowie Fenster- und Raffstore-Arbeiten bleiben isolierte Fokustage und werden nicht mit anderen normalen Haushaltsaufgaben kombiniert.
+- Die Zwei-Raum-Regel, die freien Tage, die Aufgabenobergrenzen und die bestehende Speicherkennung bleiben erhalten.
+- Alle täglichen Routinetätigkeiten werden einzeln angezeigt und haben jeweils eine eigene Abhakmöglichkeit; sie zählen nicht zu den bis zu zehn zusätzlichen Haushaltsaufgaben.
+- Tägliche Routinen bleiben auch sonntags sichtbar; der übrige automatische Haushaltsplan bleibt sonntags pausiert.
 
 ## Update
-1. Vor dem Update in der App ein aktuelles Backup exportieren.
-2. Alle Dateien aus diesem ZIP in das bestehende Hosting-Verzeichnis kopieren und überschreiben.
-3. App/PWA vollständig schließen und neu öffnen. Falls noch die alte Version erscheint, Cache/Service Worker neu laden.
+1. Vor dem Update ein aktuelles Backup in der App exportieren.
+2. Alle Dateien aus diesem ZIP ins bestehende Hosting-Verzeichnis kopieren und überschreiben.
+3. App/PWA vollständig schließen und neu öffnen. Falls noch die alte Version erscheint, den Service Worker/Cache neu laden.
 
 ## Prüfung
-JavaScript-Syntax von `app.js` und `sw.js` prüfen. Ein vollständiger Live-Laufzeittest mit dem lokalen iPhone-Datenbestand ist nicht durchgeführt. Nach dem Update kontrollieren, dass in jedem Toilettenraum genau eine Aufgabe „Toilette gründlich reinigen“ vorkommt und das Gäste-WC-Paket auch das Pissoir erwähnt.
+JavaScript-Syntax von `app.js` und `sw.js` sowie ZIP-Integrität geprüft. Ein vollständiger Live-Test mit dem persönlichen iPhone-Datenbestand wurde nicht durchgeführt.
