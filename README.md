@@ -1,13 +1,16 @@
-# Unser Zuhause – V353
+# Unser Zuhause – V354
 
-## Änderung
-- Erledigte, wiederkehrende Aufgaben erhalten sofort ein nächstes geplantes Datum aus tatsächlichem Erledigungsdatum und Intervall, ohne bis Mitternacht zu warten. Sonntage und individuell haushaltsfreie Tage werden übersprungen.
-- Die heutige Aufgabenliste bleibt eingefroren; das neue Datum betrifft die nächste Wiederholung.
-- Speichername und Datenstruktur bleiben unverändert, damit bestehende Daten und Historien erhalten bleiben.
-- App- und Service-Worker-Version auf V353 aktualisiert.
+## Änderungen
+- Kalender und Tagesplanung lesen nun denselben kanonischen Aufgabenplan, damit die angezeigten Tageszahlen und die Aufgabenlisten nicht auseinanderlaufen.
+- Die heutige eingefrorene Aufgabenliste wird im Kalender ebenfalls exakt übernommen.
+- Die Planungsbewertung berücksichtigt die Nutzungspriorität der Räume: Küche, Wohn-/Essbereich, Schlaf- und Kinderzimmer sowie Bäder werden bei gleichwertigen Terminen bevorzugt; Waschküche folgt danach, Neben-/Lagerräume haben niedrigere Priorität.
+- Notfall-Fallbacks dürfen normale Tage nicht mehr durch unbegrenztes Anhängen von Aufgaben überladen. Die Kapazität wird nach Anzahl und Aufwand begrenzt; nicht lösbare Fälle werden als Planungskonflikt protokolliert statt stillschweigend auf einen übervollen Tag gelegt.
+- App- und Service-Worker-Version auf V354 aktualisiert. Bestehender Speichername und Datenstruktur bleiben unverändert.
 
-## Vor dem Update
-Exportiere zuerst ein aktuelles Backup. Kopiere anschließend alle Dateien aus diesem ZIP in das bestehende Hosting-Verzeichnis und überschreibe die alten Dateien. Lade die PWA neu.
+## Update
+1. Vor dem Update in der App ein aktuelles Backup exportieren.
+2. Alle Dateien aus diesem ZIP in das bestehende Hosting-Verzeichnis kopieren und überschreiben.
+3. App/PWA vollständig neu laden. Falls noch die alte Version erscheint, die PWA schließen und erneut öffnen.
 
 ## Prüfung
-JavaScript-Syntax und ZIP-Integrität geprüft. Ein vollständiger Laufzeittest auf dem konkreten iPhone mit Live-Daten wurde nicht durchgeführt. Bitte nach dem Update eine wiederkehrende Aufgabe testweise erledigen und ihr nächstes Datum kontrollieren.
+JavaScript-Syntax geprüft. Kein vollständiger Live-Laufzeittest auf dem konkreten iPhone mit den dort gespeicherten Daten durchgeführt. Nach dem Update bitte Kalender mit Heute und Katalog vergleichen; besonders benutzerdefinierte Aufgaben mit „Fester Termin – exakt einhalten“ können bewusst von normalen Tagesgrenzen ausgenommen sein.

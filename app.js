@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V353";
+const APP_BUILD="V354";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -1693,6 +1693,13 @@ function buildIntelligentPlan(){
     const sameWorkflow=arr.some(y=>!isDailyTask(y)&&!isWindowRelated(y)&&taskRoomParts(y).some(r=>taskRoomParts(x).includes(r))&&roomWorkflow(y)===roomWorkflow(x));
     const dist=Math.abs(Math.round((d-preferred)/86400000));
     let s=dayBreathingScore(d,arr)+roomSpreadPenalty(arr,x)+adjacentLoadPenalty(days,d)+dist*0.7;
+    // Household usefulness: frequently used rooms win close planning ties;
+    // storage/technical rooms naturally drift toward later, lighter slots.
+    const priority=firstDuePriorityRoom(x);
+    s += priority===0 ? -3 : priority===1 ? 0 : 4;
+    // Prefer days that are genuinely lighter, not just days with fewer tasks
+    // (one large job must count more than several tiny handgrips).
+    s += (arr?arr._weight||0:0)*2.5;
     if(sameRoom)s-=90;
     if(sameUnit)s-=180;
     if(samePkg)s-=70;
@@ -1996,6 +2003,10 @@ function buildIntelligentPlan(){
       for(const off of offsets){
         const d=addDays(preferred,off),arr=days.get(dayKey(d));
         if(!arr||d<today||plannerBlocked(d)||containsTask(arr,taskId(x)))continue;
+        // Emergency placement must not recreate overloaded days. Exact-date
+        // tasks are handled in their dedicated protected path above.
+        if(arr.length>=dayTaskLimit(d))continue;
+        if((arr._weight||0)+taskWeight(x)>dayBudget(d))continue;
         // Never combine large/focus/window work with another non-daily task.
         if((isHeavyTask(x)||isWindowRelated(x))&&arr.some(y=>!isDailyTask(y)))continue;
         if(arr.some(y=>!isDailyTask(y)&&(isHeavyTask(y)||isWindowRelated(y))))continue;
@@ -2181,16 +2192,25 @@ function populateCalendarYear(year){
     const count=new Date(year,m+1,0).getDate();
     for(let n=1;n<=count;n++)days.set(iso(new Date(year,m,n,12)),[]);
   }
-  // Build the canonical plan only once for the whole calendar year.
-  // The old implementation recalculated the full catalog for every single day,
-  // which could freeze the iPhone while opening the Calendar view.
-  for(const x of CATALOG){
-    if(isDailyTask(x)||isDone(x))continue;
-    const pd=plannedDateForTask(x);
-    if(pd && pd.getFullYear()===year){
-      const k=dayKey(pd),arr=days.get(k);
-      if(arr && !arr.some(y=>taskId(y)===taskId(x)))arr.push(x);
+  // Calendar must read the exact same canonical plan as Today and the catalog.
+  // Previously it called plannedDateForTask() independently for every task;
+  // completion, snapshot and fallback logic could then produce a second,
+  // inconsistent distribution (including overloaded calendar days).
+  const plan=buildIntelligentPlan();
+  for(const [k,planned] of plan.days){
+    const d=fromKey(k);
+    if(d.getFullYear()!==year)continue;
+    const arr=days.get(k);
+    if(!arr)continue;
+    for(const x of planned||[]){
+      if(isDailyTask(x)||isDone(x)||isPostponed(x))continue;
+      if(!arr.some(y=>taskId(y)===taskId(x)))arr.push(x);
     }
+  }
+  // Today is an immutable manifest. Reflect it exactly in the calendar too.
+  const todayKey=dayKey(today);
+  if(year===today.getFullYear() && hasTodayPlanSnapshot()){
+    days.set(todayKey,tasksFromIds(ensureTodayPlanSnapshotIds()).filter(x=>!isPostponed(x)));
   }
   for(const arr of days.values())arr.sort((a,b)=>taskWeight(b)-taskWeight(a)||roomLabel(a.room).localeCompare(roomLabel(b.room),'de')||a.text.localeCompare(b.text,'de'));
   calendarCache={year,days};
