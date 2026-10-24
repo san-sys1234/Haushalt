@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V355";
+const APP_BUILD="V357";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -8,11 +8,12 @@ const LEGACY_STORAGE_OLD2="unser-zuhause-v148";
 const LEGACY_STORAGE_2="unser-zuhause-v139";
 const LEGACY_STORAGE_3="unser-zuhause-v109";
 const DAILY=[
- // V350: bewusst schlanke Routinen. Bedarfsaufgaben werden nicht als tägliche Pflicht dargestellt.
- [" Morgenroutine",["Schlafzimmer kurz lüften","Geschirrspüler ausräumen","Frühstücks-/Essplatz kurz ordnen","Schmutzwäsche in den Wäschekorb"]],
- [" Nach Mahlzeiten",["Geschirr in den Geschirrspüler","Essplatz bei Bedarf abwischen"]],
- [" Abend · max. 10 Minuten",["Geschirrspüler einräumen & einschalten","Küchenarbeitsfläche und Spüle kurz abwischen","Wohnbereich grob zurücksetzen"]],
- [" Tagescheck",["Müll nur bei Bedarf kontrollieren","Sichtbare Essensreste oder Bodenflecken beseitigen"]]
+ // V357: Bett machen ist eine eigene tägliche Aufgabe innerhalb der Morgenroutine.
+ // Die vier Routinepakete bleiben kompakt; die harte Tagesgrenze zählt alle Einträge zusammen.
+ [" Morgenroutine",["Morgenroutine: lüften, Geschirrspüler ausräumen, Essplatz ordnen & Wäsche sammeln","Bett machen"]],
+ [" Nach Mahlzeiten",["Nach Mahlzeiten: Geschirr versorgen & Essplatz bei Bedarf abwischen"]],
+ [" Abendroutine",["Abendroutine: Geschirrspüler, Küche & Wohnbereich zurücksetzen"]],
+ [" Tagescheck",["Tagescheck: Müll, Essensreste & sichtbare Flecken bei Bedarf"]]
 ];
 
 /* V270 – einheitliche Raumgruppen + aufgabenbezogene Symbole */
@@ -1623,9 +1624,9 @@ function buildIntelligentPlan(){
     if(isRestDay(d))return false;
     if(!arr)return false;
     if(arr.some(y=>taskId(y)===taskId(x)))return false;
-    // V349: gentle planning. A normal household day is limited to ONE physical room.
-    // Fixed sanitation routines retain their explicitly designed exception.
-    if(!opts.allowFixedRoutine && !isFixedTask(x) && roomCountAfter(arr,x)>1)return false;
+    // V356: normal household days may contain work packages from up to TWO physical rooms.
+    // This makes a reliable whole-house rotation possible while keeping the day focused.
+    if(!opts.allowFixedRoutine && !isFixedTask(x) && roomCountAfter(arr,x)>2)return false;
     if(!windowCompatible(arr,x))return false;
     // Normal work is limited by TWO work units. Fixed/exact routines remain an
     // intentional exception (e.g. the Tuesday sanitation block).
@@ -1700,9 +1701,12 @@ function buildIntelligentPlan(){
     // Prefer days that are genuinely lighter, not just days with fewer tasks
     // (one large job must count more than several tiny handgrips).
     s += (arr?arr._weight||0:0)*2.5;
-    if(sameRoom)s-=90;
-    if(sameUnit)s-=180;
-    if(samePkg)s-=70;
+    const sameRoomCount=arr.filter(y=>!isDailyTask(y)&&taskRoomParts(y).some(r=>taskRoomParts(x).includes(r))).length;
+    // Keep related tasks together initially, then give the rotation a chance to
+    // add a second room instead of filling every day with one room indefinitely.
+    if(sameRoom)s-=sameRoomCount>=2?-5:-45;
+    if(sameUnit)s-=sameRoomCount>=2?-25:-120;
+    if(samePkg)s-=sameRoomCount>=2?-10:-45;
     if(sameWorkflow)s-=35;
     if(sameRoom){
       const pkg=workPackage(x)?.key||roomPackageKey(x);
@@ -1756,13 +1760,14 @@ function buildIntelligentPlan(){
           if(!ca||cd<today||plannerBlocked(cd)||isRestDay(cd))continue;
           if(fixedExactDates.has(dayKey(cd))&&dayKey(cd)!==dayKey(d))continue;
           if(ca.some(y=>taskId(y)===taskId(x)))continue;
+          if(ca.length>=dayTaskLimit(cd))continue;
           if(roomCountAfter(ca,x)>2)continue;
           candidates.push({cd,ca,delta:Math.abs(delta)});
         }
       }
       candidates.sort((a,b)=>a.delta-b.delta||a.cd.getTime()-b.cd.getTime());
       const c=candidates[0];
-      if(c){c.ca.push(x);c.ca._weight=(c.ca._weight||0)+taskWeight(x);c.ca._fixedExact=true;}
+      if(c && c.ca.length<dayTaskLimit(c.cd)){c.ca.push(x);c.ca._weight=(c.ca._weight||0)+taskWeight(x);c.ca._fixedExact=true;}
       continue;
     }
     place(x,d,{range:PLAN_TOLERANCE_DAYS,allowFixedRoutine:false});
@@ -1839,6 +1844,7 @@ function buildIntelligentPlan(){
         const d=addDays(due,radius*sign),arr=days.get(dayKey(d));
         if(!arr||isFreeDay(d))continue;
           if(!legal(d,arr,x,{ignoreCount:true}))continue;
+        if(arr.length>=dayTaskLimit(d))continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
       }
     }
@@ -1905,7 +1911,7 @@ function buildIntelligentPlan(){
       const d=due instanceof Date?due:null;
       if(d){
         const arr=days.get(dayKey(d));
-        if(arr&&!arr.some(y=>taskId(y)===taskId(x))){
+        if(arr&&!arr.some(y=>taskId(y)===taskId(x))&&arr.length<dayTaskLimit(d)&&roomCountAfter(arr,x)<=2&&!violatesWindowIsolation(arr,x)){
           arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);arr._fixedExact=true;
           continue;
         }
@@ -1915,7 +1921,7 @@ function buildIntelligentPlan(){
     for(let radius=0;radius<=PLAN_TOLERANCE_DAYS&&!placed;radius++){
       for(const sign of radius===0?[1]:[1,-1]){
         const d=addDays(due,radius*sign),arr=days.get(dayKey(d));
-        if(!arr||isFreeDay(d))continue;
+        if(!arr||isFreeDay(d)||arr.length>=dayTaskLimit(d))continue;
           if(!legal(d,arr,x,{ignoreCount:true}))continue;
         arr.push(x);arr._weight=(arr._weight||0)+taskWeight(x);placed=true;break;
       }
@@ -2404,7 +2410,9 @@ function definition(x){
  const dryCare=["Bei empfindlichen Oberflächen nur materialgerechte, möglichst wenig feuchte Reinigung verwenden."];
  const roomLabel=place||room||"genannten Bereich";
 
- if(x.window){
+ if(/^bett machen$/i.test(t)){
+   set("Das Bett ordentlich zurückschlagen bzw. glattziehen und die Kissen zurechtlegen, damit das Schlafzimmer gepflegt aussieht.",["Bettdecke","Kissen","sichtbare Bettfläche"],["Keine Bettwäsche wechseln","Matratze nicht absaugen oder pflegen","Keine zusätzlichen Schlafzimmer-Aufgaben daraus machen"],["Wenn die Bettwäsche noch feucht ist, das Bett kurz auslüften lassen, bevor es vollständig zugedeckt wird."]);
+ } else if(x.window){
    set(x.windowSide==="innen"
      ? `Das genannte Fenster von innen gründlich reinigen: Glas streifenfrei putzen und Rahmen, Falz sowie die direkt zugehörige Fensterbank von Staub und Ablagerungen befreien.`
      : `Das genannte Fenster von außen gründlich reinigen: zugängliches Glas sowie Rahmen und Falz von Schmutz und Spuren befreien.`,
@@ -3364,6 +3372,10 @@ function pullCatalogTaskToday(x){
     calendarCache={year:null,days:new Map()};
     save();
     toast(`„${canonical.text}“ ist heute bereits eingeplant `);
+    return;
+  }
+  if(plannedToday().length>=10){
+    toast("Tageslimit erreicht: maximal 10 Aufgaben insgesamt. Bitte zuerst eine Aufgabe erledigen oder für später planen.");
     return;
   }
   state.todayExtras.push({id:`extra|${day}|${uid()}`,date:day,text:canonical.text,room:canonical.room,area:canonical.area,place:canonical.place||"",description:canonical.description||"",source:"extra",sourceKey:tid,canonical:tid,interval:canonical.interval,start:canonical.start,manual:true});
