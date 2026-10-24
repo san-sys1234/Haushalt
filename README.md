@@ -1,11 +1,12 @@
-# Unser Zuhause – V357
+# Unser Zuhause – V358
 
 ## Änderungen
-- „Bett machen“ ist jetzt eine eigene tägliche Aufgabe innerhalb der Morgenroutine und kann separat abgehakt werden.
-- Die täglichen Routinen bleiben in vier übersichtlichen Gruppen gebündelt.
-- Die harte Tagesgrenze bleibt bei höchstens zehn Aufgaben insgesamt; tägliche Routinen zählen mit.
-- Die bestehende Raumrotation, Arbeitspaket-Bündelung und Speicherkennung bleiben erhalten.
-- App- und Service-Worker-Version auf V357 aktualisiert. Die Speicherkennung und Datenstruktur bleiben unverändert, damit vorhandene Erledigungen und Einstellungen weiterverwendet werden.
+- Die WC-Reinigung ist pro Raum zu einer einzelnen Aufgabe „Toilette gründlich reinigen“ gebündelt. WC-Becken, Rand, Sitz/Deckel, Außenseite, Spülknopf, WC-Bürste und Bürstenhalter gehören in allen betroffenen Räumen zu diesem einen Paket.
+- Im Gäste-WC umfasst dasselbe Paket zusätzlich das vorhandene Pissoir einschließlich der zugänglichen Kontaktflächen. Für WC und Pissoir getrennte Reinigungsutensilien verwenden.
+- Waschbecken, Armaturen, Spiegel, Dusche/Badewanne, Papierhalter und Boden bleiben eigene Aufgaben.
+- „Bett machen“ bleibt eine eigene tägliche Aufgabe innerhalb der Morgenroutine.
+- Die bestehende Zehn-Aufgaben-Grenze, Raumrotation, Planungslogik und Speicherkennung bleiben unverändert.
+- App- und Service-Worker-Version auf V358 aktualisiert. Die Speicherkennung und Datenstruktur bleiben unverändert, damit vorhandene Erledigungen und Einstellungen weiterverwendet werden.
 
 ## Update
 1. Vor dem Update in der App ein aktuelles Backup exportieren.
@@ -13,4 +14,4 @@
 3. App/PWA vollständig schließen und neu öffnen. Falls noch die alte Version erscheint, Cache/Service Worker neu laden.
 
 ## Prüfung
-JavaScript-Syntax von `app.js` und `sw.js` prüfen. Ein vollständiger Live-Laufzeittest mit dem lokalen iPhone-Datenbestand ist nicht durchgeführt. Nach dem Update bitte in „Heute“ kontrollieren, dass „Bett machen“ täglich erscheint und höchstens zehn Aufgaben insgesamt angezeigt werden.
+JavaScript-Syntax von `app.js` und `sw.js` prüfen. Ein vollständiger Live-Laufzeittest mit dem lokalen iPhone-Datenbestand ist nicht durchgeführt. Nach dem Update kontrollieren, dass in jedem Toilettenraum genau eine Aufgabe „Toilette gründlich reinigen“ vorkommt und das Gäste-WC-Paket auch das Pissoir erwähnt.

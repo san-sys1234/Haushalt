@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V357";
+const APP_BUILD="V358";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -79,10 +79,10 @@ const catalogSeed=[
 ['Büro','EG',['Schreibtisch komplett leeren','Schreibtischfläche reinigen','Monitor außen reinigen','Tastatur reinigen','Maus reinigen','Kabel grob ordnen','Papierstapel sortieren','Papierkorb leeren','Regale abstauben','Bücheroberseiten entstauben','Fensterbank reinigen','Boden saugen','Boden wischen']],
 ['Abstellraum','EG',['Vorräte prüfen','Reinigungsmittelbestand prüfen','Regale abstauben','Regalböden auswischen','Schubladen auswischen','Besen/Staubsaugerbereich reinigen','Mülltrennung ordnen','Boden gründlich saugen','Boden wischen']],
 ['Speis','EG',['Vorräte nach Kategorien ordnen','Mindesthaltbarkeit prüfen','Angebrochene Packungen prüfen','Regale abstauben','Regalböden auswischen','Schubladen auswischen','Behälter außen reinigen','Boden unter Regalen reinigen','Boden saugen','Boden wischen']],
-['Gäste-WC','EG',['Waschbecken gründlich reinigen','Armatur entkalken','Spiegel reinigen','Toilette innen gründlich reinigen','Toilettenrand reinigen','Toilette außen reinigen','WC-Bürste reinigen','WC-Bürstenhalter innen reinigen','Papierhalter abwischen','Türklinke reinigen','Lichtschalter außen reinigen','Sockelleisten reinigen','Fugen kontrollieren','Boden saugen','Boden wischen']],
-['Kinderbad','OG',['Waschbecken gründlich reinigen','Armatur entkalken','Spiegel reinigen','Dusche reinigen','Duschrinne kontrollieren','Badewanne reinigen','Toilette reinigen','WC-Bürste reinigen','WC-Bürstenhalter reinigen','Türklinke reinigen','Lichtschalter außen reinigen','Sockelleisten reinigen','Fugen kontrollieren','Silikon kontrollieren','Boden saugen','Boden wischen']],
-['Bad','OG',['Waschbecken gründlich reinigen','Armatur entkalken','Spiegel reinigen','Dusche entkalken','Duschglas reinigen','Duschrinne reinigen','Badewanne reinigen','Badewannenarmatur entkalken','Toilette innen gründlich reinigen','Toilette außen reinigen','WC-Bürste reinigen','WC-Bürstenhalter reinigen','Türklinke reinigen','Lichtschalter außen reinigen','Sockelleisten reinigen','Fugen kontrollieren','Silikon kontrollieren','Boden saugen','Boden wischen']],
-['Eltern-WC','OG',['Waschbecken reinigen','Armatur entkalken','Spiegel reinigen','Toilette innen reinigen','Toilettenrand reinigen','Toilette außen reinigen','WC-Bürste reinigen','WC-Bürstenhalter reinigen','Türklinke reinigen','Lichtschalter außen reinigen','Sockelleisten reinigen','Fugen kontrollieren','Boden saugen','Boden wischen']],
+['Gäste-WC','EG',['Waschbecken gründlich reinigen','Armatur entkalken','Spiegel reinigen','Toilette gründlich reinigen','Papierhalter abwischen','Türklinke reinigen','Lichtschalter außen reinigen','Sockelleisten reinigen','Fugen kontrollieren','Boden saugen','Boden wischen']],
+['Kinderbad','OG',['Waschbecken gründlich reinigen','Armatur entkalken','Spiegel reinigen','Dusche reinigen','Duschrinne kontrollieren','Badewanne reinigen','Toilette gründlich reinigen','Türklinke reinigen','Lichtschalter außen reinigen','Sockelleisten reinigen','Fugen kontrollieren','Silikon kontrollieren','Boden saugen','Boden wischen']],
+['Bad','OG',['Waschbecken gründlich reinigen','Armatur entkalken','Spiegel reinigen','Dusche entkalken','Duschglas reinigen','Duschrinne reinigen','Badewanne reinigen','Badewannenarmatur entkalken','Toilette gründlich reinigen','Türklinke reinigen','Lichtschalter außen reinigen','Sockelleisten reinigen','Fugen kontrollieren','Silikon kontrollieren','Boden saugen','Boden wischen']],
+['Eltern-WC','OG',['Waschbecken reinigen','Armatur entkalken','Spiegel reinigen','Toilette gründlich reinigen','Türklinke reinigen','Lichtschalter außen reinigen','Sockelleisten reinigen','Fugen kontrollieren','Boden saugen','Boden wischen']],
 ['Schlafzimmer','OG',['Bettwäsche wechseln','Matratze absaugen','Matratze nach Hersteller pflegen','Unter Bett saugen','Nachttische komplett reinigen','Lampen außen abstauben','Kopfteil abstauben','Fensterbank reinigen','Spiegel reinigen','Kleidung aussortieren','Boden gründlich saugen','Boden wischen']],
 ['Ankleidezimmer','OG',['Kleidung nach Saison ordnen','Kleiderbügel vereinheitlichen','Schubladen ordnen','Schubladen auswischen','Regalböden reinigen','Spiegel reinigen','Schrankfronten abwischen','Schrankgriffe reinigen','Boden unter Schränken reinigen','Boden saugen','Boden wischen']],
 ['Kinderzimmer 1','OG',['Spielzeug grob sortieren','Bücher ordnen','Kleidung ordnen','Schubladen ordnen','Schrankfronten abwischen','Regale abstauben','Fensterbank reinigen','Türklinke reinigen','Boden unter Möbeln saugen','Boden saugen','Boden wischen']],
@@ -167,25 +167,24 @@ const EXTRA_ROOM_TASKS=[
  ]],
  ["Gäste-WC","EG",[
   "Seifenspender reinigen","Seifenspender nachfüllen","Handtuchhalter reinigen","Mülleimer innen reinigen","Mülleimer außen reinigen",
-  "Toilettenspülknopf reinigen","Toilettendeckel gründlich reinigen","Toilettensitz-Scharniere reinigen","Toilettenrand von außen reinigen",
   "Lüftungsgitter reinigen, falls vorhanden",
   "Badematte nach Pflegeetikett waschen, falls vorhanden"
  ]],
  ["Kinderbad","OG",[
   "Seifenspender reinigen","Seifenspender nachfüllen","Handtuchhalter reinigen","Mülleimer innen reinigen","Mülleimer außen reinigen",
-  "Toilettenspülknopf reinigen","Toilettensitz-Scharniere reinigen","Duschkopf entkalken","Duschschlauch außen reinigen",
+  "Duschkopf entkalken","Duschschlauch außen reinigen",
   "Duschschienen / Führungsschienen reinigen","Duschablauf-Haarsieb reinigen","Lüftungsgitter reinigen, falls vorhanden",
 "Badematte nach Pflegeetikett waschen, falls vorhanden","Handtücher nach Pflegeetikett waschen"
  ]],
  ["Bad","OG",[
   "Seifenspender reinigen","Seifenspender nachfüllen","Handtuchhalter reinigen","Mülleimer innen reinigen","Mülleimer außen reinigen",
-  "Toilettenspülknopf reinigen","Toilettensitz-Scharniere reinigen","Duschkopf entkalken","Duschschlauch außen reinigen",
+  "Duschkopf entkalken","Duschschlauch außen reinigen",
   "Duschschienen / Führungsschienen reinigen","Duschablauf-Haarsieb reinigen","Lüftungsgitter reinigen, falls vorhanden",
 "Badematte nach Pflegeetikett waschen, falls vorhanden","Handtücher nach Pflegeetikett waschen"
  ]],
  ["Eltern-WC","OG",[
   "Seifenspender reinigen","Seifenspender nachfüllen","Handtuchhalter reinigen","Mülleimer innen reinigen","Mülleimer außen reinigen",
-  "Toilettenspülknopf reinigen","Toilettensitz-Scharniere reinigen","Lüftungsgitter reinigen, falls vorhanden",
+  "Lüftungsgitter reinigen, falls vorhanden",
 "Badematte nach Pflegeetikett waschen, falls vorhanden"
  ]],
  ["Schlafzimmer","OG",[
@@ -2527,6 +2526,13 @@ function definition(x){
    else if(/glasflächen/.test(t))set("Die zugänglichen Glasflächen der Sauna streifenfrei reinigen und von Fingerabdrücken sowie Kalk-/Wasserspuren befreien.",["Saunaglastür bzw. Glasflächen","Griffe und sichtbare Ränder"],["Keine anderen Räume oder Fenster zusätzlich reinigen"],["Glasreiniger sparsam einsetzen und empfindliche Dichtungen nicht unnötig durchnässen."]);
    else if(/saunaofen/.test(t))set("Den Saunaofen ausschließlich im Rahmen der vom Hersteller vorgesehenen äußeren Reinigung pflegen.",["zugängliche Außenflächen des Saunaofens","Ofenumfeld, soweit in der Anleitung vorgesehen"],["Ofen nicht öffnen oder zerlegen","Steine, Elektroanschlüsse und technische Bauteile nicht eigenmächtig warten"],["Nur vollständig abgekühlt arbeiten und ausschließlich die Herstellerangaben befolgen."]);
    else set("Den Saunaraum im genannten Umfang reinigen und anschließend gut lüften.",["Bänke","Boden","zugängliche Glas- und Holzflächen"],["Saunaofen nicht zerlegen","Keine technischen Komponenten öffnen"],["Holz und Saunaofen ausschließlich nach Herstellerangaben behandeln."]);
+ }
+ else if(/^toilette gründlich reinigen$/i.test(t)){
+   if(room==="Gäste-WC"){
+     set("Die gesamte Toilettenanlage im Gäste-WC gründlich und hygienisch reinigen. Das Paket umfasst das WC und zusätzlich das vorhandene Pissoir einschließlich der zugehörigen Kontaktflächen.", ["WC-Becken innen und Toilettenrand","WC-Sitz, Deckel und Scharniere","Spültaste sowie WC-Außenseite und -Fuß","WC-Bürste und Bürstenhalter innen","Pissoir innen und außen","Pissoir-Spülung und zugängliche Kontaktflächen","sichtbare Spritzer direkt an den Anlagen"], ["Waschbecken, Armatur, Spiegel und Papierhalter – diese bleiben eigene Aufgaben","Boden des gesamten Raumes und andere Badarbeiten"], ["Handschuhe tragen; für WC und Pissoir getrennte Tücher bzw. Reinigungsutensilien verwenden und danach hygienisch reinigen.","Saure WC-Reiniger niemals mit Chlor-/Bleichmitteln mischen."]);
+   } else {
+     set("Die gesamte Toilette im genannten Raum gründlich und hygienisch reinigen. Alle zugehörigen WC-Schritte werden als ein Paket erledigt.", ["WC-Becken innen und unter dem Rand","Sitz, Deckel und Scharniere","Spültaste","Keramik, Außenseite und Toilettenfuß","WC-Bürste und Bürstenhalter innen","sichtbare Spritzer direkt an der Toilette"], ["Waschbecken, Armatur, Spiegel und Dusche/Badewanne – diese bleiben eigene Aufgaben","Boden des gesamten Raumes und andere Badarbeiten"], ["Handschuhe tragen und Reinigungsutensilien für die Toilette nicht für andere Oberflächen verwenden.","Saure WC-Reiniger niemals mit Chlor-/Bleichmitteln mischen."]);
+   }
  }
  else if(/toilette innen gründlich/.test(t)){
    set("Das WC-Becken innen gründlich reinigen, besonders unter dem Rand sowie sichtbare Kalk-, Urin- und andere Ablagerungen entfernen.",["WC-Becken innen","Toilettenrand innen","sichtbare Ablagerungen"],["WC-Außenseite, Boden und andere Sanitärobjekte nicht automatisch mitreinigen"],["Handschuhe tragen; saure WC-Reiniger niemals mit Chlor-/Bleichmitteln mischen."]);
