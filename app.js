@@ -1,5 +1,5 @@
 /* Unser Zuhause – V249 · Ausflug/Urlaub als haushaltsfreie Tage */
-const APP_BUILD="V362";
+const APP_BUILD="V363";
 const PLAN_TOLERANCE_DAYS=14;
 const STORAGE="unser-zuhause-v310";
 const LEGACY_STORAGE="unser-zuhause-v303";
@@ -1512,7 +1512,7 @@ function rawTasksForDate(d){return CATALOG.filter(x=>rawDueOn(x,d))}
 function plannerKey(){
  // Do not key the expensive planner off the generic save revision: toggling a
  // UI state (e.g. opening Erledigt) must not force a full year re-plan.
- return "v362|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
+ return "v363|tol"+PLAN_TOLERANCE_DAYS+"|"+FIRST_COMPLETION_DEADLINE_KEY+"|"+JSON.stringify(state.manualDates||{})+"|"+JSON.stringify(state.catalogDates||{})+"|"+JSON.stringify(state.initialDueDates||{})+"|"+CATALOG.length+"|"+JSON.stringify(state.lastDone||{})+"|"+JSON.stringify(state.catalogDeleted||{})+"|"+JSON.stringify(state.custom||[])+"|"+JSON.stringify(state.catalogEdits||{})+"|"+JSON.stringify(state.effortOverrides||{})+"|"+JSON.stringify(state.postponed||{})+"|"+JSON.stringify(state.todayPlanLock||{})+"|"+JSON.stringify(state.sundayOptional||{})+"|"+JSON.stringify(state.householdFreeDays||{});
 }
 function firstCompletionDeadline(ref=today){
   const configured=fromKey(FIRST_COMPLETION_DEADLINE_KEY);
@@ -1533,9 +1533,12 @@ function planningNextDue(x,ref=today){
  if(explicit||x.start||x.manualStart)return nextDue(x,ref);
  const savedLast=lastDone(x);
  if(savedLast)return nextDue(x,ref);
- // The task's own cadence / initial due date is authoritative. First-time
- // tasks are not pushed toward an arbitrary onboarding deadline; placement is
- // constrained separately to +/-14 days around this date.
+ // V363: never defer essential short-cycle care during the initial setup.
+ // Weekly/fortnightly hygiene and bed-linen tasks start as due now; the fixed
+ // weekday routine may then place them on its next practical routine day.
+ if(!hasFirstCompletion(x) && (isFixedRhythmRoutine(x)||catalogInterval(x)<=14))return new Date(ref);
+ // The task's own cadence / initial due date is authoritative for longer-cycle
+ // jobs. Placement is constrained separately around this due date.
  const initial=normalizeDateKey(state.initialDueDates?.[x.key]||x.initialDue);
  if(initial){const id=fromKey(initial);return id<fromKey(dayKey(ref))?fromKey(dayKey(ref)):id;}
  const raw=rawNextDue(x,ref);
@@ -1544,16 +1547,17 @@ function planningNextDue(x,ref=today){
 }
 function plannerHorizon(){
  const start=new Date(today.getFullYear(),today.getMonth(),today.getDate(),12);
- // V355: reserve enough calendar capacity for the initial household backlog.
- // A short horizon pushed the old emergency paths to overload individual days.
- // Normal placements still honor their due-date tolerance; only tasks that
- // cannot fit there use the later balanced slots.
- let end=addDays(start,365);
+ // V363: ordinary household tasks must never be pushed into a year-long
+ // overflow queue. A six-month horizon is enough for the initial room-by-room
+ // catch-up while keeping the calendar actionable. Only genuinely dated
+ // seasonal/window work and fixed appointments may extend that horizon.
+ let end=addDays(start,180);
  for(const x of CATALOG){
    if(isDailyTask(x)||isInvalidLegacyTask(x))continue;
+   if(!(x.window||x.raffstore||x.seasonal||x.fixedExact||x.source==="seasonal"))continue;
    const due=planningNextDue(x,today);
    if(due instanceof Date && !Number.isNaN(due.getTime())){
-     const candidate=addDays(due,30);
+     const candidate=addDays(due,14);
      if(candidate>end)end=candidate;
    }
  }
@@ -1655,9 +1659,9 @@ function buildIntelligentPlan(){
     if(isRestDay(d))return false;
     if(!arr)return false;
     if(arr.some(y=>taskId(y)===taskId(x)))return false;
-    // V356: normal household days may contain work packages from up to TWO physical rooms.
-    // This makes a reliable whole-house rotation possible while keeping the day focused.
-    if(!opts.allowFixedRoutine && !isFixedTask(x) && roomCountAfter(arr,x)>2)return false;
+    // V363: the two-physical-room ceiling is absolute, including fixed weekly
+    // hygiene and bed-linen routines. No special routine may introduce a third room.
+    if(roomCountAfter(arr,x)>2)return false;
     if(!windowCompatible(arr,x))return false;
     // Normal work is limited by TWO work units. Fixed/exact routines remain an
     // intentional exception (e.g. the Tuesday sanitation block).
@@ -1754,7 +1758,10 @@ function buildIntelligentPlan(){
 
   const place=(x,preferred,opts={})=>{
     if(!preferred)preferred=planningNextDue(x,today);
-    const range=Math.min(PLAN_TOLERANCE_DAYS,Math.max(0,opts.range??PLAN_TOLERANCE_DAYS));
+    // Short-cycle tasks may move only a few days for capacity reasons; do not
+    // let a weekly/fortnightly task drift to the far edge of the general window.
+    const cadenceCap=catalogInterval(x)<=14?3:PLAN_TOLERANCE_DAYS;
+    const range=Math.min(cadenceCap,PLAN_TOLERANCE_DAYS,Math.max(0,opts.range??PLAN_TOLERANCE_DAYS));
     let best=null;
     const todayLockKey=dayKey(today);
     const tid=taskId(x);
@@ -2172,11 +2179,11 @@ function tasksFromIds(ids){
 }
 function ensureTodayPlanSnapshotIds(){
  const k=dayKey(today);
- // V362 one-time capacity migration: refresh today's old automatically generated
- // manifest so the new ten-task ceiling can take effect immediately. Preserve an
- // explicitly locked plan, all completion history, and separately added tasks.
- if(!state.__v362CapacityMigration){
-   state.__v362CapacityMigration=true;
+ // V363: rebuild today's automatically generated manifest once so overdue
+ // recurring tasks (e.g. bed linen) become visible immediately. Preserve an
+ // explicitly locked plan, completion history and separately added tasks.
+ if(!state.__v363DueNowMigration){
+   state.__v363DueNowMigration=true;
    if(!state.todayPlanLock?.[k] && state.todayPlanSnapshot && Object.prototype.hasOwnProperty.call(state.todayPlanSnapshot,k))delete state.todayPlanSnapshot[k];
    todaySnapshotSetCache=null;todaySnapshotSetCacheKey="";
    try{localStorage.setItem(STORAGE,JSON.stringify(state))}catch{}
@@ -2235,7 +2242,7 @@ function nextDue(x,ref=today){
      const interval=Math.max(1,catalogInterval(x));
      let d=fromKey(anchor);
      while(d<ref)d=addDays(d,interval);
-     return d;
+     return d<ref?new Date(ref):d;
    }
  }
  // The lifecycle has a strict order:
@@ -2247,14 +2254,15 @@ function nextDue(x,ref=today){
  const last=lastDone(x);
  if(last){
    const interval=Math.max(1,catalogInterval(x));
-   let d=addDays(fromKey(last),interval);
-   while(d<ref)d=addDays(d,interval);
-   return d;
+   const d=addDays(fromKey(last),interval);
+   // Do not skip missed cycles. If the interval elapsed while life was busy,
+   // the task becomes due now instead of disappearing until the next cycle.
+   return d<ref?new Date(ref):d;
  }
  const override=normalizeDateKey(state.manualDates?.[x.key]||state.catalogDates?.[x.key]);
- if(/^\d{4}-\d{2}-\d{2}$/.test(override||"")){const od=fromKey(override);if(od>=ref)return od;}
- if(x.manualStart&&normalizeDateKey(x.start)){const sd=fromKey(x.start);if(sd>=ref)return sd;}
- if(x.start)return explicitNext(x,ref);
+ if(/^\d{4}-\d{2}-\d{2}$/.test(override||"")){const od=fromKey(override);return od<ref?new Date(ref):od;}
+ if(x.manualStart&&normalizeDateKey(x.start)){const sd=fromKey(x.start);return sd<ref?new Date(ref):sd;}
+ if(x.start){const sd=fromKey(x.start);return sd<ref?new Date(ref):explicitNext(x,ref);}
  if(!last){const initial=normalizeDateKey(state.initialDueDates?.[x.key]||x.initialDue);if(initial){const id=fromKey(initial);return id>=fromKey(dayKey(ref))?id:fromKey(dayKey(ref));}}
  return rawNextDue(x,ref);
 }

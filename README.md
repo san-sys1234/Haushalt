@@ -1,18 +1,18 @@
-# Unser Zuhause – V362
+# Unser Zuhause – V363
 
-## Korrekturen
-- Tageskapazität erhöht: bis zu 10 zusätzliche Haushaltsaufgaben pro Arbeitstag; tägliche Routinen zählen nicht dazu.
-- Arbeitsmengenbudget erweitert, damit kleinere und mittlere Aufgaben sinnvoll nach höchstens zwei Räumen bzw. Arbeitspaketen gebündelt werden können.
-- Paketgrenzen für kleine Aufgaben moderat erweitert, ohne große Aufgaben oder Fenster-/Raffstore-Arbeiten mit anderen Haushaltsaufgaben zu kombinieren.
-- Sonntag bleibt frei. Zusätzlich wird pro Kalenderwoche ein weiterer freier Tag reserviert; alle Platzierungs- und Notfallpfade respektieren diesen Tag.
-- Der zweite freie Tag wird in der Jahresübersicht farblich markiert und im Tagesdetail benannt.
-- Wenn ein alter eingefrorener Tagesplan für den aktuellen Tag auf den neu reservierten freien Tag fällt, wird nur dieser Tagesplan geleert; Erledigungshistorie, manuelle Termine und separat hinzugefügte Aufgaben bleiben unberührt.
-- Prioritätsreihenfolge der Erst-Reinigungsrunde und die Gliederung der Tagesroutinen bleiben erhalten.
+## Änderungen in V363
+- Überfällige wiederkehrende Aufgaben werden ab sofort als heute fällig behandelt, statt dass verpasste Intervalle übersprungen und erst der nächste zukünftige Zyklus angezeigt wird.
+- Kurzzyklische Erstaufgaben (bis einschließlich 14 Tage), insbesondere Bettwäsche und Hygieneaufgaben, starten bereits jetzt und werden nicht künstlich 30–120 Tage in die Zukunft verteilt.
+- Aufgaben mit einem Intervall von höchstens 14 Tagen dürfen bei der Planung nur noch um maximal drei Tage verschoben werden.
+- Manuelle Fälligkeitstermine in der Vergangenheit werden ebenfalls als jetzt fällig behandelt.
+- Der normale Planungshorizont wurde von einem Jahr auf sechs Monate begrenzt. Nur echte saisonale/Fenster- und Fixtermine dürfen ihn erweitern. Damit kann die normale Haushaltsplanung Aufgaben nicht mehr durch einen Jahres-Overflow bis 2028 verschieben.
+- Der automatisch erzeugte heutige Tagesplan wird einmalig neu berechnet, damit die korrigierte Fälligkeitslogik sofort sichtbar wird. Explizit gesperrte Tagespläne bleiben erhalten.
+- Der bestehende Speicher-Schlüssel bleibt unverändert; Aufgaben, Erledigungshistorie und Einstellungen werden nicht zurückgesetzt.
 
-## Update
+## Installation
 1. Vor dem Update ein aktuelles Backup in der App exportieren.
-2. Alle Dateien aus diesem ZIP ins bestehende Hosting-Verzeichnis kopieren und überschreiben.
-3. App/PWA vollständig schließen und neu öffnen.
+2. Alle Dateien aus dem ZIP in das bestehende Hosting-Verzeichnis kopieren und überschreiben.
+3. App/PWA vollständig schließen und neu öffnen. Der Service Worker verwendet einen neuen Cache.
 
-## Prüfung
-JavaScript-Syntax und ZIP-Integrität geprüft. Ein vollständiger Live-Test mit dem persönlichen iPhone-Datenbestand wurde nicht durchgeführt.
+## Hinweis
+Die Zwei-Räume-Regel und die bisherigen Tageskapazitätsgrenzen bleiben unverändert. Saisonale Fenstertermine dürfen weiterhin in der Zukunft liegen, wenn sie tatsächlich saisonal vorgesehen sind.
