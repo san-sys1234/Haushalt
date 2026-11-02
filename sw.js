@@ -1,35 +1,5 @@
-/* Unser Zuhause service worker – v363. Keep all app assets on one build version. */
-const CACHE='unser-zuhause-v363';
-const ASSETS=['./','./index.html','./app.js?v=363','./manifest.json','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
-self.addEventListener('install',event=>{
-  event.waitUntil((async()=>{
-    const cache=await caches.open(CACHE);
-    // Do not activate a partially cached release: addAll rejects if any asset fails.
-    await cache.addAll(ASSETS);
-    await self.skipWaiting();
-  })());
-});
-self.addEventListener('activate',event=>event.waitUntil((async()=>{
-  const keys=await caches.keys();
-  await Promise.all(keys.filter(key=>key.startsWith('unser-zuhause-')&&key!==CACHE).map(key=>caches.delete(key)));
-  await self.clients.claim();
-})()));
-self.addEventListener('fetch',event=>{
-  if(event.request.method!=='GET')return;
-  const url=new URL(event.request.url);
-  if(url.origin!==self.location.origin)return;
-  event.respondWith((async()=>{
-    const cache=await caches.open(CACHE);
-    const cached=await cache.match(event.request);
-    if(cached)return cached;
-    try{
-      const response=await fetch(event.request);
-      if(response&&response.ok&&event.request.url.startsWith(self.location.origin))await cache.put(event.request,response.clone());
-      return response;
-    }catch(error){
-      const fallback=await cache.match('./index.html');
-      if(fallback)return fallback;
-      throw error;
-    }
-  })());
-});
+const CACHE='unser-zuhause-v2-cache-1';
+const FILES=['./','./index.html','./styles.css','./app.js','./manifest.json','./unser-zuhause-v2-migrationsdaten.json','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(caches.match(e.request).then(hit=>hit||fetch(e.request).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return res}).catch(()=>caches.match('./index.html'))))});
