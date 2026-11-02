@@ -1,42 +1,46 @@
 # Unser Zuhause V2
 
-Eigenständige, offlinefähige Haushalts-PWA für iPhone und GitHub Pages. Die App wurde neu aufgebaut und übernimmt die V363-Daten als Migrationsgrundlage, nicht aber die alte Termin- und Planungslogik.
+Elegante, mobile-first Haushaltsorganisations-PWA für iPhone und GitHub Pages.
 
 ## Dateien
 
 - `index.html` – App-Einstieg und Navigation
-- `styles.css` – responsives iPhone-Design
-- `app.js` – Aufgabenmodell, Tagesansicht, Kalender, Räume, Erledigungen, Bearbeitung und Backup
-- `unser-zuhause-v2-migrationsdaten.json` – Migrationsgrundlage aus V363
-- `manifest.json`, `sw.js` – PWA-Installation und Offline-Cache
+- `app.js` – Aufgabenverwaltung, Migration, Tagesplanung und Interaktionen
+- `styles.css` – elegantes Elfenbein-/Salbeigrün-Design und responsive Oberflächen
+- `manifest.json`, `sw.js` – PWA- und Offline-Konfiguration
+- `unser-zuhause-v2-migrationsdaten.json` – Migrationsgrundlage aus V363 und dem Backup vom 02.11.2026
 - `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` – App-Symbole
 
-## GitHub Pages veröffentlichen
+## GitHub Pages
 
-1. Ein neues GitHub-Repository anlegen, z. B. `unser-zuhause-v2`.
-2. **Alle Dateien aus diesem Ordner** direkt in das Stammverzeichnis des Repositorys hochladen (nicht nur die HTML-Datei).
-3. Unter **Settings → Pages** als Quelle `Deploy from a branch`, Branch `main`, Ordner `/ (root)` auswählen und speichern.
-4. Nach dem Deployment die angezeigte GitHub-Pages-Adresse in Safari am iPhone öffnen.
-5. In Safari auf **Teilen → Zum Home-Bildschirm** tippen.
+1. Alle Dateien aus diesem Ordner in das Stammverzeichnis eines GitHub-Repositories hochladen.
+2. In **Settings → Pages** `Deploy from a branch`, Branch `main`, Ordner `/ (root)` auswählen.
+3. Die veröffentlichte URL in Safari am iPhone öffnen und über **Teilen → Zum Home-Bildschirm** installieren.
+4. Die App beim ersten Öffnen online laden lassen. Danach werden die App-Dateien über den Service Worker offline bereitgestellt.
 
-## Datenhaltung und Backup
+## Bedienkonzept
 
-- Der V2-Zustand wird lokal im Browser (`localStorage`) gespeichert.
-- Über „Mehr → Backup exportieren“ regelmäßig eine JSON-Datensicherung erstellen.
-- Ein V2-Backup kann über „Mehr → Backup importieren“ wiederhergestellt werden.
-- Die ursprüngliche Migrationsdatei bleibt Bestandteil des Repositories. Bei einem leeren Browser wird daraus der Anfangsbestand erzeugt.
-- Die App synchronisiert Daten nicht automatisch zwischen mehreren Geräten. Dafür wäre später ein Backend erforderlich.
+- **Heute:** Tagesüberblick mit Gesamtminuten, Räumen, Aufgaben und Fortschritt.
+- Tägliche Routinen sind nach **Morgens**, **Nach Mahlzeiten**, **Abends** und **Tagescheck** gruppiert.
+- Geplante Reinigungsaufgaben sind nach **Räumen** gebündelt. Beide Gruppierungsebenen sind einklappbar.
+- **Kalender:** Monatsansicht, Tagesdetails und manuell markierbare haushaltsfreie Tage.
+- **Aufgaben:** durchsuchbarer und filterbarer Gesamtkatalog.
+- **Räume:** Räume nach Stockwerk sowie der Fensterbestand.
+- **Mehr:** Regeln, Backups, Import/Export und Migrationsinformationen.
 
-## Planungsregeln V2
+## Verbindliche Planungsregeln
 
-- Ein aktiver Vorgang hat genau ein maßgebliches Datum: `nextDate`.
-- Der nächste Termin nach Erledigung ergibt sich aus Erledigungsdatum plus Intervall.
-- Normale Haushaltstage: höchstens 45 Minuten und maximal zwei Räume.
-- Hygieneaufgaben dürfen das Zeitlimit ausnahmsweise überschreiten, nicht aber die Zwei-Räume-Grenze.
-- Haushaltsfreie Tage zeigen nur kleine tägliche Routinen.
-- Überfällige Aufgaben werden nicht stillschweigend in die Zukunft verschoben. Kapazitätsprobleme werden als Planungshinweise angezeigt.
-- Manuelle Terminänderungen sind direkt an der Aufgabe möglich.
+- Normale Haushaltstage: höchstens 45 Minuten geplante Raumaufgaben.
+- Höchstens zwei Räume pro Haushaltstag, auch bei Hygiene-Ausnahmen.
+- Hygieneaufgaben dürfen ausnahmsweise das Zeitlimit überschreiten.
+- Haushaltsfreie Tage zeigen nur kleine tägliche Routinen; die Raumrotation pausiert.
+- Jede aktive Aufgabe hat genau ein maßgebliches Datum (`nextDate`).
+- Planungskonflikte werden sichtbar ausgewiesen und nicht stillschweigend in die Zukunft verschoben.
 
-## Hinweis zum aktuellen Planer
+## Datensicherheit
 
-Dies ist eine funktionsfähige V2-Grundversion mit neuem Datenmodell und transparenten Kapazitätshinweisen. Die automatische mehrwöchige Optimierung der Raumrotation und eine geräteübergreifende Synchronisierung sind noch nicht enthalten. Die Ersttermine für Aufgaben ohne Erledigungshistorie werden initial gestaffelt, damit nicht der gesamte Katalog am selben Tag fällig wird.
+Der V2-Zustand wird lokal im Browser gespeichert. Über **Mehr → Backup exportieren** regelmäßig eine JSON-Sicherung herunterladen. Vor dem ersten produktiven Einsatz und nach größeren Änderungen eine Sicherung erstellen. Das alte V363-Backup bleibt separat aufzubewahren.
+
+## Technischer Status
+
+Dies ist die überarbeitete V2-Grundversion mit neu strukturierter Heute-Ansicht und eleganter visueller Hierarchie. Vor dem endgültigen Ersatz von V363 sind insbesondere die vollständige dynamische Raumrotation, umfangreiche Migrationstests und iPhone-Installations-/Offline-Tests mit echten Nutzungsdaten weiter zu validieren. Die PWA speichert lokal und synchronisiert nicht automatisch zwischen mehreren Geräten.
