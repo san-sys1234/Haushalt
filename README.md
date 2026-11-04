@@ -44,3 +44,7 @@ Der V2-Zustand wird lokal im Browser gespeichert. Über **Mehr → Backup export
 ## Technischer Status
 
 Dies ist die überarbeitete V2-Grundversion mit neu strukturierter Heute-Ansicht und eleganter visueller Hierarchie. Vor dem endgültigen Ersatz von V363 sind insbesondere die vollständige dynamische Raumrotation, umfangreiche Migrationstests und iPhone-Installations-/Offline-Tests mit echten Nutzungsdaten weiter zu validieren. Die PWA speichert lokal und synchronisiert nicht automatisch zwischen mehreren Geräten.
+
+## Neue Funktionen – Energie & Erledigungshistorie
+- In der Aufgabenbearbeitung können einzelne Raumaufgaben über „Ich habe Energie – heute vorziehen“ in den fixierten Tagesplan aufgenommen werden. Die Aktion respektiert maximal zwei Räume und 45 Minuten (Hygieneaufgaben ausgenommen); bei ausgeschöpfter Kapazität wird nichts verändert.
+- Im Aufgabenkatalog werden Aufgaben, die mindestens einmal erledigt wurden (Erledigungsdatum, Historie oder Erledigungsprotokoll), dezent grün markiert.
