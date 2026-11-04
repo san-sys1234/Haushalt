@@ -45,3 +45,20 @@ button, input, select, textarea, a, summary {
 .completed-fold[open]>summary{border-bottom:1px solid var(--line,#e7e2d8)}
 .completed-fold .completed-list{padding:4px 12px 10px}
 .completed-fold .task-card{opacity:.78}
+
+/* Room focus overview: upcoming room-by-room schedule */
+.room-focus-wrap{background:#f8f6f0;border:1px solid #dedbd2;padding:13px;margin:0 0 22px;border-radius:4px}
+.room-focus-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.room-focus-intro h2{font:500 22px/1.05 Georgia,"Times New Roman",serif;margin:5px 0 0;letter-spacing:-.03em}
+.room-focus-help{margin:8px 0 12px;font-size:10px;line-height:1.45}
+.room-focus-day{display:grid;grid-template-columns:94px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid #e4e0d7}
+.room-focus-date strong{display:block;font:500 13px Georgia,serif;color:#536454;text-transform:capitalize}
+.room-focus-date span{display:block;font-size:10px;color:#85847c;margin-top:3px}
+.room-focus-content{display:grid;gap:5px}
+.room-focus-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11px}
+.room-focus-name{font-weight:650;color:#383b34}
+.room-focus-detail{font-size:9px;color:#85847c;text-align:right;white-space:nowrap}
+.room-focus-empty{padding:14px;background:#f8f6f0;border:1px solid #dedbd2;color:#777970;font-size:11px;margin-bottom:18px}
+
+/* Raumweise Gruppierung in Katalog und Kalenderdetails */
+.catalog-room-list{padding:8px 16px}.catalog-room-group+.catalog-room-group{border-top:1px solid var(--line,#e8e3d9);margin-top:8px;padding-top:8px}.catalog-room-heading{display:flex;align-items:center;justify-content:space-between;padding:9px 2px 5px;color:var(--ink,#34342f);font-family:Georgia,serif;font-size:1.05rem}.catalog-room-heading span{font: .76rem system-ui,sans-serif;color:var(--muted,#85857d)}.catalog-room-group .catalog-item{padding:10px 2px}

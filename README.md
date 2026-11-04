@@ -58,3 +58,7 @@ Die Oberfläche verwendet `touch-action: manipulation`, damit versehentliche Dop
 Erledigte Routinen und erledigte Haushaltsaufgaben werden in der Heute-Ansicht jeweils in einem eigenen, standardmäßig geschlossenen Bereich angezeigt. Über die jeweilige Zeile mit Häkchen und Anzahl lassen sie sich bei Bedarf aufklappen. Die Aufgaben bleiben im Tagesfortschritt und in der Erledigungshistorie enthalten.
 
 Der Service-Worker-Cache wurde auf `unser-zuhause-v2-cache-6` erhöht.
+
+## Raum-Schwerpunktübersicht
+
+Im Bereich **Räume** steht oberhalb der Raumliste eine Vorausschau für die nächsten sechs Wochen. Sie gruppiert Raumaufgaben nach ihrem konkret gespeicherten nächsten Termin (`nextDate`) und zeigt pro Datum die eingeplanten Räume, Aufgabenanzahl und Minuten. Tägliche Routinen werden nicht in diese Raumübersicht eingerechnet.
