@@ -48,3 +48,13 @@ Dies ist die überarbeitete V2-Grundversion mit neu strukturierter Heute-Ansicht
 ## Neue Funktionen – Energie & Erledigungshistorie
 - In der Aufgabenbearbeitung können einzelne Raumaufgaben über „Ich habe Energie – heute vorziehen“ in den fixierten Tagesplan aufgenommen werden. Die Aktion respektiert maximal zwei Räume und 45 Minuten (Hygieneaufgaben ausgenommen); bei ausgeschöpfter Kapazität wird nichts verändert.
 - Im Aufgabenkatalog werden Aufgaben, die mindestens einmal erledigt wurden (Erledigungsdatum, Historie oder Erledigungsprotokoll), dezent grün markiert.
+
+
+## iPhone-Bedienung
+Die Oberfläche verwendet `touch-action: manipulation`, damit versehentliche Doppeltipp-Zooms auf Bedienelementen und im Inhalt unterbunden werden. Pinch-to-Zoom bleibt verfügbar; die systemweite Zoom-Funktion wird nicht deaktiviert. Der Service-Worker-Cache wurde auf Version 5 erhöht.
+
+## Neue Anzeige erledigter Aufgaben
+
+Erledigte Routinen und erledigte Haushaltsaufgaben werden in der Heute-Ansicht jeweils in einem eigenen, standardmäßig geschlossenen Bereich angezeigt. Über die jeweilige Zeile mit Häkchen und Anzahl lassen sie sich bei Bedarf aufklappen. Die Aufgaben bleiben im Tagesfortschritt und in der Erledigungshistorie enthalten.
+
+Der Service-Worker-Cache wurde auf `unser-zuhause-v2-cache-6` erhöht.

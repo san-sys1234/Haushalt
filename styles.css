@@ -26,3 +26,22 @@ main{max-width:760px;padding:20px 15px 28px}
 .catalog-item.catalog-completed strong{color:#49664b}
 .catalog-item.catalog-completed small{color:#6e846d}
 .energy-action{background:#e8eee5;border-color:#d4dfd0;color:#4f684f;white-space:normal;line-height:1.25}
+
+
+/* iOS: prevent accidental double-tap zoom while keeping pinch-to-zoom available. */
+html, body, button, input, select, textarea, a, summary {
+  touch-action: manipulation;
+}
+button, input, select, textarea, a, summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+/* Erledigte Aufgaben bleiben sichtbar, sind aber standardmäßig eingeklappt. */
+.completed-fold{margin:10px 0 14px;border:1px solid var(--line,#e7e2d8);border-radius:14px;background:rgba(255,255,255,.48);overflow:hidden}
+.completed-fold>summary{display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;padding:11px 14px;color:var(--muted,#77786f);font-size:.88rem;font-weight:600}
+.completed-fold>summary::-webkit-details-marker{display:none}
+.completed-fold>summary .completed-count{margin-left:auto;min-width:23px;text-align:center;padding:2px 7px;border-radius:99px;background:#e5ece2;color:#5f765d;font-size:.75rem}
+.completed-fold[open]>summary{border-bottom:1px solid var(--line,#e7e2d8)}
+.completed-fold .completed-list{padding:4px 12px 10px}
+.completed-fold .task-card{opacity:.78}
